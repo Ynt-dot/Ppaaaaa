@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Вход</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'cartoons/css/style.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h2>Вход</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn">Войти</button>
+        </form>
+        <p style="text-align: center;">Нет аккаунта? <a href="{% url 'register' %}">Зарегистрироваться</a></p>
+    </div>
+</body>
+</html>

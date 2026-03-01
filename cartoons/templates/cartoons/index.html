@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Мультики</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'cartoons/css/style.css' %}">
+</head>
+<body>
+    <div class="header">
+        {% if user.is_authenticated %}
+            Привет, {{ user.username }} | <a href="{% url 'logout' %}">Выйти</a>
+        {% else %}
+            <a href="{% url 'login' %}">Войти</a> | <a href="{% url 'register' %}">Регистрация</a>
+        {% endif %}
+    </div>
+    
+    <div class="container">
+        <h1>Все мультики</h1>
+        <a href="{% url 'editor_create' %}" class="btn">➕ Создать новый мульт</a>
+        
+        <div class="grid">
+            {% for cartoon in cartoons %}
+            <div class="cartoon-card">
+                <a href="{% url 'detail' cartoon.pk %}">
+                    {% if cartoon.preview %}
+                    <img src="{{ cartoon.preview.url }}" alt="{{ cartoon.title }}">
+                    {% endif %}
+                    <h3>{{ cartoon.title }}</h3>
+                    <p>Автор: {{ cartoon.author.username }}</p>
+                </a>
+            </div>
+            {% empty %}
+            <p>Пока нет ни одного мультика. Создайте первый!</p>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

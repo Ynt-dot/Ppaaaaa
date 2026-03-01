@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Регистрация</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'cartoons/css/style.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h2>Регистрация</h2>
+        <form method="post">
+            {% csrf_token %}
+            
+            <!-- Выводим общие ошибки формы, если есть -->
+            {% if form.non_field_errors %}
+                <div style="color: red; margin-bottom: 10px;">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <!-- Поле username -->
+            <label for="{{ form.username.id_for_label }}">Имя пользователя:</label>
+            {{ form.username }}
+            {% if form.username.errors %}
+                <div style="color: red; font-size: 0.9rem;">{{ form.username.errors }}</div>
+            {% endif %}
+            <small style="color: #777;">Обязательное поле. Не более 150 символов. Только буквы, цифры и @/./+/-/_.</small>
+
+            <!-- Поле password1 -->
+            <label for="{{ form.password1.id_for_label }}">Пароль:</label>
+            {{ form.password1 }}
+            {% if form.password1.errors %}
+                <div style="color: red; font-size: 0.9rem;">{{ form.password1.errors }}</div>
+            {% endif %}
+            <small style="color: #777;">Пароль не должен быть слишком похож на другую личную информацию, должен содержать не менее 8 символов, не должен быть слишком простым и состоять только из цифр.</small>
+
+            <!-- Поле password2 -->
+            <label for="{{ form.password2.id_for_label }}">Подтверждение пароля:</label>
+            {{ form.password2 }}
+            {% if form.password2.errors %}
+                <div style="color: red; font-size: 0.9rem;">{{ form.password2.errors }}</div>
+            {% endif %}
+            <small style="color: #777;">Введите тот же пароль для подтверждения.</small>
+
+            <button type="submit" class="btn">Зарегистрироваться</button>
+        </form>
+        <p style="text-align: center;">
+            Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a>
+        </p>
+    </div>
+</body>
+</html>
