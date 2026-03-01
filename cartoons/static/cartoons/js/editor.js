@@ -200,3 +200,110 @@ if (form) {
 
 // Запускаем инициализацию после загрузки DOM
 document.addEventListener('DOMContentLoaded', initFrames);
+
+// Предпросмотр анимации
+const previewBtn = document.getElementById('preview-btn');
+const previewModal = document.getElementById('previewModal');
+const previewFrame = document.getElementById('preview-frame');
+const previewSlider = document.getElementById('preview-slider');
+const previewCounter = document.getElementById('preview-counter');
+const previewPlayPause = document.getElementById('preview-playpause');
+
+let previewPlaying = false;
+let previewInterval = null;
+let previewCurrentFrame = 0;
+let previewFrames = [];
+let previewFps = 12;
+
+if (previewBtn && previewModal) {
+    previewBtn.addEventListener('click', function() {
+        // Сохраняем текущий кадр в массив
+        if (currentFrameIndex >= 0) {
+            frames[currentFrameIndex] = canvas.toDataURL();
+        }
+        // Берём копию кадров
+        previewFrames = frames.slice();
+        // Получаем FPS из поля ввода
+        const fpsInput = document.querySelector('input[name="fps"]');
+        previewFps = fpsInput ? parseInt(fpsInput.value) : 12;
+
+        // Настраиваем слайдер
+        previewSlider.max = previewFrames.length - 1;
+        previewSlider.value = 0;
+        previewCounter.textContent = `1 / ${previewFrames.length}`;
+        // Показываем первый кадр
+        previewFrame.src = previewFrames[0];
+        previewCurrentFrame = 0;
+
+        // Если ранее был запущен предпросмотр, останавливаем
+        if (previewInterval) {
+            clearInterval(previewInterval);
+            previewInterval = null;
+            previewPlaying = false;
+            previewPlayPause.textContent = '▶️ Воспроизвести';
+        }
+
+        // Показываем модальное окно через Bootstrap
+        const modal = new bootstrap.Modal(previewModal);
+        modal.show();
+
+        // Автоматически запускаем воспроизведение после открытия
+        previewModal.addEventListener('shown.bs.modal', function onShown() {
+            playPreview();
+            previewModal.removeEventListener('shown.bs.modal', onShown);
+        });
+    });
+}
+
+function loadPreviewFrame(index) {
+    if (index < 0 || index >= previewFrames.length) return;
+    previewCurrentFrame = index;
+    previewFrame.src = previewFrames[index];
+    previewSlider.value = index;
+    previewCounter.textContent = `${index+1} / ${previewFrames.length}`;
+}
+
+function playPreview() {
+    if (previewPlaying) return;
+    previewPlaying = true;
+    previewPlayPause.textContent = '⏸️ Пауза';
+    const delay = 1000 / previewFps;
+    previewInterval = setInterval(() => {
+        let nextFrame = (previewCurrentFrame + 1) % previewFrames.length;
+        loadPreviewFrame(nextFrame);
+    }, delay);
+}
+
+function pausePreview() {
+    if (!previewPlaying) return;
+    previewPlaying = false;
+    previewPlayPause.textContent = '▶️ Воспроизвести';
+    clearInterval(previewInterval);
+    previewInterval = null;
+}
+
+if (previewPlayPause) {
+    previewPlayPause.addEventListener('click', () => {
+        if (previewPlaying) {
+            pausePreview();
+        } else {
+            playPreview();
+        }
+    });
+}
+
+if (previewSlider) {
+    previewSlider.addEventListener('input', function() {
+        if (previewPlaying) pausePreview();
+        loadPreviewFrame(parseInt(this.value));
+    });
+}
+
+// Очистка при закрытии модального окна
+previewModal.addEventListener('hidden.bs.modal', function() {
+    if (previewInterval) {
+        clearInterval(previewInterval);
+        previewInterval = null;
+        previewPlaying = false;
+    }
+});

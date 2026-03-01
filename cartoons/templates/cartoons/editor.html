@@ -28,6 +28,7 @@
                     <button type="button" id="add-frame" class="btn btn-primary">➕ Добавить кадр</button>
                     <button type="button" id="copy-frame" class="btn btn-outline-primary">📋 Копировать кадр</button>
                     <button type="button" id="delete-frame" class="btn btn-outline-danger">❌ Удалить кадр</button>
+                    <button type="button" id="preview-btn" class="btn btn-info">👁️ Предпросмотр</button>
                 </div>
             </div>
 
@@ -44,6 +45,33 @@
             <input type="hidden" name="frames" id="frames-input">
             <button type="submit" class="btn btn-primary w-100">💾 Сохранить мульт</button>
         </form>
+    </div>
+</div>
+<!-- Модальное окно предпросмотра -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">Предпросмотр анимации</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="preview-frame" src="" alt="Кадр" class="img-fluid rounded" style="max-height: 400px;">
+                <div class="mt-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span>Кадр</span>
+                        <input type="range" id="preview-slider" class="form-range" min="0" max="0" value="0">
+                        <span id="preview-counter">0 / 0</span>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-center mt-2">
+                        <button id="preview-playpause" class="btn btn-primary">▶️ Воспроизвести</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
