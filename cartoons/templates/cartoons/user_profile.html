@@ -1,11 +1,11 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}Все мультики{% endblock %}
+{% block title %}Мультики пользователя {{ profile_user.username }}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Все мультики</h1>
-    <a href="{% url 'editor_create' %}" class="btn btn-primary">➕ Создать новый мульт</a>
+    <h1>Мультики пользователя {{ profile_user.username }}</h1>
 </div>
 
 <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
@@ -23,7 +23,7 @@
                 <div class="card-body">
                     <h5 class="card-title">{{ cartoon.title }}</h5>
                     <p class="card-text text-muted">
-                        Автор: <a href="{% url 'user_profile' username=cartoon.author.username %}" class="text-decoration-none">{{ cartoon.author.username }}</a>
+                        Создан: {{ cartoon.created_at|date:"d.m.Y H:i" }}
                     </p>
                 </div>
             </a>
@@ -32,9 +32,13 @@
     {% empty %}
     <div class="col-12">
         <div class="alert alert-info">
-            Пока нет ни одного мультика. <a href="{% url 'editor_create' %}" class="alert-link">Создайте первый!</a>
+            У этого пользователя пока нет мультиков.
         </div>
     </div>
     {% endfor %}
+</div>
+
+<div class="mt-3">
+    <a href="{% url 'index' %}" class="btn btn-outline-secondary">← На главную</a>
 </div>
 {% endblock %}

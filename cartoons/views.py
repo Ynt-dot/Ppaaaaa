@@ -5,6 +5,7 @@ import json
 from .utils import create_gif_from_frames
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
+from django.contrib.auth.models import User
 
 
 def index(request):
@@ -93,3 +94,14 @@ def register(request):
     else:
         form = UserCreationForm()
     return render(request, 'registration/register.html', {'form': form})
+
+
+def user_profile(request, username):
+    # Получаем пользователя по имени или 404
+    user = get_object_or_404(User, username=username)
+    # Все мультики этого пользователя, отсортированные по новизне
+    cartoons = Cartoon.objects.filter(author=user).order_by('-created_at')
+    return render(request, 'cartoons/user_profile.html', {
+        'profile_user': user,
+        'cartoons': cartoons
+    })

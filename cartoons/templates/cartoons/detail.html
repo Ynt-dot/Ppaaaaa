@@ -39,7 +39,7 @@
             <div class="card-body">
                 <h1 class="card-title h3">{{ cartoon.title }}</h1>
                 <p class="card-text">
-                    <strong>Автор:</strong> {{ cartoon.author.username }}<br>
+                    <strong>Автор:</strong> <a href="{% url 'user_profile' username=cartoon.author.username %}" class="text-decoration-none">{{ cartoon.author.username }}</a><br>
                     <strong>Создан:</strong> {{ cartoon.created_at|date:"d.m.Y H:i" }}<br>
                     <strong>FPS:</strong> {{ cartoon.fps }}
                 </p>

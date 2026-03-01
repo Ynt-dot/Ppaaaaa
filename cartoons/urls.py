@@ -7,4 +7,5 @@ urlpatterns = [
     path('edit/<int:pk>/', views.editor, name='editor_edit'),
     path('cartoon/<int:pk>/', views.detail, name='detail'),
     path('register/', views.register, name='register'),
+    path('user/<str:username>/', views.user_profile, name='user_profile'),
 ]
