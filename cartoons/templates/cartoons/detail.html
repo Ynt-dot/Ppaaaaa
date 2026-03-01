@@ -23,7 +23,7 @@
                     <strong>FPS:</strong> {{ cartoon.fps }}
                 </p>
                 {% if user == cartoon.author %}
-                <a href="{% url 'editor_edit' cartoon.pk %}" class="btn btn-success w-100">✏ Редактировать</a>
+                <a href="{% url 'editor_edit' cartoon.pk %}" class="btn btn-primary">✏ Редактировать</a>
                 {% endif %}
             </div>
         </div>
