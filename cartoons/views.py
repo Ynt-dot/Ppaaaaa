@@ -14,7 +14,10 @@ def index(request):
 
 def detail(request, pk):
     cartoon = get_object_or_404(Cartoon, pk=pk)
-    return render(request, 'cartoons/detail.html', {'cartoon': cartoon})
+    context = {'cartoon': cartoon}
+    if cartoon.frames_data:
+        context['frames_json'] = json.dumps(cartoon.frames_data)
+    return render(request, 'cartoons/detail.html', context)
 
 
 @login_required

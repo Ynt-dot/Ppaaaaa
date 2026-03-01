@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ cartoon.title }}{% endblock %}
 
@@ -9,8 +10,28 @@
 
 <div class="row">
     <div class="col-md-8">
+        {% if frames_json %}
+        <!-- Плеер с управлением -->
+        <div class="card shadow mb-3">
+            <div class="card-body text-center">
+                <img id="frame-display" src="" alt="Кадр" class="img-fluid rounded" style="max-height: 500px;">
+            </div>
+            <div class="card-footer bg-white">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span>Кадр</span>
+                    <input type="range" id="frame-slider" class="form-range" min="0" max="0" value="0">
+                    <span id="frame-counter">0 / 0</span>
+                </div>
+                <div class="d-flex gap-2">
+                    <button id="play-pause-btn" class="btn btn-primary">▶️ Воспроизвести</button>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Если нет покадровых данных, показываем обычный GIF -->
         {% if cartoon.preview %}
         <img src="{{ cartoon.preview.url }}" class="img-fluid rounded shadow" alt="{{ cartoon.title }}">
+        {% endif %}
         {% endif %}
     </div>
     <div class="col-md-4">
@@ -23,10 +44,20 @@
                     <strong>FPS:</strong> {{ cartoon.fps }}
                 </p>
                 {% if user == cartoon.author %}
-                <a href="{% url 'editor_edit' cartoon.pk %}" class="btn btn-primary">✏ Редактировать</a>
+                <a href="{% url 'editor_edit' cartoon.pk %}" class="btn btn-primary w-100">✏ Редактировать</a>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if frames_json %}
+<script>
+    window.framesData = {{ frames_json|safe }};
+    window.fps = {{ cartoon.fps }};
+</script>
+<script src="{% static 'cartoons/js/player.js' %}"></script>
+{% endif %}
 {% endblock %}
