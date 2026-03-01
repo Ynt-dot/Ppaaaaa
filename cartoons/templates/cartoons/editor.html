@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-8">
+    <div class="col-12"> <!-- убрали ограничение col-lg-8, пусть занимает всю ширину -->
         <h1 class="mb-4">{% if cartoon %}Редактировать "{{ cartoon.title }}"{% else %}Создать новый мульт{% endif %}</h1>
 
         <form method="post" id="editor-form" class="bg-light p-4 rounded shadow-sm">
@@ -25,19 +25,20 @@
                     <input type="color" id="color-picker" value="#000000" class="form-control form-control-color w-auto" title="Выбрать цвет">
                     <input type="range" id="brush-size" min="1" max="20" value="2" class="form-range w-auto" style="width: 100px;">
                     <button type="button" id="clear-canvas" class="btn btn-outline-secondary">Очистить</button>
-                    <button type="button" id="add-frame" class="btn btn-success">➕ Добавить кадр</button>
+                    <button type="button" id="add-frame" class="btn btn-primary">➕ Добавить кадр</button>
                     <button type="button" id="copy-frame" class="btn btn-outline-primary">📋 Копировать кадр</button>
                     <button type="button" id="delete-frame" class="btn btn-outline-danger">❌ Удалить кадр</button>
                 </div>
             </div>
 
-            <div class="mb-3 text-center">
-                <canvas id="draw-canvas" width="400" height="300" class="border border-2 rounded mx-auto" style="background: white;"></canvas>
+            <!-- Увеличенный canvas с обёрткой -->
+            <div class="canvas-wrapper mb-3 text-center" style="max-width: 100%; overflow-x: auto;">
+                <canvas id="draw-canvas" width="800" height="600" style="border: 2px solid #ccc; border-radius: 5px; background: white; max-width: 100%; height: auto;"></canvas>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Кадры</label>
-                <div id="frames-list" class="d-flex flex-wrap gap-1 p-2 border rounded bg-white" style="min-height: 70px;"></div>
+                <div id="frames-list" class="d-flex flex-wrap gap-2 p-2 border rounded bg-white" style="min-height: 80px;"></div>
             </div>
 
             <input type="hidden" name="frames" id="frames-input">

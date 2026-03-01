@@ -63,8 +63,8 @@ function updateFramesList() {
         console.log('Adding thumbnail for index', index);
         let img = document.createElement('img');
         img.src = frame;
-        img.style.width = '60px';
-        img.style.height = '45px';
+        img.style.width = '80px';
+        img.style.height = 'auto';
         img.style.margin = '2px';
         img.style.border = index === currentFrameIndex ? '3px solid red' : '1px solid gray';
         img.style.cursor = 'pointer';
