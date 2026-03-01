@@ -1,53 +1,56 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Редактор мультика</title>
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'cartoons/css/style.css' %}">
-</head>
-<body>
-    <div class="header">
-        {% if user.is_authenticated %}
-            Привет, {{ user.username }} | <a href="{% url 'logout' %}">Выйти</a>
-        {% else %}
-            <a href="{% url 'login' %}">Войти</a> | <a href="{% url 'register' %}">Регистрация</a>
-        {% endif %}
-    </div>
-    
-    <div class="container">
-        <h1>{% if cartoon %}Редактировать "{{ cartoon.title }}"{% else %}Создать новый мульт{% endif %}</h1>
-        
-        <form method="post" id="editor-form">
+{% extends "base.html" %}
+
+{% block title %}{% if cartoon %}Редактировать "{{ cartoon.title }}"{% else %}Создать новый мульт{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h1 class="mb-4">{% if cartoon %}Редактировать "{{ cartoon.title }}"{% else %}Создать новый мульт{% endif %}</h1>
+
+        <form method="post" id="editor-form" class="bg-light p-4 rounded shadow-sm">
             {% csrf_token %}
-            <label>Название:</label>
-            <input type="text" name="title" value="{{ cartoon.title|default:'' }}" required>
-            
-            <label>FPS (кадров в секунду):</label>
-            <input type="number" name="fps" value="{{ cartoon.fps|default:12 }}" min="1" max="30">
-            
-            <div id="toolbar">
-                <label>Цвет: <input type="color" id="color-picker" value="#000000"></label>
-                <label>Толщина: <input type="range" id="brush-size" min="1" max="20" value="2"></label>
-                <button type="button" id="clear-canvas" class="btn btn-secondary">Очистить холст</button>
-                <button type="button" id="add-frame" class="btn">➕ Добавить кадр</button>
-                <button type="button" id="copy-frame" class="btn btn-secondary">📋 Копировать кадр</button>
-                <button type="button" id="delete-frame" class="btn btn-danger">❌ Удалить кадр</button>
+            <div class="mb-3">
+                <label for="title" class="form-label">Название</label>
+                <input type="text" class="form-control" id="title" name="title" value="{{ cartoon.title|default:'' }}" required>
             </div>
-            
-            <canvas id="draw-canvas" width="400" height="300"></canvas>
-            
-            <div id="frames-list"></div>
-            
+            <div class="mb-3">
+                <label for="fps" class="form-label">FPS (кадров в секунду)</label>
+                <input type="number" class="form-control" id="fps" name="fps" value="{{ cartoon.fps|default:12 }}" min="1" max="30">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Инструменты</label>
+                <div class="d-flex flex-wrap gap-2">
+                    <input type="color" id="color-picker" value="#000000" class="form-control form-control-color w-auto" title="Выбрать цвет">
+                    <input type="range" id="brush-size" min="1" max="20" value="2" class="form-range w-auto" style="width: 100px;">
+                    <button type="button" id="clear-canvas" class="btn btn-outline-secondary">Очистить</button>
+                    <button type="button" id="add-frame" class="btn btn-success">➕ Добавить кадр</button>
+                    <button type="button" id="copy-frame" class="btn btn-outline-primary">📋 Копировать кадр</button>
+                    <button type="button" id="delete-frame" class="btn btn-outline-danger">❌ Удалить кадр</button>
+                </div>
+            </div>
+
+            <div class="mb-3 text-center">
+                <canvas id="draw-canvas" width="400" height="300" class="border border-2 rounded mx-auto" style="background: white;"></canvas>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Кадры</label>
+                <div id="frames-list" class="d-flex flex-wrap gap-1 p-2 border rounded bg-white" style="min-height: 70px;"></div>
+            </div>
+
             <input type="hidden" name="frames" id="frames-input">
-            <button type="submit" class="btn">💾 Сохранить мульт</button>
+            <button type="submit" class="btn btn-success w-100">💾 Сохранить мульт</button>
         </form>
     </div>
-    
-    {% if frames_json %}
-    <script>
-        var framesData = {{ frames_json|safe }};
-    </script>
-    {% endif %}
-    <script src="{% static 'cartoons/js/editor.js' %}"></script>
-</body>
-</html>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if frames_json %}
+<script>
+    var framesData = {{ frames_json|safe }};
+</script>
+{% endif %}
+<script src="{% static 'cartoons/js/editor.js' %}"></script>
+{% endblock %}
