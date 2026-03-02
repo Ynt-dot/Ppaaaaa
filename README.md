@@ -4,8 +4,27 @@
 # ВАЖНО! Python должен быть предварительно установлен (на большинстве хостингов он стоит по умолчанию)
 3. python3 -m venv venv
 4. source venv/bin/activate
-5. python.exe -m pip install --upgrade pip
+5. pip install --upgrade pip
 6. pip install -r requirements-prod.txt
+7. Для хостинга обычно используется MySQL. Вам нужно создать базу данных и пользователя в панели ISPManager (раздел «Базы данных»). Полученные данные (имя БД, пользователь, пароль) пропишите в settings.py.
+
+    Убедитесь, что в settings.py указаны правильные настройки для продакшена:
+    ``` python
+    DEBUG = False
+    ALLOWED_HOSTS = ['ваш-домен.ру', 'www.ваш-домен.ру']
+
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'имя_базы_данных',
+            'USER': 'пользователь_базы',
+            'PASSWORD': 'пароль',
+            'HOST': 'localhost',
+            'PORT': '',
+        }
+    }
+    ```
+8. python manage.py migrate
 
 УСТАНОВКА НА WINDOWS (ДЛЯ РАЗРАБОТКИ):
 1. Склонируйте репозиторий любым удобным способом (Например с помщью git clone https://github.com/Ynt-dot/Ppaaaaa.git .)
