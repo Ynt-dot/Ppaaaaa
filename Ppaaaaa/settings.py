@@ -149,3 +149,8 @@ MESSAGE_TAGS = {
 }
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+try:
+    from .local_settings import * # type: ignore # noqa
+except ImportError:
+    pass

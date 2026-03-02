@@ -6,9 +6,10 @@
 4. source venv/bin/activate
 5. pip install --upgrade pip
 6. pip install -r requirements-prod.txt
-7. Для хостинга обычно используется MySQL. Вам нужно создать базу данных и пользователя в панели ISPManager (раздел «Базы данных»). Полученные данные (имя БД, пользователь, пароль) пропишите в settings.py.
+7. Скопируйте Ppaaaaa/local_settings.py.example в Ppaaaaa/local_settings.py и отредактируйте под своё окружение (укажите параметры базы данных, секретный ключ и т.д.).
+7. 1. Для хостинга обычно используется MySQL. Вам нужно создать базу данных и пользователя в панели ISPManager (раздел «Базы данных»). Полученные данные (имя БД, пользователь, пароль) пропишите в Ppaaaaa/local_settings.py.
 
-    Убедитесь, что в settings.py указаны правильные настройки для продакшена:
+    Убедитесь, что в Ppaaaaa/local_settings.py указаны правильные настройки для продакшена:
     ``` python
     DEBUG = False
     ALLOWED_HOSTS = ['ваш-домен.ру', 'www.ваш-домен.ру']
@@ -34,6 +35,7 @@
 4. venv/Scripts/activate
 5. python.exe -m pip install --upgrade pip
 6. pip install -r requirements-dev.txt
+7. python manage.py migrate
 
 ОБНОВЛЕНИЕ НА СЕРВЕРЕ В ПАПКЕ ДОМЕНА:
 1. выключить сервер (Ctrl+C)

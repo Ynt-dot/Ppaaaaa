@@ -1,0 +1,22 @@
+# Настройки для конкретного окружения. Скопируйте этот файл в local_settings.py
+# и отредактируйте под свои нужды.
+
+import os
+from .settings import BASE_DIR
+
+DEBUG = True  # На сервере поставьте False
+
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'ваш-домен.ru']
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',  # или 'mysql', 'postgresql'
+        'NAME': 'db.sqlite3',  # для MySQL укажите имя базы
+        # Для MySQL добавьте USER, PASSWORD, HOST, PORT
+    }
+}
+
+SECRET_KEY = 'your-secret-key-here'
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
