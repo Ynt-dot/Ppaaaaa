@@ -169,16 +169,64 @@ if (copyFrameBtn) {
 
 // Удаление кадра
 if (deleteFrameBtn) {
-    deleteFrameBtn.addEventListener('click', () => {
-        if (frames.length > 1 && currentFrameIndex >= 0) {
-            frames.splice(currentFrameIndex, 1);
-            if (currentFrameIndex >= frames.length) {
-                currentFrameIndex = frames.length - 1;
-            }
-            loadFrame(currentFrameIndex);
+    deleteFrameBtn.addEventListener('click', function() {
+        console.log('=== Нажата кнопка Удалить ===');
+        console.log('Текущий индекс до удаления:', currentFrameIndex);
+        console.log('Количество кадров до удаления:', frames.length);
+        console.log('Массив кадров до удаления (индексы):', frames.map((_, i) => i).join(','));
+
+        // Сохраняем текущее состояние холста в массив
+        if (currentFrameIndex >= 0 && currentFrameIndex < frames.length) {
+            frames[currentFrameIndex] = canvas.toDataURL();
+            console.log('Сохранён текущий кадр с индексом', currentFrameIndex);
         } else {
-            alert('Нельзя удалить единственный кадр');
+            console.error('Ошибка: currentFrameIndex вне диапазона');
+            return;
         }
+
+        // Проверяем, можно ли удалить
+        if (frames.length <= 1) {
+            alert('Нельзя удалить единственный кадр');
+            console.log('Удаление отменено: остался бы 0 кадров');
+            return;
+        }
+
+        // Удаляем кадр с текущим индексом
+        console.log('Удаляем кадр с индексом', currentFrameIndex);
+        const deleted = frames.splice(currentFrameIndex, 1);
+        console.log('Удалённый кадр:', deleted[0] ? 'dataURL' : 'пусто');
+        console.log('Новая длина массива после удаления:', frames.length);
+        console.log('Теперь кадры имеют индексы от 0 до', frames.length-1);
+
+        // Определяем новый индекс для отображения
+        let newIndex;
+        if (frames.length === 0) {
+            // Такого не должно быть из-за проверки выше, но на всякий случай
+            console.error('Неожиданно пустой массив после удаления');
+            return;
+        } else if (currentFrameIndex >= frames.length) {
+            // Если удалили последний кадр, показываем новый последний
+            newIndex = frames.length - 1;
+        } else {
+            // Иначе показываем кадр, который стоял на том же месте (следующий после удалённого)
+            newIndex = currentFrameIndex;
+        }
+        console.log('Выбранный для отображения индекс:', newIndex);
+
+        // Загружаем новый кадр
+        console.log('Попытка загрузить кадр с индексом', newIndex);
+        let img = new Image();
+        img.src = frames[newIndex];
+        img.onload = function() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+            currentFrameIndex = newIndex;
+            console.log('Кадр успешно загружен, currentFrameIndex теперь =', currentFrameIndex);
+            updateFramesList();
+        };
+        img.onerror = function() {
+            console.error('ОШИБКА: не удалось загрузить кадр с индексом', newIndex);
+        };
     });
 }
 
