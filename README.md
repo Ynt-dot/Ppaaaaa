@@ -1,3 +1,3 @@
-venv\Scripts\activate\n
-pip install -r requirements.txt\n
+venv\Scripts\activate  
+pip install -r requirements.txt  
 Eeltyander
