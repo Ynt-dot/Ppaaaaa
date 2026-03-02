@@ -135,3 +135,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 LOGIN_REDIRECT_URL = 'index'  # имя маршрута главной страницы
 LOGOUT_REDIRECT_URL = 'index'  # опционально, после выхода тоже на главную
+
+# Email settings for development (emails go to console)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'noreply@mycartoon.com'
+
+SITE_URL = 'http://127.0.0.1:8000'  # для разработки

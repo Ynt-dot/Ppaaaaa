@@ -3,9 +3,11 @@ from django.contrib.auth.decorators import login_required
 from .models import Cartoon
 import json
 from .utils import create_gif_from_frames
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.contrib.auth.models import User
+from .utils import send_verification_email
+from .models import EmailVerificationToken
+from .forms import CustomUserCreationForm
 
 
 def index(request):
@@ -86,13 +88,17 @@ def editor(request, pk=None):
 
 def register(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect('index')
+            user = form.save(commit=False)
+            user.is_active = False
+            user.save()
+            send_verification_email(user)
+            return redirect('verification_sent')
+        else:
+            print(form.errors)  # посмотрим в консоль
     else:
-        form = UserCreationForm()
+        form = CustomUserCreationForm()
     return render(request, 'registration/register.html', {'form': form})
 
 
@@ -105,3 +111,33 @@ def user_profile(request, username):
         'profile_user': user,
         'cartoons': cartoons
     })
+
+
+def verify_email(request, token):
+    token_obj = get_object_or_404(EmailVerificationToken, token=token)
+
+    if not token_obj.is_valid():
+        return render(request, 'registration/verification_invalid.html', {
+            'message':
+            'Срок действия ссылки истёк. Запросите подтверждение снова.'
+        })
+
+    user = token_obj.user
+    user.is_active = True
+    user.save()
+
+    # Удаляем токен, чтобы нельзя было использовать повторно
+    token_obj.delete()
+
+    # Автоматически входим пользователя (опционально)
+    login(request, user)
+
+    return render(
+        request,
+        'registration/verification_success.html',
+        {'user': user}
+        )
+
+
+def verification_sent(request):
+    return render(request, 'registration/verification_sent.html')
