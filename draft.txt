@@ -1,0 +1,15 @@
+            <div class="card-body text-center">
+                <div class="mb-4">
+                    <span style="font-size: 64px;">📧</span>
+                </div>
+                <h5>Письмо отправлено!</h5>
+                <p class="text-muted">
+                    На указанный вами email отправлена ссылка для подтверждения.<br>
+                    Перейдите по ней, чтобы активировать аккаунт.
+                </p>
+                <p class="small text-muted">
+                    Письмо должно прийти в течение нескольких минут.<br>
+                    Не забудьте проверить папку "Спам".
+                </p>
+                <a href="{% url 'index' %}" class="btn btn-primary">На главную</a>
+            </div>
