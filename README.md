@@ -1,33 +1,49 @@
-venv\Scripts\activate  
-pip install -r requirements.txt  
-  
-TO DO:  
-Current tasks are divided into three priority levels based on the following principle: high priority includes bug fixes and tasks that need to be completed before the end of alpha testing, medium priority includes tasks that need to be completed before the end of beta testing, and low priority includes all other tasks (long-term plans).  
-  
-High priority:  
-- Add an option to automatically delete an account 24 hours after creation if the email is not confirmed  
-- Fix email registration  
-- Improve the editor  
-- Improve the cartoon page  
-- Improve the home page, add categories  
-- Improve the user's personal page  
-- Add settings  
-- Add avatars  
-- Add logs  
-- Add tests  
-  
-Medium priority:  
-- Add custom error pages  
-- Add registration via social networks  
-- Add the ability to download cartoons from other services  
-- Add a mirror of other services  
-- Add ranks  
-- Add medals  
-- Add badges  
-- Add spiders  
-- Add voiceovers  
-- Add a trump card  
-  
-Low priority:  
-- Add a mobile version of the site  
-- Create an app  
+УСТАНОВКА НА ВАШ СЕРВЕР В ПАПКЕ ДОМЕНА:
+1. git clone https://github.com/Ynt-dot/Ppaaaaa.git .
+2. 
+3. python3 --version
+# ВАЖНО! Python должен быть предварительно установлен (на большинстве хостингов он стоит по умолчанию)
+4. python3 -m venv venv
+5. source venv/bin/activate
+6. pip install -r requirements.txt
+
+ОБНОВЛЕНИЕ НА СЕРВЕРЕ В ПАПКЕ ДОМЕНА:
+1. выключить сервер (Ctrl+C)
+2. git pull
+3. включить сервер (python manage.py runserver)
+
+ЗАДАЧИ:
+Текущие задачи разделены на три уровня приоритета на основе следующего принципа: высокий приоритет включает исправления ошибок и задачи, которые необходимо выполнить до окончания альфа-тестирования, средний приоритет включает задачи, которые необходимо выполнить до окончания бета-тестирования, а низкий приоритет включает все остальные задачи (долгосрочные планы).
+
+
+Высокий приоритет:
+- Исправить регистрацию по электронной почте
+    - Исправить баг с создающимися аккаунтами при неправильной регистрации
+    - Перевести экран требования на странице регистрации
+    - Добавить настоящую верификацию почты и заменить текст на экране верификации на тот, что в черновике.
+- Добавить автоматическое удаление аккаунта через 24 часа после создания, если электронная почта не подтверждена
+- Улучшить редактор
+- Улучшить страницу мульта
+- Улучшить главную страницу, добавить категории
+- Улучшить личную страницу пользователя (альбом)
+- Добавить настройки
+- Добавить аватары
+- Добавить логи
+- Добавить тесты
+
+Средний приоритет:
+- Добавить вики
+- Добавить кастомные страницы ошибок
+- Добавить регистрацию через социальные сети
+- Добавить возможность загрузки мультфильмов с других сервисов
+- Добавить зеркало мультов с других сервисов
+- Добавить ранги
+- Добавить медали
+- Добавить знаки отличия
+- Добавить пауков
+- Добавить озвучки
+- Добавить козырное место
+
+Низкий приоритет:
+- Добавить мобильную версию сайта
+- Создать приложение
