@@ -6,6 +6,7 @@ Current tasks are divided into three priority levels based on the following prin
   
 High priority:  
 - Add resending email  
+- Add an option to automatically delete an account 24 hours after creation if the email is not confirmed  
 - Fix email registration  
 - Improve the editor  
 - Improve the cartoon page  
