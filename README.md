@@ -2,12 +2,9 @@ venv\Scripts\activate
 pip install -r requirements.txt  
   
 TO DO:  
-Current tasks are divided into three priority levels based on the following principle: high priority includes bug fixes, medium priority includes other tasks that must be completed before the end of alpha testing, and low priority includes all other tasks (long-term plans).  
+Current tasks are divided into three priority levels based on the following principle: high priority includes bug fixes and tasks that need to be completed before the end of alpha testing, medium priority includes tasks that need to be completed before the end of beta testing, and low priority includes all other tasks (long-term plans).  
   
 High priority:  
-- Issue that the database and media are in the repository  
-  
-Medium priority:  
 - Improve the editor  
 - Improve the cartoon page  
 - Improve the home page, add categories  
@@ -17,7 +14,8 @@ Medium priority:
 - Add logs  
 - Add tests  
   
-Low priority:  
+Medium priority:  
+- Fix email registration
 - Add registration via social networks  
 - Add the ability to download cartoons from other services  
 - Add a mirror of other services  
@@ -27,5 +25,7 @@ Low priority:
 - Add spiders  
 - Add voiceovers  
 - Add a trump card  
+  
+Low priority:  
 - Add a mobile version of the site  
 - Create an app  
