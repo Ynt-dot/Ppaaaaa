@@ -5,7 +5,6 @@ TO DO:
 Current tasks are divided into three priority levels based on the following principle: high priority includes bug fixes, medium priority includes other tasks that must be completed before the end of alpha testing, and low priority includes all other tasks (long-term plans).  
   
 High priority:  
-- Error deleting frames in the editor  
 - Issue that the database and media are in the repository  
   
 Medium priority:  
