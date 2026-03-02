@@ -18,6 +18,7 @@ High priority:
 - Add tests  
   
 Medium priority:  
+- Add custom error pages  
 - Add registration via social networks  
 - Add the ability to download cartoons from other services  
 - Add a mirror of other services  

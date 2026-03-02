@@ -32,12 +32,12 @@ class EmailVerificationToken(models.Model):
         )
     token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)  # новое поле
     expires_at = models.DateTimeField()
 
     def save(self, *args, **kwargs):
         if not self.expires_at:
             self.expires_at = timezone.now() + timedelta(hours=24)
-            # токен действует 24 часа
         super().save(*args, **kwargs)
 
     def is_valid(self):

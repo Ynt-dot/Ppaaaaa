@@ -6,6 +6,7 @@ from django.core.mail import send_mail
 from django.urls import reverse
 from django.conf import settings
 from .models import EmailVerificationToken
+from django.utils import timezone
 
 
 def create_gif_from_frames(frames_data, fps=12):
@@ -45,18 +46,13 @@ def send_verification_email(user):
     # Создаём или обновляем токен для пользователя
     token, created = EmailVerificationToken.objects.update_or_create(
         user=user,
-        defaults={}  # обновит expires_at благодаря методу save()
+        defaults={'expires_at': timezone.now() + timezone.timedelta(hours=24)}
     )
 
-    # Формируем ссылку для активации
     verification_url = reverse('verify_email', kwargs={'token': token.token})
     full_url = f"{settings.SITE_URL}{verification_url}"
-    # добавим SITE_URL в settings
 
-    # Тема письма
     subject = 'Подтверждение email на сайте Мультики'
-
-    # Текст письма (простой)
     message = f"""
     Здравствуйте, {user.username}!
 
@@ -69,7 +65,6 @@ def send_verification_email(user):
 мо.
     """
 
-    # HTML-версия письма
     html_message = f"""
     <html>
     <body>
@@ -88,7 +83,6 @@ e; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
     </html>
     """
 
-    # Отправляем письмо
     send_mail(
         subject,
         message,
@@ -97,3 +91,4 @@ e; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
         html_message=html_message,
         fail_silently=False,
     )
+    return token

@@ -12,5 +12,11 @@ urlpatterns = [
     path(
         'verification-sent/',
         views.verification_sent,
-        name='verification_sent'),
+        name='verification_sent'
+    ),
+    path(
+        'resend-verification/',
+        views.resend_verification,
+        name='resend_verification'
+    ),
 ]

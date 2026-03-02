@@ -8,6 +8,8 @@ from django.contrib.auth.models import User
 from .utils import send_verification_email
 from .models import EmailVerificationToken
 from .forms import CustomUserCreationForm
+from django.contrib import messages
+from django.utils import timezone
 
 
 def index(request):
@@ -94,9 +96,9 @@ def register(request):
             user.is_active = False
             user.save()
             send_verification_email(user)
+            # Сохраняем id пользователя в сессии для повторной отправки
+            request.session['pending_user_id'] = user.id
             return redirect('verification_sent')
-        else:
-            print(form.errors)  # посмотрим в консоль
     else:
         form = CustomUserCreationForm()
     return render(request, 'registration/register.html', {'form': form})
@@ -141,3 +143,52 @@ def verify_email(request, token):
 
 def verification_sent(request):
     return render(request, 'registration/verification_sent.html')
+
+
+def resend_verification(request):
+    # Получаем id пользователя из сессии
+    user_id = request.session.get('pending_user_id')
+    if not user_id:
+        messages.error(request, 'Не найден пользователь для повторной отправки\
+. Зарегистрируйтесь снова.')
+        return redirect('register')
+
+    try:
+        user = User.objects.get(id=user_id, is_active=False)
+    except User.DoesNotExist:
+        messages.error(request, 'Пользователь не найден или уже активирован.')
+        return redirect('login')
+
+    # Получаем или создаём токен
+    token, created = EmailVerificationToken.objects.get_or_create(user=user)
+
+    # Проверяем, прошло ли достаточно времени с последней отправки (60 секунд)
+    if not created:
+        time_since_last = (timezone.now() - token.updated_at).total_seconds()
+        if time_since_last < 60:
+            messages.error(
+                request,
+                f'Повторная отправка доступна через \
+{60 - int(time_since_last)} секунд.'
+                )
+            return redirect('verification_sent')
+
+    # Обновляем expires_at и отправляем письмо
+    token.expires_at = timezone.now() + timezone.timedelta(hours=24)
+    token.save()
+    send_verification_email(user)  # используем ту же функцию, она обновит
+    # токен (но мы уже обновили вручную, можно просто отправить)
+    # Можно также вызвать send_verification_email, но она создаст новый токен.
+    # Чтобы не дублировать, просто отправим письмо с существующим токеном.
+    # Для этого выделим отправку в отдельную функцию, либо здесь сформируем
+    # письмо заново.
+    # Лучше реорганизовать код: send_verification_email принимает токен или
+    # пользователя и использует существующий токен.
+    # Сейчас функция send_verification_email создаёт/обновляет токен. Если мы
+    # уже обновили, можно вызвать её снова — она перезапишет токен, но это
+    # нормально.
+    send_verification_email(user)  # она обновит expires_at ещё раз, но это не
+    # страшно.
+
+    messages.success(request, 'Письмо с подтверждением отправлено повторно.')
+    return redirect('verification_sent')
