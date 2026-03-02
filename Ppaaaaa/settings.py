@@ -147,3 +147,5 @@ MESSAGE_TAGS = {
     messages.ERROR: 'danger',
     messages.SUCCESS: 'success',
 }
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
