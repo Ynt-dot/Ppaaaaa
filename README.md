@@ -1,4 +1,4 @@
-УСТАНОВКА НА ВАШ СЕРВЕР В ПАПКЕ ДОМЕНА НА LINUX:
+УСТАНОВКА НА ВАШ СЕРВЕР В ПАПКЕ ДОМЕНА НА LINUX: (ВНИМАНИЕ! ИНСТРУКЦИЯ НЕ АКТУАЛЬНА! ТРЕБУЕТ ДОРАБОТКИ! ИСПОЛЬЗУЙТЕ В СОЧЕТАНИИ С https://help.reg.ru/support/hosting/php-asp-net-i-skripty/kak-ustanovit-django-na-hosting#1)
 1. git clone https://github.com/Ynt-dot/Ppaaaaa.git .
 2. python3 --version
 # ВАЖНО! Python должен быть предварительно установлен (на большинстве хостингов он стоит по умолчанию)
@@ -22,11 +22,15 @@
             'PASSWORD': 'пароль',
             'HOST': 'localhost',
             'PORT': '',
+            'OPTIONS': {'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"}
         }
     }
     ```
 8. python manage.py migrate
 9. python manage.py collectstatic --noinput
+10. python manage.py createsuperuser
+11. python manage.py runserver
+
 
 УСТАНОВКА НА WINDOWS (ДЛЯ РАЗРАБОТКИ):
 1. Склонируйте репозиторий любым удобным способом (Например с помщью git clone https://github.com/Ynt-dot/Ppaaaaa.git .)
@@ -38,22 +42,8 @@
 6. pip install -r requirements-dev.txt
 7. python manage.py migrate
 8. python manage.py collectstatic --noinput
-9. Виртуальный хостинг на ISPManager работает через Passenger. В корне вашего сайта (там, где manage.py) должен лежать файл passenger_wsgi.py. Если его нет, создайте:
-    ```
-    import sys
-    import os
-
-    # Указываем путь к проекту
-    sys.path.insert(0, os.path.dirname(__file__))
-
-    # Указываем путь к виртуальному окружению (если используете)
-    # sys.path.insert(1, '/var/www/u1234567/data/www/ваш-домен.ру/venv/lib/python3.10/site-packages')
-
-    os.environ['DJANGO_SETTINGS_MODULE'] = 'Ppaaaaa.settings'
-
-    from django.core.wsgi import get_wsgi_application
-    application = get_wsgi_application()
-    ```
+9. python manage.py createsuperuser
+10. python manage.py runserver
 
 ОБНОВЛЕНИЕ НА СЕРВЕРЕ В ПАПКЕ ДОМЕНА:
 1. выключить сервер (Ctrl+C)
@@ -65,6 +55,7 @@
 
 
 Высокий приоритет:
+- Написать корректную инструкцию по установке
 - Исправить регистрацию по электронной почте
     - Исправить баг с создающимися аккаунтами при неправильной регистрации
     - Перевести экран требования на странице регистрации
