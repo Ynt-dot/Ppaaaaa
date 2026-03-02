@@ -5,7 +5,6 @@ TO DO:
 Current tasks are divided into three priority levels based on the following principle: high priority includes bug fixes and tasks that need to be completed before the end of alpha testing, medium priority includes tasks that need to be completed before the end of beta testing, and low priority includes all other tasks (long-term plans).  
   
 High priority:  
-- Add resending email  
 - Add an option to automatically delete an account 24 hours after creation if the email is not confirmed  
 - Fix email registration  
 - Improve the editor  
