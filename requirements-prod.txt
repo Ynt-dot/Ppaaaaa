@@ -1,0 +1,7 @@
+asgiref==3.8.1
+Django==4.2.28
+imageio==2.35.1
+numpy==1.24.4
+pillow==10.1.0   # или другая версия, совместимая с imageio 2.35.1
+sqlparse==0.5.0
+tzdata==2025.3

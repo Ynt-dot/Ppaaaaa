@@ -1,11 +1,20 @@
-УСТАНОВКА НА ВАШ СЕРВЕР В ПАПКЕ ДОМЕНА:
+УСТАНОВКА НА ВАШ СЕРВЕР В ПАПКЕ ДОМЕНА НА LINUX:
 1. git clone https://github.com/Ynt-dot/Ppaaaaa.git .
-2. 
-3. python3 --version
+2. python3 --version
 # ВАЖНО! Python должен быть предварительно установлен (на большинстве хостингов он стоит по умолчанию)
-4. python3 -m venv venv
-5. source venv/bin/activate
-6. pip install -r requirements.txt
+3. python3 -m venv venv
+4. source venv/bin/activate
+5. python.exe -m pip install --upgrade pip
+6. pip install -r requirements-prod.txt
+
+УСТАНОВКА НА WINDOWS (ДЛЯ РАЗРАБОТКИ):
+1. Склонируйте репозиторий любым удобным способом (Например с помщью git clone https://github.com/Ynt-dot/Ppaaaaa.git .)
+2. python3 --version
+# ВАЖНО! Python должен быть предварительно установлен
+3. python3 -m venv venv
+4. venv/Scripts/activate
+5. python.exe -m pip install --upgrade pip
+6. pip install -r requirements-dev.txt
 
 ОБНОВЛЕНИЕ НА СЕРВЕРЕ В ПАПКЕ ДОМЕНА:
 1. выключить сервер (Ctrl+C)
