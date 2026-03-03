@@ -9,13 +9,10 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white" style="padding-bottom: 0;">
+        <div class="container border-bottom pb-2">
             <a class="navbar-brand" href="{% url 'index' %}">
-                <!-- Здесь будет логотип (изображение или текст) -->
-                <img src="{% static 'cartoons/images/logo.png' %}" alt="Logo" height="30" class="d-inline-block align-top">
-                <!-- Если изображения нет, можно просто текст: -->
-                <!-- 🎬 Logo -->
+                <img src="{% static 'cartoons/images/logo.png' %}" alt="Logo" height="50">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
