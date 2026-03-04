@@ -52,7 +52,7 @@ def send_verification_email(user):
     verification_url = reverse('verify_email', kwargs={'token': token.token})
     full_url = f"{settings.SITE_URL}{verification_url}"
 
-    subject = 'Подтверждение email на сайте Ppaaaaa'
+    subject = 'Подтверждение email на сайте Ппааааа'
     message = f"""
     Здравствуйте, {user.username}!
 
