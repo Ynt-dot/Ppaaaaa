@@ -10,10 +10,15 @@ from .models import EmailVerificationToken
 from .forms import CustomUserCreationForm
 from django.contrib import messages
 from django.utils import timezone
+from django.core.paginator import Paginator
 
 
 def index(request):
-    cartoons = Cartoon.objects.all()
+    cartoon_list = Cartoon.objects.all()  # все мультики, отсортированные по
+    # новизне (уже есть в Meta.ordering)
+    paginator = Paginator(cartoon_list, 12)  # 12 мультиков на странице
+    page_number = request.GET.get('page')
+    cartoons = paginator.get_page(page_number)
     return render(request, 'cartoons/index.html', {'cartoons': cartoons})
 
 
@@ -105,13 +110,14 @@ def register(request):
 
 
 def user_profile(request, username):
-    # Получаем пользователя по имени или 404
     user = get_object_or_404(User, username=username)
-    # Все мультики этого пользователя, отсортированные по новизне
-    cartoons = Cartoon.objects.filter(author=user).order_by('-created_at')
+    cartoon_list = Cartoon.objects.filter(author=user).order_by('-created_at')
+    paginator = Paginator(cartoon_list, 12)
+    page_number = request.GET.get('page')
+    cartoons = paginator.get_page(page_number)
     return render(request, 'cartoons/user_profile.html', {
         'profile_user': user,
-        'cartoons': cartoons
+        'cartoons': cartoons,
     })
 
 

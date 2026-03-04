@@ -20,13 +20,20 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}
-                        <li class="nav-item d-flex align-items-center">
-                            <span class="text-dark me-1">Привет,</span>
-                            <a class="nav-link text-primary p-0" href="{% url 'user_profile' username=user.username %}">{{ user.username }}</a>
-                            <span class="text-dark ms-1">!</span>
-                        </li>
+                        <!-- Кнопка создания мульта -->
                         <li class="nav-item">
-                            <a class="nav-link text-primary" href="{% url 'logout' %}">Выйти</a>
+                            <a class="btn btn-outline-primary btn-sm me-2" href="{% url 'editor_create' %}">➕ Создать мульт</a>
+                        </li>
+                        <!-- Выпадающее меню пользователя -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                {{ user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="{% url 'user_profile' username=user.username %}">Личная страница</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'logout' %}">Выйти</a></li>
+                            </ul>
                         </li>
                     {% else %}
                         <li class="nav-item">
