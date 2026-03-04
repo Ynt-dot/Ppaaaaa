@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Все мультики{% endblock %}
+{% block title %}Все мульты{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Все мультики</h1>
+    <h1>Все мульты</h1>
     <a href="{% url 'editor_create' %}" class="btn btn-primary">➕ Создать новый мульт</a>
 </div>
 
@@ -32,7 +32,7 @@
     {% empty %}
     <div class="col-12">
         <div class="alert alert-info">
-            Пока нет ни одного мультика. <a href="{% url 'editor_create' %}" class="alert-link">Создайте первый!</a>
+            Пока нет ни одного мульта. <a href="{% url 'editor_create' %}" class="alert-link">Создайте первый!</a>
         </div>
     </div>
     {% endfor %}
