@@ -1,4 +1,6 @@
 УСТАНОВКА НА ВАШ СЕРВЕР В ПАПКЕ ДОМЕНА НА LINUX: (ВНИМАНИЕ! ИНСТРУКЦИЯ НЕ АКТУАЛЬНА! ТРЕБУЕТ ДОРАБОТКИ! ИСПОЛЬЗУЙТЕ В СОЧЕТАНИИ С https://help.reg.ru/support/hosting/php-asp-net-i-skripty/kak-ustanovit-django-na-hosting#1)
+# Установка на продакшн в папку домена (ppaaaaa.ru) на Linux
+1. [Войдите в панель управления хостингом](https://help.reg.ru/support/hosting/dostupy-i-podklyucheniye-panel-upravleniya-ftp-ssh/kak-voyti-v-panel-upravleniya-hostingom)
 1. git clone https://github.com/Ynt-dot/Ppaaaaa.git .
 2. python3 --version
 # ВАЖНО! Python должен быть предварительно установлен (на большинстве хостингов он стоит по умолчанию)
