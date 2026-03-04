@@ -24,3 +24,10 @@ class CustomUserCreationForm(UserCreationForm):
         self.fields['username'].widget.attrs.update({'class': 'form-control'})
         self.fields['password1'].widget.attrs.update({'class': 'form-control'})
         self.fields['password2'].widget.attrs.update({'class': 'form-control'})
+        # Русские подсказки
+        self.fields['username'].help_text = 'Обязательное поле. Не более 150 с\
+имволов. Только буквы, цифры и символы @/./+/-/_.'
+        self.fields['password1'].help_text = 'Пароль должен содержать минимум \
+8 символов и не может быть слишком простым или состоять только из цифр.'
+        self.fields['password2'].help_text = 'Введите тот же пароль для подтве\
+рждения.'
