@@ -26,3 +26,7 @@ __pycache__/
 
 # Статика
 /static/
+
+# Скомпилированные файлы Python
+__pycache__/
+*.pyc
