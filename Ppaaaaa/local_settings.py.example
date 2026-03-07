@@ -28,7 +28,7 @@ EMAIL_PORT = 465
 EMAIL_USE_SSL = True  # если порт 465, если порт 587, используйте EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'noreply@ppaaaaa.ru'
 EMAIL_HOST_PASSWORD = 'ваш_пароль'
-DEFAULT_FROM_EMAIL = 'noreply@ppaaaaa.ru'
+DEFAULT_FROM_EMAIL = 'Ппааааа <noreply@ppaaaaa.ru>'
 
 # Для ссылок в письмах (ваш домен уже https, если настроили SSL)
 SITE_URL = 'https://ppaaaaa.ru'
