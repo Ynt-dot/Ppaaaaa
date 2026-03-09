@@ -7,8 +7,8 @@ from datetime import timedelta
 
 class Cartoon(models.Model):
     title = models.CharField(max_length=200, verbose_name="Название")
-    author = models.ForeignKey(User, on_delete=models.CASCADE,
-                               related_name='cartoons')
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                               blank=True, related_name='cartoons')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     preview = models.ImageField(upload_to='cartoons/gifs/')

@@ -1,5 +1,4 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
 from .models import Cartoon
 import json
 from .utils import create_gif_from_frames
@@ -45,11 +44,12 @@ def detail(request, pk):
     return render(request, 'cartoons/detail.html', context)
 
 
-@login_required
 def editor(request, pk=None):
     if pk:
         cartoon = get_object_or_404(Cartoon, pk=pk)
-        if cartoon.author != request.user:
+        # Проверяем, что текущий пользователь — автор, если мульт принадлежит
+        # кому-то
+        if cartoon.author and cartoon.author != request.user:
             return redirect('index')
     else:
         cartoon = None
@@ -65,7 +65,7 @@ def editor(request, pk=None):
                 'error': 'Не хватает данных'
             })
 
-        frames_data = json.loads(frames_json)  # список dataURL
+        frames_data = json.loads(frames_json)
 
         if not frames_data:
             return render(request, 'cartoons/editor.html', {
@@ -73,38 +73,40 @@ def editor(request, pk=None):
                 'error': 'Нет кадров'
             })
 
-        # Создаём или обновляем объект Cartoon
+        # Определяем автора
+        author = request.user if request.user.is_authenticated else None
+
         if cartoon:
+            # Если редактируем существующий мульт, проверяем права
+            if cartoon.author and cartoon.author != request.user:
+                return redirect('index')
             cartoon.title = title
             cartoon.fps = fps
             cartoon.frames_data = frames_data
-            # Удаляем старый preview, если есть
             if cartoon.preview:
                 cartoon.preview.delete(save=False)
         else:
             cartoon = Cartoon(
                 title=title,
-                author=request.user,
+                author=author,
                 fps=fps,
                 frames_data=frames_data
             )
 
-        # Генерируем GIF из кадров
         gif_content = create_gif_from_frames(frames_data, fps)
-
-        # Сохраняем GIF в поле preview
         cartoon.preview.save(f'cartoon_{cartoon.pk or "new"}.gif', gif_content,
                              save=False)
         cartoon.save()
-
         return redirect('detail', pk=cartoon.pk)
 
-    # Для GET-запроса передаём существующие данные (если редактирование)
     context = {'cartoon': cartoon}
-    # Если редактируем и есть frames_data, передадим их в шаблон для
-    # инициализации JS
     if cartoon and cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)
+
+    # Добавляем флаг для анонимов, чтобы показать модальное окно
+    if not request.user.is_authenticated and not pk:
+        context['show_anon_modal'] = True
+
     return render(request, 'cartoons/editor.html', context)
 
 

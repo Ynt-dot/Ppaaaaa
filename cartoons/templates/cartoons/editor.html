@@ -75,6 +75,33 @@
         </div>
     </div>
 </div>
+{% if show_anon_modal %}
+<!-- Модальное окно для анонимов -->
+<div class="modal fade" id="anonModal" tabindex="-1" aria-labelledby="anonModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="anonModalLabel">ВНИМАНИЕ!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>В данный момент вы не авторизованы. Сохранённые вами мульты будут опубликованы анонимно. Если вы всё же хотите продолжить, нажмите ОК.</p>
+                <p>В качестве альтернативы, чтобы иметь возможность публиковать мульты под своим именем, <a href="{% url 'login' %}">войдите в систему</a> или <a href="{% url 'register' %}">зарегистрируйтесь</a>.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">ОК</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // Показываем модальное окно автоматически при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        var myModal = new bootstrap.Modal(document.getElementById('anonModal'));
+        myModal.show();
+    });
+</script>
+{% endif %}
 {% endblock %}
 
 {% block extra_scripts %}

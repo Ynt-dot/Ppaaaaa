@@ -61,7 +61,12 @@
                         <div class="card-body">
                             <h5 class="card-title">{{ cartoon.title }}</h5>
                             <p class="card-text text-muted">
-                                Автор: <a href="{% url 'user_profile' username=cartoon.author.username %}" class="text-decoration-none">{{ cartoon.author.username }}</a>
+                                Автор:
+                                {% if cartoon.author %}
+                                    <a href="{% url 'user_profile' username=cartoon.author.username %}">{{ cartoon.author.username }}</a>
+                                {% else %}
+                                    Аноним
+                                {% endif %}
                             </p>
                         </div>
                     </a>
