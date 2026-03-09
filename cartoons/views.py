@@ -11,6 +11,8 @@ from .forms import CustomUserCreationForm
 from django.contrib import messages
 from django.utils import timezone
 from django.core.paginator import Paginator
+import os
+from django.conf import settings
 
 
 def index(request):
@@ -19,7 +21,20 @@ def index(request):
     paginator = Paginator(cartoon_list, 12)  # 12 мультиков на странице
     page_number = request.GET.get('page')
     cartoons = paginator.get_page(page_number)
-    return render(request, 'cartoons/index.html', {'cartoons': cartoons})
+
+    # Чтение файла новостей
+    news_file = os.path.join(settings.BASE_DIR, 'data', 'news.html')
+    news_content = ''
+    try:
+        with open(news_file, 'r', encoding='utf-8') as f:
+            news_content = f.read()
+    except FileNotFoundError:
+        news_content = '<p class="text-muted">Новостей пока нет.</p>'
+
+    return render(request, 'cartoons/index.html', {
+        'cartoons': cartoons,
+        'news_content': news_content,
+    })
 
 
 def detail(request, pk):

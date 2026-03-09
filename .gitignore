@@ -30,3 +30,5 @@ __pycache__/
 # Скомпилированные файлы Python
 __pycache__/
 *.pyc
+
+data/news.html
