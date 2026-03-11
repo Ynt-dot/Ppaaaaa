@@ -81,7 +81,7 @@ function updateFramesUI() {
         number.style.position = 'absolute';
         number.style.top = '0';
         number.style.right = '0';
-        number.style.backgroundColor = '#dc3545'; // красный
+        number.style.backgroundColor = '#ff0000'; // красный
         number.style.color = 'white';
         number.style.fontSize = '10px';
         number.style.padding = '2px 4px';
