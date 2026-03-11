@@ -12,18 +12,23 @@ from django.utils import timezone
 def create_gif_from_frames(frames_data, fps=12):
     """
     frames_data: список строк dataURL (base64)
-    возвращает ContentFile с GIF
+    возвращает ContentFile с GIF, где каждый кадр наложен на белый фон
     """
     images = []
     for data_url in frames_data:
         # data_url вида "data:image/png;base64,...."
         format, imgstr = data_url.split(';base64,')
         image_data = base64.b64decode(imgstr)
-        img = Image.open(BytesIO(image_data))
-        # Конвертируем в RGB (GIF не поддерживает альфа-канал)
-        if img.mode != 'RGB':
-            img = img.convert('RGB')
-        images.append(img)
+        # Открываем изображение с сохранением альфа-канала
+        img = Image.open(BytesIO(image_data)).convert('RGBA')
+
+        # Создаём белое фоновое изображение того же размера
+        white_bg = Image.new('RGB', img.size, (255, 255, 255))
+
+        # Накладываем изображение на белый фон, используя альфа-канал как маску
+        white_bg.paste(img, (0, 0), img)  # третий аргумент — маска
+        # прозрачности
+        images.append(white_bg)
 
     # Создаём GIF в памяти
     gif_buffer = BytesIO()

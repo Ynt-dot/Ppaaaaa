@@ -1,15 +1,19 @@
 // editor.js
 
-let canvas = document.getElementById('draw-canvas');
-let ctx = canvas.getContext('2d');
+let drawCanvas = document.getElementById('draw-canvas');
+let drawCtx = drawCanvas.getContext('2d');
+let bgCanvas = document.getElementById('background-canvas');
+let bgCtx = bgCanvas.getContext('2d');
+
 let drawing = false;
 
-// Состояние редактора
 let frames = [];
 let currentFrameIndex = -1;
-let currentTool = 'pencil'; // 'pencil' или 'eraser'
+let history = []; // история предыдущих кадров (макс. 3)
+
+let currentTool = 'pencil';
 let currentColor = '#000000';
-let brushSize = 2; // от 1 до 5
+let brushSize = 2;
 let playing = false;
 let playInterval = null;
 const fps = 10;
@@ -24,18 +28,29 @@ const pencilTool = document.getElementById('pencil-tool');
 const eraserTool = document.getElementById('eraser-tool');
 const sizeBtns = document.querySelectorAll('.size-btn');
 const colorBtns = document.querySelectorAll('.color-btn');
-// const frameSlider = document.getElementById('frame-slider');
 const framesStrip = document.getElementById('frames-strip');
 const saveModal = new bootstrap.Modal(document.getElementById('saveModal'));
 const confirmSave = document.getElementById('confirm-save');
-console.log('confirmSave элемент:', confirmSave);
-if (!confirmSave) {
-    console.error('❌ Кнопка confirm-save не найдена в DOM! Проверьте id.');
-} else {
-    console.log('✅ Кнопка найдена, добавляем обработчик...');
-}
 const modalTitleInput = document.getElementById('modal-title');
 
+// ========== Вспомогательные функции ==========
+
+function loadImage(src) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.src = src;
+        img.onload = () => resolve(img);
+    });
+}
+
+// Сохранить текущее состояние drawCanvas в frames
+function saveCurrentFrame() {
+    if (currentFrameIndex >= 0 && currentFrameIndex < frames.length) {
+        frames[currentFrameIndex] = drawCanvas.toDataURL();
+    }
+}
+
+// Обновление миниатюры текущего кадра
 function updateCurrentThumbnail() {
     const thumb = document.querySelector(`.frame-thumb[data-index="${currentFrameIndex}"]`);
     if (thumb) {
@@ -43,144 +58,220 @@ function updateCurrentThumbnail() {
     }
 }
 
-function getCanvasCoords(e) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;   // отношение физической ширины к видимой
-    const scaleY = canvas.height / rect.height;
-    const mouseX = (e.clientX - rect.left) * scaleX;
-    const mouseY = (e.clientY - rect.top) * scaleY;
-    return { x: mouseX, y: mouseY };
-}
-
-// Инициализация: если есть переданные кадры, загружаем, иначе создаём первый пустой кадр
-function initFrames() {
-    console.log('initFrames called');
-    console.log('framesData defined?', typeof framesData !== 'undefined');
-    if (typeof framesData !== 'undefined' && framesData.length > 0) {
-        frames = framesData;
-        currentFrameIndex = 0;
-        loadFrame(currentFrameIndex);
-    } else {
-        console.log('Creating first empty frame');
-        clearCanvas();
-        frames.push(canvas.toDataURL());
-        console.log('Frames length after push:', frames.length);
-        currentFrameIndex = 0;
-        updateFramesUI();
-    }
-}
-
-// Очистка холста (заливка белым)
-function clearCanvas() {
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-// Загрузка кадра на холст
-function loadFrame(index) {
-    if (index < 0 || index >= frames.length) return;
-    let img = new Image();
-    img.src = frames[index];
-    img.onload = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-        currentFrameIndex = index;
-        updateFramesUI();
-    };
-}
-
-// Сохранить текущий кадр в массив
-function saveCurrentFrame() {
-    if (currentFrameIndex >= 0 && currentFrameIndex < frames.length) {
-        frames[currentFrameIndex] = canvas.toDataURL();
-    }
-}
-
-// Обновление UI: миниатюры и слайдер
+// Полное обновление списка миниатюр
 function updateFramesUI() {
-    // Обновляем слайдер
-    // frameSlider.max = frames.length - 1;
-    // frameSlider.value = currentFrameIndex;
-
-    // Обновляем миниатюры
     framesStrip.innerHTML = '';
     frames.forEach((frame, index) => {
         let img = document.createElement('img');
         img.src = frame;
         img.className = 'frame-thumb';
-        img.dataset.index = index;  // сохраняем индекс
+        img.dataset.index = index;
         if (index === currentFrameIndex) img.classList.add('current');
-        img.addEventListener('click', () => {
-            saveCurrentFrame();
-            loadFrame(index);
+        img.addEventListener('click', async () => {
+            if (currentFrameIndex !== index) {
+                saveCurrentFrame();
+                updateHistory(index);          // добавляем старый индекс в историю
+                currentFrameIndex = index;
+                await loadCurrentFrame();      // загрузить чистый кадр в drawCanvas
+                await drawOnionSkin();         // перерисовать шелуху на bgCanvas
+                updateFramesUI();
+            }
         });
         framesStrip.appendChild(img);
     });
 }
 
-// Рисование
+// ========== Работа с историей ==========
+
+// Обновление истории при выборе нового кадра
+function updateHistory(newIndex) {
+    const oldIndex = currentFrameIndex;
+    if (oldIndex === newIndex || oldIndex === -1) return;
+
+    history.unshift(oldIndex);
+    // Убираем дубликаты
+    history = history.filter((value, idx, self) => self.indexOf(value) === idx);
+    // Ограничиваем длину 3
+    if (history.length > 3) history = history.slice(0, 3);
+}
+
+// Коррекция истории после вставки кадра (все индексы >= startIdx увеличиваются на 1)
+function adjustHistoryAfterInsert(startIdx) {
+    history = history.map(idx => idx >= startIdx ? idx + 1 : idx);
+}
+
+// Коррекция истории после удаления кадра (индексы > deleteIdx уменьшаются на 1, равные удаляются)
+function adjustHistoryAfterDelete(deleteIdx) {
+    history = history.map(idx => {
+        if (idx > deleteIdx) return idx - 1;
+        if (idx === deleteIdx) return -1;
+        return idx;
+    }).filter(idx => idx !== -1);
+}
+
+// ========== Работа с фоновыми слоями (луковая шелуха) ==========
+
+async function drawOnionSkin() {
+    bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+    bgCtx.fillStyle = '#ffffff';
+    bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+    // Рисуем кадры из истории с нужной прозрачностью
+    for (let i = 0; i < history.length; i++) {
+        const idx = history[i];
+        if (idx < 0 || idx >= frames.length) continue;
+        const img = await loadImage(frames[idx]);
+        if (i === 0) bgCtx.globalAlpha = 0.5;      // слой 0 (50%)
+        else if (i === 1) bgCtx.globalAlpha = 0.25; // слой -1 (25%)
+        else if (i === 2) bgCtx.globalAlpha = 0.125; // слой -2 (12.5%)
+        bgCtx.drawImage(img, 0, 0, bgCanvas.width, bgCanvas.height);
+    }
+    bgCtx.globalAlpha = 1.0;
+}
+
+// ========== Загрузка текущего кадра в drawCanvas ==========
+
+async function loadCurrentFrame() {
+    if (currentFrameIndex < 0 || currentFrameIndex >= frames.length) return;
+    const img = await loadImage(frames[currentFrameIndex]);
+    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+    drawCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
+}
+
+// ========== Инициализация ==========
+
+async function initFrames() {
+    history = [];
+    if (typeof framesData !== 'undefined' && framesData.length > 0) {
+        frames = framesData;
+        currentFrameIndex = 0;
+        await loadCurrentFrame();
+        await drawOnionSkin();
+        updateFramesUI();
+    } else {
+        // Создаём первый пустой кадр (прозрачный)
+        drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+        frames.push(drawCanvas.toDataURL());
+        currentFrameIndex = 0;
+        await drawOnionSkin();  // пока нет предыдущих, просто белый фон
+        updateFramesUI();
+    }
+}
+
+// ========== Рисование (только на drawCanvas) ==========
+
+function getCanvasCoords(e) {
+    const rect = drawCanvas.getBoundingClientRect();
+    const scaleX = drawCanvas.width / rect.width;
+    const scaleY = drawCanvas.height / rect.height;
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    const mouseY = (e.clientY - rect.top) * scaleY;
+    return { x: mouseX, y: mouseY };
+}
+
 function startDrawing(e) {
     drawing = true;
     const coords = getCanvasCoords(e);
-    ctx.beginPath();
-    ctx.moveTo(coords.x, coords.y);
+    if (currentTool === 'eraser') {
+        drawCtx.globalCompositeOperation = 'destination-out';
+    } else {
+        drawCtx.globalCompositeOperation = 'source-over';
+        drawCtx.strokeStyle = currentColor;
+    }
+    drawCtx.lineWidth = brushSize;
+    drawCtx.lineCap = 'round';
+    drawCtx.beginPath();
+    drawCtx.moveTo(coords.x, coords.y);
 }
 
 function draw(e) {
     if (!drawing) return;
     const coords = getCanvasCoords(e);
-    ctx.strokeStyle = currentColor;
-    ctx.lineWidth = brushSize;
-    ctx.lineCap = 'round';
-    ctx.lineTo(coords.x, coords.y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(coords.x, coords.y);
+    drawCtx.lineTo(coords.x, coords.y);
+    drawCtx.stroke();
+    drawCtx.beginPath();
+    drawCtx.moveTo(coords.x, coords.y);
 }
 
 function stopDrawing() {
-    drawing = false;
-    ctx.beginPath();
-    saveCurrentFrame(); // сохраняем текущий кадр после завершения рисования
-    updateCurrentThumbnail();  // обновляем только текущую миниатюру
+    if (drawing) {
+        drawing = false;
+        drawCtx.closePath();
+        drawCtx.globalCompositeOperation = 'source-over';
+        saveCurrentFrame();
+        updateCurrentThumbnail();
+        // Шелуху не перерисовываем, т.к. она зависит только от истории и массива frames
+    }
 }
 
-canvas.addEventListener('mousedown', startDrawing);
-canvas.addEventListener('mousemove', draw);
-canvas.addEventListener('mouseup', stopDrawing);
-canvas.addEventListener('mouseout', stopDrawing);
+drawCanvas.addEventListener('mousedown', startDrawing);
+drawCanvas.addEventListener('mousemove', draw);
+drawCanvas.addEventListener('mouseup', stopDrawing);
+drawCanvas.addEventListener('mouseout', stopDrawing);
 
-// Добавление кадра
-addFrameBtn.addEventListener('click', (e) => {
+// ========== Управление кадрами ==========
+
+addFrameBtn.addEventListener('click', async (e) => {
     saveCurrentFrame();
-    clearCanvas();
+    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+    const emptyFrame = drawCanvas.toDataURL();
+    const oldIdx = currentFrameIndex;
+
     if (e.ctrlKey) {
-        // Вставить перед текущим
-        frames.splice(currentFrameIndex, 0, canvas.toDataURL());
-        // currentFrameIndex остаётся тем же (новый кадр встал на его место)
+        // Вставить перед текущим кадром (Ctrl)
+        frames.splice(oldIdx, 0, emptyFrame);
+        adjustHistoryAfterInsert(oldIdx); // сдвигаем индексы в истории
+        // Добавляем старый кадр (теперь он на позиции oldIdx+1) в историю
+        history.unshift(oldIdx + 1);
+        // Убираем дубликаты и ограничиваем 3
+        history = [...new Set(history)];
+        if (history.length > 3) history = history.slice(0, 3);
+        currentFrameIndex = oldIdx; // новый кадр становится текущим
     } else {
-        // Добавить после текущего
-        frames.splice(currentFrameIndex + 1, 0, canvas.toDataURL());
-        currentFrameIndex++;
+        // Вставить после текущего кадра
+        frames.splice(oldIdx + 1, 0, emptyFrame);
+        adjustHistoryAfterInsert(oldIdx); // сдвигаем индексы в истории
+        // Добавляем старый кадр (он остаётся на позиции oldIdx) в историю
+        history.unshift(oldIdx);
+        history = [...new Set(history)];
+        if (history.length > 3) history = history.slice(0, 3);
+        currentFrameIndex = oldIdx + 1; // переключаемся на новый кадр
     }
-    loadFrame(currentFrameIndex);
+
+    await loadCurrentFrame();
+    await drawOnionSkin();
+    updateFramesUI();
 });
 
-// Удаление кадра
-deleteFrameBtn.addEventListener('click', () => {
+deleteFrameBtn.addEventListener('click', async () => {
     if (frames.length <= 1) {
         alert('Нельзя удалить единственный кадр');
         return;
     }
     saveCurrentFrame();
-    frames.splice(currentFrameIndex, 1);
+    const oldIdx = currentFrameIndex;
+    frames.splice(oldIdx, 1);
     if (currentFrameIndex >= frames.length) {
         currentFrameIndex = frames.length - 1;
     }
-    loadFrame(currentFrameIndex);
+    adjustHistoryAfterDelete(oldIdx);
+    await loadCurrentFrame();
+    await drawOnionSkin();
+    updateFramesUI();
 });
 
-// Предпросмотр
+// ========== Предпросмотр ==========
+
+async function drawPreviewFrame(index) {
+    const img = await loadImage(frames[index]);
+    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+    drawCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
+    // Скрываем шелуху, очистив bgCanvas и нарисовав белый фон
+    bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+    bgCtx.fillStyle = '#ffffff';
+    bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+}
+
 previewBtn.addEventListener('click', () => {
     if (playing) {
         stopPreview();
@@ -193,73 +284,43 @@ function startPreview() {
     if (frames.length < 1) return;
     playing = true;
     previewBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
-    previewBtn.title = 'Пауза (Space)';
-    playInterval = setInterval(() => {
+    previewBtn.title = 'Пауза';
+    playInterval = setInterval(async () => {
         let next = (currentFrameIndex + 1) % frames.length;
-        loadFrame(next);
+        currentFrameIndex = next;
+        await drawPreviewFrame(next);
+        updateFramesUI();
     }, frameDelay);
 }
 
 function stopPreview() {
     playing = false;
     previewBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
-    previewBtn.title = 'Предпросмотр (Space)';
+    previewBtn.title = 'Предпросмотр';
     clearInterval(playInterval);
     playInterval = null;
+    // Возвращаем обычный режим: загружаем текущий кадр и шелуху
+    loadCurrentFrame();
+    drawOnionSkin();
 }
 
-// Сохранение
-saveBtn.addEventListener('click', () => {
-    saveCurrentFrame();
-    // Если мульт уже имеет название (при редактировании), можно подставить
-    let existingTitle = document.querySelector('input[name="title"]')?.value;
-    if (existingTitle) {
-        modalTitleInput.value = existingTitle;
-    } else {
-        modalTitleInput.value = '';
-    }
-    saveModal.show();
-});
+// ========== Инструменты и цвета ==========
 
-confirmSave.addEventListener('click', () => {
-    console.log('🖱️ Кнопка сохранения нажата (обработчик сработал)');
-    let title = modalTitleInput.value.trim();
-    if (!title) {
-        alert('Введите название');
-        return;
-    }
-    document.getElementById('title-input').value = title;
-    document.getElementById('frames-input').value = JSON.stringify(frames);
-    document.getElementById('editor-form').submit();
-});
-
-// Инструменты
 pencilTool.addEventListener('click', () => {
     currentTool = 'pencil';
     updateToolUI();
 });
+
 eraserTool.addEventListener('click', () => {
     currentTool = 'eraser';
     updateToolUI();
 });
 
 function updateToolUI() {
-    // Сбрасываем классы иконок
-    pencilTool.classList.remove('pencil-blue', 'pencil-black', 'eraser-blue', 'eraser-black');
-    eraserTool.classList.remove('pencil-blue', 'pencil-black', 'eraser-blue', 'eraser-black');
-
-    if (currentTool === 'pencil') {
-        pencilTool.classList.add('pencil-blue');
-        eraserTool.classList.add('eraser-black');
-        currentColor = document.querySelector('.color-btn.active').dataset.color;
-    } else {
-        pencilTool.classList.add('pencil-black');
-        eraserTool.classList.add('eraser-blue');
-        currentColor = '#ffffff'; // белый для ластика
-    }
+    pencilTool.classList.toggle('pencil-blue', currentTool === 'pencil');
+    eraserTool.classList.toggle('eraser-blue', currentTool === 'eraser');
 }
 
-// Размер кисти
 sizeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         sizeBtns.forEach(b => b.classList.remove('active'));
@@ -268,7 +329,6 @@ sizeBtns.forEach(btn => {
     });
 });
 
-// Цвет
 colorBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         colorBtns.forEach(b => b.classList.remove('active'));
@@ -279,63 +339,24 @@ colorBtns.forEach(btn => {
     });
 });
 
-// Ползунок кадров
-// // frameSlider.addEventListener('input', () => {
-//     if (playing) stopPreview();
-//     saveCurrentFrame();
-//     loadFrame(parseInt(frameSlider.value));
-// });
+// ========== Сохранение ==========
 
-// Горячие клавиши
-document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
-    switch (e.key) {
-        case 'Insert':
-            addFrameBtn.click();
-            e.preventDefault();
-            break;
-        case 'Delete':
-            deleteFrameBtn.click();
-            e.preventDefault();
-            break;
-        case ' ':
-            e.preventDefault();
-            previewBtn.click();
-            break;
-        case 's':
-            if (e.ctrlKey) {
-                e.preventDefault();
-                saveBtn.click();
-            }
-            break;
-        case 'p':
-            pencilTool.click();
-            e.preventDefault();
-            break;
-        case 'e':
-            eraserTool.click();
-            e.preventDefault();
-            break;
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-            let size = parseInt(e.key);
-            sizeBtns[size-1]?.click();
-            e.preventDefault();
-            break;
-        case 'b':
-            document.querySelector('.color-btn[data-color="#000000"]')?.click();
-            e.preventDefault();
-            break;
-        case 'r':
-            document.querySelector('.color-btn[data-color="#dc3545"]')?.click();
-            e.preventDefault();
-            break;
-    }
+saveBtn.addEventListener('click', () => {
+    saveCurrentFrame();
+    modalTitleInput.value = '';
+    saveModal.show();
 });
 
-// Инициализация
+confirmSave.addEventListener('click', () => {
+    let title = modalTitleInput.value.trim();
+    if (!title) {
+        alert('Введите название');
+        return;
+    }
+    document.getElementById('title-input').value = title;
+    document.getElementById('frames-input').value = JSON.stringify(frames);
+    document.getElementById('editor-form').submit();
+});
+
+// ========== Запуск ==========
 initFrames();
