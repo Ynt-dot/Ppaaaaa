@@ -3,111 +3,286 @@
 
 {% block title %}{% if cartoon %}Редактировать "{{ cartoon.title }}"{% else %}Создать новый мульт{% endif %}{% endblock %}
 
+{% block extra_head %}
+<!-- Bootstrap Icons (для красивых иконок) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+    .editor-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    canvas {
+        display: block;
+        background: white;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        touch-action: none;
+        max-width: 100%;
+        max-height: 60vh; /* не более 60% высоты окна */
+        width: auto;
+        height: auto;
+    }
+    .toolbar {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 5px;
+        margin-top: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        align-items: center;
+        border: 1px solid #dee2e6;
+    }
+    .tool-group {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        padding: 0 5px;
+        border-right: 1px solid #dee2e6;
+    }
+    .tool-group:last-child {
+        border-right: none;
+    }
+    .tool-btn {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        padding: 4px 5px;
+        border-radius: 6px;
+        transition: all 0.2s;
+        color: #6c757d;
+        position: relative;
+    }
+    .tool-btn:hover {
+        background: #e9ecef;
+        color: #0d6efd;
+    }
+    .tool-btn.active {
+        color: #0d6efd;
+        background: #e2e6ea;
+    }
+    .tool-btn.size-btn {
+        font-size: 1.2rem;
+        padding: 5px;
+        line-height: 1;
+    }
+    .tool-btn.size-btn.active {
+        background: #0d6efd;
+        color: white;
+    }
+    .color-btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        padding: 0;
+    }
+    .color-btn.black {
+        background: #212529;
+    }
+    .color-btn.red {
+        background: #dc3545;
+    }
+    .color-btn.active {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 2px rgba(13,110,253,0.5);
+    }
+    .frames-strip {
+        display: flex;
+        gap: 5px;
+        overflow-x: auto;
+        padding: 5px 0;
+        margin-top: 10px;
+        border-top: 1px solid #dee2e6;
+    }
+    .frame-thumb {
+        width: 50px;
+        height: 37px; /* сохраняем пропорции 4:3 */
+        object-fit: cover;
+        border: 2px solid #dee2e6;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .frame-thumb:hover {
+        border-color: #0d6efd;
+    }
+    .frame-thumb.current {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 2px rgba(13,110,253,0.5);
+    }
+    .frame-slider-container {
+        flex: 1;
+        min-width: 150px;
+    }
+    .frame-slider-container .form-range {
+        height: 1.2rem;
+        padding: 0;
+    }
+    /* Подсказки с горячими клавишами */
+    .tool-btn::after {
+        content: attr(data-hotkey);
+        position: absolute;
+        bottom: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.7rem;
+        background: #333;
+        color: white;
+        padding: 2px 5px;
+        border-radius: 4px;
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 0.2s;
+        pointer-events: none;
+    }
+    .tool-btn:hover::after {
+        opacity: 1;
+    }
+    /* Альтернативные иконки при наведении (упрощённо: меняем класс иконки) */
+    .tool-btn.pencil-blue {
+        color: #0d6efd;
+    }
+    .tool-btn.pencil-black {
+        color: #212529;
+    }
+    .tool-btn.eraser-black {
+        color: #212529;
+    }
+    .tool-btn.eraser-blue {
+        color: #0d6efd;
+    }
+    .toolbar,
+    .frames-strip {
+        width: 100%;          /* растягиваются на всю ширину левой колонки */
+        max-width: 600px;      /* но не шире canvas */
+        margin-left: 0;        /* прижимаем к левому краю */
+        margin-right: 0;
+    }
+    .editor-left {
+        /* Можно добавить небольшой отступ справа от левой колонки */
+        margin-right: 20px;
+    }
+    .info-panel {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;      /* выравнивание по верхнему краю */
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-12"> <!-- убрали ограничение col-lg-8, пусть занимает всю ширину -->
-        <h1 class="mb-4">{% if cartoon %}Редактировать "{{ cartoon.title }}"{% else %}Создать новый мульт{% endif %}</h1>
-
-        <form method="post" id="editor-form" class="bg-light p-4 rounded shadow-sm">
+<div class="container">
+    <div class="row">
+        <!-- Скрытая форма для отправки данных -->
+        <form method="post" id="editor-form" style="display: none;">
             {% csrf_token %}
-            <div class="mb-3">
-                <label for="title" class="form-label">Название</label>
-                <input type="text" class="form-control" id="title" name="title" value="{{ cartoon.title|default:'' }}" required>
-            </div>
-            <div class="mb-3">
-                <label for="fps" class="form-label">FPS (кадров в секунду)</label>
-                <input type="number" class="form-control" id="fps" name="fps" value="{{ cartoon.fps|default:12 }}" min="1" max="30">
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Инструменты</label>
-                <div class="d-flex flex-wrap gap-2">
-                    <input type="color" id="color-picker" value="#000000" class="form-control form-control-color w-auto" title="Выбрать цвет">
-                    <input type="range" id="brush-size" min="1" max="20" value="2" class="form-range w-auto" style="width: 100px;">
-                    <button type="button" id="clear-canvas" class="btn btn-outline-secondary">Очистить</button>
-                    <button type="button" id="add-frame" class="btn btn-primary">➕ Добавить кадр</button>
-                    <button type="button" id="copy-frame" class="btn btn-outline-primary">📋 Копировать кадр</button>
-                    <button type="button" id="delete-frame" class="btn btn-outline-danger">❌ Удалить кадр</button>
-                    <button type="button" id="preview-btn" class="btn btn-info">👁️ Предпросмотр</button>
-                </div>
-            </div>
-
-            <!-- Увеличенный canvas с обёрткой -->
-            <div class="canvas-wrapper mb-3 text-center" style="max-width: 100%; overflow-x: auto;">
-                <canvas id="draw-canvas" width="800" height="600" style="border: 2px solid #ccc; border-radius: 5px; background: white; max-width: 100%; height: auto;"></canvas>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Кадры</label>
-                <div id="frames-list" class="d-flex flex-wrap gap-2 p-2 border rounded bg-white" style="min-height: 80px;"></div>
-            </div>
-
+            <input type="hidden" name="title" id="title-input">
+            <input type="hidden" name="fps" value="10">
             <input type="hidden" name="frames" id="frames-input">
-            <button type="submit" class="btn btn-primary w-100">💾 Сохранить мульт</button>
         </form>
-        <div class="text-center text-muted small mt-3">Версия редактора: 0</div>
-    </div>
-</div>
-<!-- Модальное окно предпросмотра -->
-<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="previewModalLabel">Предпросмотр анимации</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-                <img id="preview-frame" src="" alt="Кадр" class="img-fluid rounded" style="max-height: 400px;">
-                <div class="mt-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <span>Кадр</span>
-                        <input type="range" id="preview-slider" class="form-range" min="0" max="0" value="0">
-                        <span id="preview-counter">0 / 0</span>
+
+        <!-- Левая колонка: редактор (фиксированная ширина) -->
+        <div class="col-auto">
+            <div class="editor-left" style="width: fit-content;">
+                <!-- Canvas -->
+                <div class="text-center">
+                    <canvas id="draw-canvas" width="600" height="400"></canvas>
+                </div>
+
+                <!-- Панель инструментов -->
+                <div class="toolbar">
+                    <!-- Добавить кадр -->
+                    <div class="tool-group">
+                        <button type="button" class="tool-btn" id="add-frame" title="Добавить кадр">
+                            <i class="bi bi-plus-square"></i>
+                        </button>
+                        <button type="button" class="tool-btn" id="delete-frame" title="Удалить кадр">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     </div>
-                    <div class="d-flex gap-2 justify-content-center mt-2">
-                        <button id="preview-playpause" class="btn btn-primary">▶️ Воспроизвести</button>
+
+                    <!-- Предпросмотр и сохранение -->
+                    <div class="tool-group">
+                        <button type="button" class="tool-btn" id="preview-btn" title="Предпросмотр">
+                            <i class="bi bi-play-fill"></i>
+                        </button>
+                        <button type="button" class="tool-btn" id="save-btn" title="Сохранить">
+                            <i class="bi bi-save"></i>
+                        </button>
+                    </div>
+
+                    <!-- Инструменты рисования -->
+                    <div class="tool-group">
+                        <button type="button" class="tool-btn pencil-blue" id="pencil-tool" title="Карандаш">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="button" class="tool-btn eraser-black" id="eraser-tool" title="Ластик">
+                            <i class="bi bi-eraser"></i>
+                        </button>
+                    </div>
+
+                    <!-- Размер кисти -->
+                    <div class="tool-group">
+                        <button type="button" class="tool-btn size-btn" data-size="1" title="Размер 1"><i class="bi bi-circle"></i></button>
+                        <button type="button" class="tool-btn size-btn active" data-size="2" title="Размер 2"><i class="bi bi-circle-fill" style="font-size: 0.9rem;"></i></button>
+                        <button type="button" class="tool-btn size-btn" data-size="3" title="Размер 3"><i class="bi bi-circle-fill" style="font-size: 1.2rem;"></i></button>
+                        <button type="button" class="tool-btn size-btn" data-size="4" title="Размер 4"><i class="bi bi-circle-fill" style="font-size: 1.5rem;"></i></button>
+                        <button type="button" class="tool-btn size-btn" data-size="5" title="Размер 5"><i class="bi bi-circle-fill" style="font-size: 1.8rem;"></i></button>
+                    </div>
+
+                    <!-- Цвет -->
+                    <div class="tool-group">
+                        <button type="button" class="color-btn black active" data-color="#000000" title="Чёрный"></button>
+                        <button type="button" class="color-btn red" data-color="#dc3545" title="Красный"></button>
                     </div>
                 </div>
+
+                <!-- Полоса кадров (миниатюры) -->
+                <div class="frames-strip" id="frames-strip"></div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+        </div>
+
+        <!-- Правая колонка: информация -->
+        <div class="col">
+            <div class="info-panel">
+                {% if not user.is_authenticated %}
+                    <p>Рекомендуем <a href="{% url 'register' %}">зарегистрироваться</a>.</p>
+                {% endif %}
+                <!-- Здесь позже можно добавить другую информацию -->
             </div>
         </div>
     </div>
 </div>
-{% if show_anon_modal %}
-<!-- Модальное окно для анонимов -->
-<div class="modal fade" id="anonModal" tabindex="-1" aria-labelledby="anonModalLabel" aria-hidden="true">
+
+<!-- Модальное окно сохранения (тёмная тема) -->
+<div class="modal fade" id="saveModal" tabindex="-1" aria-labelledby="saveModalLabel" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="anonModalLabel">ВНИМАНИЕ!</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-white" id="saveModalLabel">Сохранение мульта</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>В данный момент вы не авторизованы. Сохранённые вами мульты будут опубликованы анонимно. Если вы всё же хотите продолжить, нажмите ОК.</p>
-                <p>В качестве альтернативы, чтобы иметь возможность публиковать мульты под своим именем, <a href="{% url 'login' %}">войдите в систему</a> или <a href="{% url 'register' %}">зарегистрируйтесь</a>.</p>
+                <label for="modal-title" class="form-label text-white-50">Название мульта</label>
+                <input type="text" class="form-control bg-dark text-white border-secondary" id="modal-title" placeholder="Введите название" autofocus>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">ОК</button>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="confirm-save">Сохранить</button>
             </div>
         </div>
     </div>
 </div>
-<script>
-    // Показываем модальное окно автоматически при загрузке страницы
-    document.addEventListener('DOMContentLoaded', function() {
-        var myModal = new bootstrap.Modal(document.getElementById('anonModal'));
-        myModal.show();
-    });
-</script>
-{% endif %}
 {% endblock %}
 
 {% block extra_scripts %}
 {% if frames_json %}
 <script>
     var framesData = {{ frames_json|safe }};
+    var currentFps = {{ cartoon.fps|default:10 }};
 </script>
 {% endif %}
 <script src="{% static 'cartoons/js/editor.js' %}"></script>
