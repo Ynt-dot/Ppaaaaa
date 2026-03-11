@@ -538,13 +538,22 @@ let lastMouseCoords = null; // последние координаты мыши 
 function drawCursor(x, y) {
     cursorCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
     if (x === undefined || y === undefined) return;
+
+    const radius = brushSize / 2;
+    
     cursorCtx.beginPath();
-    cursorCtx.arc(x, y, brushSize / 2, 0, 2 * Math.PI);
-    cursorCtx.strokeStyle = 'rgba(0, 0, 0, 0.5)'; // чёрный полупрозрачный контур
-    cursorCtx.lineWidth = 1;
-    cursorCtx.stroke();
-    cursorCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';   // очень бледная заливка
-    cursorCtx.fill();
+    cursorCtx.arc(x, y, radius, 0, 2 * Math.PI);
+    
+    if (brushSize <= 5) {
+        // Маленький размер — полностью залитый круг
+        cursorCtx.fillStyle = '#e0e0e0';  // ещё чуть темнее
+        cursorCtx.fill();
+    } else {
+        // Большой размер — только контур
+        cursorCtx.strokeStyle = '#e0e0e0'; // тот же цвет
+        cursorCtx.lineWidth = 1.5;         // потоньше
+        cursorCtx.stroke();
+    }
 }
 
 // ========== Запуск ==========
