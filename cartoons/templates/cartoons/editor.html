@@ -189,6 +189,11 @@
         /* или обводка */
         /* border: 2px solid #0d6efd; */
     }
+    .size-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 </style>
 {% endblock %}
 
@@ -246,23 +251,21 @@
 
                     <!-- Размер кисти -->
                     <div class="tool-group">
-                        <div class="tool-group">
-                            <button type="button" class="tool-btn size-btn" data-size="1" title="Размер 1">
-                                <img src="{% static 'cartoons/images/brush_sizes/size1.png' %}" alt="Размер 1" style="width: 20px; height: 20px;">
-                            </button>
-                            <button type="button" class="tool-btn size-btn active" data-size="2" title="Размер 2">
-                                <img src="{% static 'cartoons/images/brush_sizes/size2.png' %}" alt="Размер 2" style="width: 20px; height: 20px;">
-                            </button>
-                            <button type="button" class="tool-btn size-btn" data-size="3" title="Размер 3">
-                                <img src="{% static 'cartoons/images/brush_sizes/size3.png' %}" alt="Размер 3" style="width: 20px; height: 20px;">
-                            </button>
-                            <button type="button" class="tool-btn size-btn" data-size="4" title="Размер 4">
-                                <img src="{% static 'cartoons/images/brush_sizes/size4.png' %}" alt="Размер 4" style="width: 20px; height: 20px;">
-                            </button>
-                            <button type="button" class="tool-btn size-btn" data-size="5" title="Размер 5">
-                                <img src="{% static 'cartoons/images/brush_sizes/size5.png' %}" alt="Размер 5" style="width: 20px; height: 20px;">
-                            </button>
-                        </div>
+                        <button type="button" class="tool-btn size-btn" data-size="2" title="Размер 2px">
+                            <div style="width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin: 2px;"></div>
+                        </button>
+                        <button type="button" class="tool-btn size-btn active" data-size="4" title="Размер 4px">
+                            <div style="width: 8px; height: 8px; border-radius: 50%; background: currentColor; margin: 2px;"></div>
+                        </button>
+                        <button type="button" class="tool-btn size-btn" data-size="5" title="Размер 5px">
+                            <div style="width: 10px; height: 10px; border-radius: 50%; background: currentColor; margin: 2px;"></div>
+                        </button>
+                        <button type="button" class="tool-btn size-btn" data-size="9" title="Размер 9px">
+                            <div style="width: 14px; height: 14px; border-radius: 50%; background: currentColor; margin: 2px;"></div>
+                        </button>
+                        <button type="button" class="tool-btn size-btn" data-size="17" title="Размер 17px">
+                            <div style="width: 22px; height: 22px; border-radius: 50%; background: currentColor; margin: 2px;"></div>
+                        </button>
                     </div>
 
                     <!-- Цвет -->
