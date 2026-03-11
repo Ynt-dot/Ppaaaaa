@@ -413,6 +413,15 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
         undo();
     }
+
+    if (e.code === 'KeyC' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        copyFrame();
+    }
+    if (e.code === 'KeyV' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        pasteFrame();
+    }
 });
 
 function undo() {
@@ -424,6 +433,38 @@ function undo() {
     loadCurrentFrame().then(() => {
         drawOnionSkin();
         updateFramesUI();
+    });
+}
+
+// ========== Добавление горячих клавиш C (копировать) и V (вставить) ==========
+
+// Переменная для скопированного кадра
+let copiedFrame = null;
+
+function copyFrame() {
+    if (currentFrameIndex < 0 || currentFrameIndex >= frames.length) return;
+    copiedFrame = frames[currentFrameIndex];
+    // Можно добавить визуальный фидбек (например, всплывающее сообщение или изменение цвета кнопки)
+    console.log('Кадр скопирован');
+}
+
+function pasteFrame() {
+    if (copiedFrame === null) {
+        alert('Сначала скопируйте кадр (клавиша C)');
+        return;
+    }
+    if (currentFrameIndex < 0 || currentFrameIndex >= frames.length) return;
+
+    // Сохраняем состояние для отмены
+    pushState();
+
+    // Заменяем текущий кадр скопированным
+    frames[currentFrameIndex] = copiedFrame;
+
+    // Перезагружаем интерфейс
+    loadCurrentFrame().then(() => {
+        drawOnionSkin();
+        updateCurrentThumbnail();
     });
 }
 
