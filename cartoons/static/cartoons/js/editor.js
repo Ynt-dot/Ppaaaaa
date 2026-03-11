@@ -62,22 +62,52 @@ function updateCurrentThumbnail() {
 function updateFramesUI() {
     framesStrip.innerHTML = '';
     frames.forEach((frame, index) => {
+        // Создаём контейнер для миниатюры и номера
+        let container = document.createElement('div');
+        container.style.position = 'relative';
+        container.style.display = 'inline-block';
+        container.style.margin = '2px';
+
+        // Миниатюра
         let img = document.createElement('img');
         img.src = frame;
         img.className = 'frame-thumb';
         img.dataset.index = index;
         if (index === currentFrameIndex) img.classList.add('current');
-        img.addEventListener('click', async () => {
+
+        // Номер кадра
+        let number = document.createElement('span');
+        number.textContent = index; // нумерация с 0
+        number.style.position = 'absolute';
+        number.style.top = '0';
+        number.style.right = '0';
+        number.style.backgroundColor = '#dc3545'; // красный
+        number.style.color = 'white';
+        number.style.fontSize = '10px';
+        number.style.padding = '2px 4px';
+        number.style.borderRadius = '2px';
+        number.style.fontWeight = 'bold';
+        number.style.zIndex = '1';
+        number.style.lineHeight = '1';
+        number.style.minWidth = '16px';
+        number.style.textAlign = 'center';
+
+        container.appendChild(img);
+        container.appendChild(number);
+
+        // Обработчик клика на контейнер
+        container.addEventListener('click', async () => {
             if (currentFrameIndex !== index) {
                 saveCurrentFrame();
-                updateHistory(index);          // добавляем старый индекс в историю
+                updateHistory(index);
                 currentFrameIndex = index;
-                await loadCurrentFrame();      // загрузить чистый кадр в drawCanvas
-                await drawOnionSkin();         // перерисовать шелуху на bgCanvas
+                await loadCurrentFrame();
+                await drawOnionSkin();
                 updateFramesUI();
             }
         });
-        framesStrip.appendChild(img);
+
+        framesStrip.appendChild(container);
     });
 }
 
