@@ -409,13 +409,14 @@ function pushState() {
 
 document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.key.toLowerCase() === 'z' && !e.ctrlKey && !e.metaKey) {
+    if (e.code === 'KeyZ' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         undo();
     }
 });
 
 function undo() {
+    console.log('Undo function called, stack size:', undoStack.length);
     if (undoStack.length === 0) return;
     // Восстанавливаем последнее состояние
     frames = undoStack.pop().map(frame => frame);
