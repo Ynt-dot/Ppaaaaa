@@ -318,5 +318,10 @@
     var currentFps = {{ cartoon.fps|default:10 }};
 </script>
 {% endif %}
+{% if cartoon %}
+<script>
+    var currentCartoonTitle = "{{ cartoon.title|escapejs }}";
+</script>
+{% endif %}
 <script src="{% static 'cartoons/js/editor.js' %}"></script>
 {% endblock %}

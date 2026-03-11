@@ -378,7 +378,7 @@ colorBtns.forEach(btn => {
 
 saveBtn.addEventListener('click', () => {
     saveCurrentFrame();
-    modalTitleInput.value = '';
+    modalTitleInput.value = typeof currentCartoonTitle !== 'undefined' ? currentCartoonTitle : '';
     saveModal.show();
 });
 
