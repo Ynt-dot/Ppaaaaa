@@ -184,6 +184,11 @@
         border-radius: 8px;
         background: white;
     }
+    .size-btn.active img {
+        filter: drop-shadow(0 0 2px #0d6efd);
+        /* или обводка */
+        /* border: 2px solid #0d6efd; */
+    }
 </style>
 {% endblock %}
 
@@ -241,11 +246,23 @@
 
                     <!-- Размер кисти -->
                     <div class="tool-group">
-                        <button type="button" class="tool-btn size-btn" data-size="1" title="Размер 1"><i class="bi bi-circle"></i></button>
-                        <button type="button" class="tool-btn size-btn active" data-size="2" title="Размер 2"><i class="bi bi-circle-fill" style="font-size: 0.9rem;"></i></button>
-                        <button type="button" class="tool-btn size-btn" data-size="3" title="Размер 3"><i class="bi bi-circle-fill" style="font-size: 1.2rem;"></i></button>
-                        <button type="button" class="tool-btn size-btn" data-size="4" title="Размер 4"><i class="bi bi-circle-fill" style="font-size: 1.5rem;"></i></button>
-                        <button type="button" class="tool-btn size-btn" data-size="5" title="Размер 5"><i class="bi bi-circle-fill" style="font-size: 1.8rem;"></i></button>
+                        <div class="tool-group">
+                            <button type="button" class="tool-btn size-btn" data-size="1" title="Размер 1">
+                                <img src="{% static 'cartoons/images/brush_sizes/size1.png' %}" alt="Размер 1" style="width: 20px; height: 20px;">
+                            </button>
+                            <button type="button" class="tool-btn size-btn active" data-size="2" title="Размер 2">
+                                <img src="{% static 'cartoons/images/brush_sizes/size2.png' %}" alt="Размер 2" style="width: 20px; height: 20px;">
+                            </button>
+                            <button type="button" class="tool-btn size-btn" data-size="3" title="Размер 3">
+                                <img src="{% static 'cartoons/images/brush_sizes/size3.png' %}" alt="Размер 3" style="width: 20px; height: 20px;">
+                            </button>
+                            <button type="button" class="tool-btn size-btn" data-size="4" title="Размер 4">
+                                <img src="{% static 'cartoons/images/brush_sizes/size4.png' %}" alt="Размер 4" style="width: 20px; height: 20px;">
+                            </button>
+                            <button type="button" class="tool-btn size-btn" data-size="5" title="Размер 5">
+                                <img src="{% static 'cartoons/images/brush_sizes/size5.png' %}" alt="Размер 5" style="width: 20px; height: 20px;">
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Цвет -->
