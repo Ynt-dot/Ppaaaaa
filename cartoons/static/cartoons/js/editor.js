@@ -204,6 +204,7 @@ function getCanvasCoords(e) {
 
 function startDrawing(e) {
     drawing = true;
+    cursorCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
     const coords = getCanvasCoords(e);
     if (currentTool === 'eraser') {
         drawCtx.globalCompositeOperation = 'destination-out';
@@ -231,17 +232,31 @@ function stopDrawing() {
         drawing = false;
         drawCtx.closePath();
         drawCtx.globalCompositeOperation = 'source-over';
-        pushState()
         saveCurrentFrame();
         updateCurrentThumbnail();
-        // Шелуху не перерисовываем, т.к. она зависит только от истории и массива frames
+        if (lastMouseCoords) {
+            drawCursor(lastMouseCoords.x, lastMouseCoords.y);
+        }
     }
 }
 
 drawCanvas.addEventListener('mousedown', startDrawing);
-drawCanvas.addEventListener('mousemove', draw);
+drawCanvas.addEventListener('mousemove', (e) => {
+    const coords = getCanvasCoords(e);
+    lastMouseCoords = coords;
+    if (drawing) {
+        draw(e);
+        // Во время рисования курсор не отображаем
+        cursorCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
+    } else {
+        drawCursor(coords.x, coords.y);
+    }
+});
 drawCanvas.addEventListener('mouseup', stopDrawing);
-drawCanvas.addEventListener('mouseout', stopDrawing);
+drawCanvas.addEventListener('mouseout', () => {
+    cursorCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
+    lastMouseCoords = null;
+});
 
 // ========== Управление кадрами ==========
 
@@ -433,12 +448,18 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'Equal' && e.shiftKey && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         changeBrushSize(1);
+        if (lastMouseCoords) {
+            drawCursor(lastMouseCoords.x, lastMouseCoords.y);
+        }
     }
 
     // Клавиша - (уменьшить размер)
     if (e.code === 'Minus' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         changeBrushSize(-1);
+        if (lastMouseCoords) {
+            drawCursor(lastMouseCoords.x, lastMouseCoords.y);
+        }
     }
 });
 
@@ -508,7 +529,28 @@ function changeBrushSize(direction) {
     newSize = Math.min(500, Math.max(1, newSize));
     if (newSize === brushSize) return;
     brushSize = newSize;
+    if (lastMouseCoords) {
+        drawCursor(lastMouseCoords.x, lastMouseCoords.y);
+    }
     updateSizeButtons();
+}
+
+// ========== Добавление предпросмотра размера кисти в виде круга под курсором ==========
+
+let cursorCanvas = document.getElementById('cursor-canvas');
+let cursorCtx = cursorCanvas.getContext('2d');
+let lastMouseCoords = null; // последние координаты мыши для восстановления курсора
+
+function drawCursor(x, y) {
+    cursorCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
+    if (x === undefined || y === undefined) return;
+    cursorCtx.beginPath();
+    cursorCtx.arc(x, y, brushSize / 2, 0, 2 * Math.PI);
+    cursorCtx.strokeStyle = 'rgba(0, 0, 0, 0.5)'; // чёрный полупрозрачный контур
+    cursorCtx.lineWidth = 1;
+    cursorCtx.stroke();
+    cursorCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';   // очень бледная заливка
+    cursorCtx.fill();
 }
 
 // ========== Запуск ==========
