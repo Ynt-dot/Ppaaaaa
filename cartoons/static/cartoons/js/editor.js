@@ -13,7 +13,7 @@ let history = []; // история предыдущих кадров (макс.
 
 let currentTool = 'pencil';
 let currentColor = '#000000';
-let brushSize = 2;
+let brushSize = 4; // начальный размер кисти
 let playing = false;
 let playInterval = null;
 const fps = 10;
@@ -188,6 +188,7 @@ async function initFrames() {
         updateFramesUI();
     }
     pushState();
+    updateSizeButtons();
 }
 
 // ========== Рисование (только на drawCanvas) ==========
@@ -409,18 +410,35 @@ function pushState() {
 
 document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    // Клавиша Z (отмена)
     if (e.code === 'KeyZ' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         undo();
     }
 
+    // Клавиша C (копировать)
     if (e.code === 'KeyC' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         copyFrame();
     }
+
+    // Клавиша V (вставить)
     if (e.code === 'KeyV' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         pasteFrame();
+    }
+
+    // Клавиша + (увеличить размер) — Shift+= на основной клавиатуре
+    if (e.code === 'Equal' && e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        changeBrushSize(1);
+    }
+
+    // Клавиша - (уменьшить размер)
+    if (e.code === 'Minus' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        changeBrushSize(-1);
     }
 });
 
@@ -466,6 +484,31 @@ function pasteFrame() {
         drawOnionSkin();
         updateCurrentThumbnail();
     });
+}
+
+// ========== Добавление горячих клавиш + и - для изменения размера кисти ==========
+
+// Функция обновления активности кнопок размера
+function updateSizeButtons() {
+    sizeBtns.forEach(btn => {
+        const size = parseInt(btn.dataset.size);
+        btn.classList.toggle('active', size === brushSize);
+    });
+}
+
+// Функция изменения размера кисти
+function changeBrushSize(direction) {
+    let newSize;
+    if (direction > 0) {
+        newSize = Math.ceil(brushSize * 1.2);
+    } else {
+        newSize = Math.floor(brushSize * 0.8);
+    }
+    // Ограничения
+    newSize = Math.min(500, Math.max(1, newSize));
+    if (newSize === brushSize) return;
+    brushSize = newSize;
+    updateSizeButtons();
 }
 
 // ========== Запуск ==========
