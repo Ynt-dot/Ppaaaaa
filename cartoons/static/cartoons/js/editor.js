@@ -141,6 +141,7 @@ async function loadCurrentFrame() {
 // ========== Инициализация ==========
 
 async function initFrames() {
+    undoStack = [];
     history = [];
     if (typeof framesData !== 'undefined' && framesData.length > 0) {
         frames = framesData;
@@ -156,6 +157,7 @@ async function initFrames() {
         await drawOnionSkin();  // пока нет предыдущих, просто белый фон
         updateFramesUI();
     }
+    pushState();
 }
 
 // ========== Рисование (только на drawCanvas) ==========
@@ -198,6 +200,7 @@ function stopDrawing() {
         drawing = false;
         drawCtx.closePath();
         drawCtx.globalCompositeOperation = 'source-over';
+        pushState()
         saveCurrentFrame();
         updateCurrentThumbnail();
         // Шелуху не перерисовываем, т.к. она зависит только от истории и массива frames
@@ -212,6 +215,7 @@ drawCanvas.addEventListener('mouseout', stopDrawing);
 // ========== Управление кадрами ==========
 
 addFrameBtn.addEventListener('click', async (e) => {
+    pushState()
     saveCurrentFrame();
     drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
     const emptyFrame = drawCanvas.toDataURL();
@@ -244,6 +248,7 @@ addFrameBtn.addEventListener('click', async (e) => {
 });
 
 deleteFrameBtn.addEventListener('click', async () => {
+    pushState()
     if (frames.length <= 1) {
         alert('Нельзя удалить единственный кадр');
         return;
@@ -357,6 +362,39 @@ confirmSave.addEventListener('click', () => {
     document.getElementById('frames-input').value = JSON.stringify(frames);
     document.getElementById('editor-form').submit();
 });
+
+// ========== Undo ==========
+
+let undoStack = [];
+const MAX_UNDO = 20; // ограничим глубину
+
+function pushState() {
+    // Сохраняем копию frames (глубокое копирование)
+    const state = frames.map(frame => frame); // копия массива строк
+    undoStack.push(state);
+    if (undoStack.length > MAX_UNDO) {
+        undoStack.shift();
+    }
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key.toLowerCase() === 'z' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        undo();
+    }
+});
+
+function undo() {
+    if (undoStack.length === 0) return;
+    // Восстанавливаем последнее состояние
+    frames = undoStack.pop().map(frame => frame);
+    // Перезагружаем интерфейс
+    loadCurrentFrame().then(() => {
+        drawOnionSkin();
+        updateFramesUI();
+    });
+}
 
 // ========== Запуск ==========
 initFrames();
