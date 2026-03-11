@@ -444,22 +444,16 @@ document.addEventListener('keydown', (e) => {
         pasteFrame();
     }
 
-    // Клавиша + (увеличить размер) — Shift+= на основной клавиатуре
-    if (e.code === 'Equal' && e.shiftKey && !e.ctrlKey && !e.metaKey) {
+    // Клавиша = (увеличить размер)
+    if (e.code === 'Equal' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         changeBrushSize(1);
-        if (lastMouseCoords) {
-            drawCursor(lastMouseCoords.x, lastMouseCoords.y);
-        }
     }
 
     // Клавиша - (уменьшить размер)
     if (e.code === 'Minus' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         changeBrushSize(-1);
-        if (lastMouseCoords) {
-            drawCursor(lastMouseCoords.x, lastMouseCoords.y);
-        }
     }
 });
 
