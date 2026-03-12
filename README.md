@@ -200,6 +200,7 @@
     - Pax Historia
 - Сделать ИИ для обучения рисованию
 - Улучшить рекомендации (AI/Векторы)
+- HTML-редактор для собственной страницы (Neocities)
 # Заметки
 Парочка полезных сайтов  
 [Веб-памятник Мультатору](https://karakuliiii.neocities.org/shrines/mult/multator-shrine)  
