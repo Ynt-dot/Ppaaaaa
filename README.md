@@ -212,5 +212,6 @@
 Парочка полезных сайтов  
 [Веб-памятник Мультатору](https://karakuliiii.neocities.org/shrines/mult/multator-shrine)  
 [Сайт с рисовалками мультиков (для поиска конкурентов и сравнения с ними)](http://www.newart.ru/htm/flash/risovalka_7.htm)  
-  
+[Ещё одна малоизвестная рисовалка мультов](mult-uroki.ru)
+    
 Надо не забыть прописать `python manage.py makemigrations cartoons` при обновлении прода перед `python manage.py migrate`.
