@@ -32,3 +32,6 @@ __pycache__/
 *.pyc
 
 data/news.html
+
+# Структура
+structure.txt 
