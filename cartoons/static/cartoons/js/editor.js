@@ -445,6 +445,24 @@ document.addEventListener('keydown', (e) => {
         pasteFrame();
     }
 
+    // Клавиша B (карандаш)
+    if (e.code === 'KeyB' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        if (currentTool !== 'pencil') {
+            currentTool = 'pencil';
+            updateToolUI();
+        }
+    }
+
+    // Клавиша E (ластик)
+    if (e.code === 'KeyE' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        if (currentTool !== 'eraser') {
+            currentTool = 'eraser';
+            updateToolUI();
+        }
+    }
+
     // Клавиша = (увеличить размер)
     if (e.code === 'Equal' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
