@@ -204,6 +204,7 @@ function getCanvasCoords(e) {
 
 function startDrawing(e) {
     drawing = true;
+    pushState()
     cursorCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
     const coords = getCanvasCoords(e);
     if (currentTool === 'eraser') {
@@ -458,14 +459,12 @@ document.addEventListener('keydown', (e) => {
 });
 
 function undo() {
-    console.log('Undo function called, stack size:', undoStack.length);
     if (undoStack.length === 0) return;
-    // Восстанавливаем последнее состояние
-    frames = undoStack.pop().map(frame => frame);
-    // Перезагружаем интерфейс
+    frames = undoStack.pop().map(frame => frame); // восстанавливаем предыдущее состояние
     loadCurrentFrame().then(() => {
         drawOnionSkin();
-        updateFramesUI();
+        updateCurrentThumbnail();
+        updateFramesUI(); // обновляем миниатюры и подсветку текущего кадра
     });
 }
 
