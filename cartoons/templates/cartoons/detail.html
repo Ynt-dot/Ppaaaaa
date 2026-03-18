@@ -43,7 +43,7 @@
                     <strong>Создан:</strong> {{ cartoon.created_at|date:"d.m.Y H:i" }}<br>
                     <strong>FPS:</strong> {{ cartoon.fps }}<br>
                     {% if cartoon.tags %}
-                        <strong>Теги:</strong> {{ cartoon.tags|join:", " }}<br>
+                        <strong>Теги (ключевые слова):</strong> {{ cartoon.tags|join:", " }}<br>
                     {% endif %}
                     {% if cartoon.description %}
                         <strong>Описание:</strong> {{ cartoon.description }}

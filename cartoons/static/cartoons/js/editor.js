@@ -414,9 +414,16 @@ confirmSave.addEventListener('click', () => {
     let fps = document.getElementById('modal-fps').value;
     let tags = document.getElementById('modal-tags').value.split(',').map(s => s.trim()).filter(s => s);
     let description = document.getElementById('modal-description').value.trim();
+    let fpsNum = Number(fps);
 
     if (!title) {
         alert('Введите название');
+        return;
+    }
+
+    // Проверка FPS
+    if (!Number.isInteger(fpsNum) || fpsNum < 1 || fpsNum > 30) {
+        alert('FPS должен быть целым числом от 1 до 30');
         return;
     }
     document.getElementById('title-input').value = title;

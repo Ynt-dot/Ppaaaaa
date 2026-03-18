@@ -56,10 +56,20 @@ def editor(request, pk=None):
 
     if request.method == 'POST':
         title = request.POST.get('title')
-        fps = int(request.POST.get('fps', 10))
+        fps_str = request.POST.get('fps', '10')
         frames_json = request.POST.get('frames')
         tags_json = request.POST.get('tags', '[]')
         description = request.POST.get('description', '')
+
+        try:
+            fps = int(fps_str)
+            if fps < 1 or fps > 30:
+                raise ValueError
+        except (ValueError, TypeError):
+            return render(request, 'cartoons/editor.html', {
+                'cartoon': cartoon,
+                'error': 'FPS должен быть целым числом от 1 до 30'
+            })
 
         # Преобразуем теги из JSON
         try:
