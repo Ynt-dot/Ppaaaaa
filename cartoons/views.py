@@ -41,6 +41,9 @@ def detail(request, pk):
     context = {'cartoon': cartoon}
     if cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)
+    if cartoon.tags:
+        # сортируем теги по алфавиту
+        context['sorted_tags'] = sorted(cartoon.tags)
     return render(request, 'cartoons/detail.html', context)
 
 
