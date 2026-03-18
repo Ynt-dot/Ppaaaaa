@@ -16,6 +16,8 @@ class Cartoon(models.Model):
     frames_data = models.JSONField(default=dict, blank=True)
     # метаданные кадров
     fps = models.PositiveSmallIntegerField(default=12)
+    description = models.TextField(blank=True, verbose_name="Описание")
+    tags = models.JSONField(default=list, blank=True, verbose_name="Теги")
 
     class Meta:
         ordering = ['-created_at']  # сортировка по новизне

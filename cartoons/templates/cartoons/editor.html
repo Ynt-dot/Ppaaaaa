@@ -207,7 +207,9 @@
         <form method="post" id="editor-form" style="display: none;">
             {% csrf_token %}
             <input type="hidden" name="title" id="title-input">
-            <input type="hidden" name="fps" value="10">
+            <input type="hidden" name="fps" id="fps-input">
+            <input type="hidden" name="tags" id="tags-input">
+            <input type="hidden" name="description" id="description-input">
             <input type="hidden" name="frames" id="frames-input">
         </form>
 
@@ -317,8 +319,17 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <label for="modal-title" class="form-label text-white-50">Название мульта</label>
+                <label for="modal-title" class="form-label text-white-50">Название</label>
                 <input type="text" class="form-control bg-dark text-white border-secondary" id="modal-title" placeholder="Введите название" autofocus>
+
+                <label for="modal-fps" class="form-label text-white-50 mt-2">FPS (кадров в секунду)</label>
+                <input type="number" class="form-control bg-dark text-white border-secondary" id="modal-fps" value="10" min="1" max="30">
+
+                <label for="modal-tags" class="form-label text-white-50 mt-2">Теги (через запятую)</label>
+                <input type="text" class="form-control bg-dark text-white border-secondary" id="modal-tags" placeholder="например: смешной, котики">
+
+                <label for="modal-description" class="form-label text-white-50 mt-2">Описание</label>
+                <textarea class="form-control bg-dark text-white border-secondary" id="modal-description" rows="3" placeholder="Краткое описание мульта"></textarea>
             </div>
             <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
@@ -339,6 +350,9 @@
 {% if cartoon %}
 <script>
     var currentCartoonTitle = "{{ cartoon.title|escapejs }}";
+    var currentCartoonFps = {{ cartoon.fps|default:10 }};
+    var currentCartoonTags = {{ cartoon.tags|safe }};
+    var currentCartoonDescription = "{{ cartoon.description|escapejs }}";
 </script>
 {% endif %}
 <script src="{% static 'cartoons/js/editor.js' %}"></script>

@@ -56,8 +56,16 @@ def editor(request, pk=None):
 
     if request.method == 'POST':
         title = request.POST.get('title')
-        fps = int(request.POST.get('fps', 12))
+        fps = int(request.POST.get('fps', 10))
         frames_json = request.POST.get('frames')
+        tags_json = request.POST.get('tags', '[]')
+        description = request.POST.get('description', '')
+
+        # Преобразуем теги из JSON
+        try:
+            tags = json.loads(tags_json)
+        except json.JSONDecodeError:
+            tags = []
 
         if not title or not frames_json:
             return render(request, 'cartoons/editor.html', {
@@ -73,30 +81,29 @@ def editor(request, pk=None):
                 'error': 'Нет кадров'
             })
 
-        # Определяем автора
-        author = request.user if request.user.is_authenticated else None
-
         if cartoon:
-            # Если редактируем существующий мульт, проверяем права
-            if cartoon.author and cartoon.author != request.user:
-                return redirect('index')
             cartoon.title = title
             cartoon.fps = fps
             cartoon.frames_data = frames_data
+            cartoon.tags = tags
+            cartoon.description = description
             if cartoon.preview:
                 cartoon.preview.delete(save=False)
         else:
             cartoon = Cartoon(
                 title=title,
-                author=author,
+                author=request.user if request.user.is_authenticated else None,
                 fps=fps,
-                frames_data=frames_data
+                frames_data=frames_data,
+                tags=tags,
+                description=description
             )
 
         gif_content = create_gif_from_frames(frames_data, fps)
         cartoon.preview.save(f'cartoon_{cartoon.pk or "new"}.gif', gif_content,
                              save=False)
         cartoon.save()
+
         return redirect('detail', pk=cartoon.pk)
 
     context = {'cartoon': cartoon}
