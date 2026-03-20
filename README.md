@@ -220,3 +220,4 @@
 Надо не забыть прописать `python manage.py makemigrations cartoons` при обновлении прода перед `python manage.py migrate`.
 
 В https://multator-fandom.fandom.com/ru/wiki/Glukovich проверить "Факты"!
+В https://multator-fandom.fandom.com/ru/wiki/Lexsey проверить "Интересные факты"!
