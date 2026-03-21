@@ -218,10 +218,17 @@
 Парочка полезных сайтов  
 [Веб-памятник Мультатору](https://karakuliiii.neocities.org/shrines/mult/multator-shrine)  
 [Сайт с рисовалками мультиков (для поиска конкурентов и сравнения с ними)](http://www.newart.ru/htm/flash/risovalka_7.htm)  
-[Ещё одна малоизвестная рисовалка мультов](mult-uroki.ru)
-    
-Надо не забыть прописать `python manage.py makemigrations cartoons` при обновлении прода перед `python manage.py migrate`.
-
+[Ещё одна малоизвестная рисовалка мультов](mult-uroki.ru)  
+https://toonio.ru  
+https://loneti.ru  
+https://smigames.ru/risovakula/info  
+https://drawrun.com  
+https://drawn.digifi.ca  
+https://anishare.co  
+https://theanimator.co.uk  
+  
+Надо не забыть прописать `python manage.py makemigrations cartoons` при обновлении прода перед `python manage.py migrate`.  
+  
 В https://multator-fandom.fandom.com/ru/wiki/Glukovich проверить "Факты"!
 В https://multator-fandom.fandom.com/ru/wiki/Lexsey проверить "Интересные факты"!
 https://multator-fandom.fandom.com/ru/wiki/Kio-kio
