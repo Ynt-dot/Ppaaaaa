@@ -34,7 +34,4 @@ __pycache__/
 data/news.html
 
 # Экспорт
-structure.txt
-Export-Project.ps1
-Export-Project-With-Gitignore.ps1
-project_structure_and_content.txt
+project_dump.txt
