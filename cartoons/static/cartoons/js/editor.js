@@ -204,6 +204,7 @@ function getCanvasCoords(e) {
 
 function startDrawing(e) {
     drawing = true;
+    pushState()
     cursorCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
     const coords = getCanvasCoords(e);
     if (currentTool === 'eraser') {
@@ -394,17 +395,41 @@ colorBtns.forEach(btn => {
 
 saveBtn.addEventListener('click', () => {
     saveCurrentFrame();
+    // Название
     modalTitleInput.value = typeof currentCartoonTitle !== 'undefined' ? currentCartoonTitle : '';
+    // FPS
+    const fpsInput = document.getElementById('modal-fps');
+    if (fpsInput) fpsInput.value = typeof currentCartoonFps !== 'undefined' ? currentCartoonFps : 10;
+    // Теги (преобразуем массив в строку через запятую)
+    const tagsInput = document.getElementById('modal-tags');
+    if (tagsInput) tagsInput.value = typeof currentCartoonTags !== 'undefined' ? currentCartoonTags.join(', ') : '';
+    // Описание
+    const descInput = document.getElementById('modal-description');
+    if (descInput) descInput.value = typeof currentCartoonDescription !== 'undefined' ? currentCartoonDescription : '';
     saveModal.show();
 });
 
 confirmSave.addEventListener('click', () => {
-    let title = modalTitleInput.value.trim();
+    let title = document.getElementById('modal-title').value.trim();
+    let fps = document.getElementById('modal-fps').value;
+    let tags = document.getElementById('modal-tags').value.split(',').map(s => s.trim()).filter(s => s);
+    let description = document.getElementById('modal-description').value.trim();
+    let fpsNum = Number(fps);
+
     if (!title) {
         alert('Введите название');
         return;
     }
+
+    // Проверка FPS
+    if (!Number.isInteger(fpsNum) || fpsNum < 1 || fpsNum > 30) {
+        alert('FPS должен быть целым числом от 1 до 30');
+        return;
+    }
     document.getElementById('title-input').value = title;
+    document.getElementById('fps-input').value = fps;
+    document.getElementById('tags-input').value = JSON.stringify(tags);
+    document.getElementById('description-input').value = description;
     document.getElementById('frames-input').value = JSON.stringify(frames);
     document.getElementById('editor-form').submit();
 });
@@ -444,6 +469,24 @@ document.addEventListener('keydown', (e) => {
         pasteFrame();
     }
 
+    // Клавиша B (карандаш)
+    if (e.code === 'KeyB' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        if (currentTool !== 'pencil') {
+            currentTool = 'pencil';
+            updateToolUI();
+        }
+    }
+
+    // Клавиша E (ластик)
+    if (e.code === 'KeyE' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        if (currentTool !== 'eraser') {
+            currentTool = 'eraser';
+            updateToolUI();
+        }
+    }
+
     // Клавиша = (увеличить размер)
     if (e.code === 'Equal' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
@@ -458,14 +501,12 @@ document.addEventListener('keydown', (e) => {
 });
 
 function undo() {
-    console.log('Undo function called, stack size:', undoStack.length);
     if (undoStack.length === 0) return;
-    // Восстанавливаем последнее состояние
-    frames = undoStack.pop().map(frame => frame);
-    // Перезагружаем интерфейс
+    frames = undoStack.pop().map(frame => frame); // восстанавливаем предыдущее состояние
     loadCurrentFrame().then(() => {
         drawOnionSkin();
-        updateFramesUI();
+        updateCurrentThumbnail();
+        updateFramesUI(); // обновляем миниатюры и подсветку текущего кадра
     });
 }
 

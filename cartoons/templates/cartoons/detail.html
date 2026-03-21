@@ -39,15 +39,15 @@
             <div class="card-body">
                 <h1 class="card-title h3">{{ cartoon.title }}</h1>
                 <p class="card-text">
-                    <strong>Автор:</strong>
-                    {% if cartoon.author %}
-                        <a href="{% url 'user_profile' username=cartoon.author.username %}">{{ cartoon.author.username }}</a>
-                    {% else %}
-                        Аноним
-                    {% endif %}
-                    <br>
+                    <strong>Автор:</strong> {% if cartoon.author %}<a href="{% url 'user_profile' username=cartoon.author.username %}">{{ cartoon.author.username }}</a>{% else %}Аноним{% endif %}<br>
                     <strong>Создан:</strong> {{ cartoon.created_at|date:"d.m.Y H:i" }}<br>
-                    <strong>FPS:</strong> {{ cartoon.fps }}
+                    <strong>FPS:</strong> {{ cartoon.fps }}<br>
+                    {% if cartoon.tags %}
+                        <strong>Теги (ключевые слова):</strong> {{ sorted_tags|join:", " }}<br>
+                    {% endif %}
+                    {% if cartoon.description %}
+                        <strong>Описание:</strong> {{ cartoon.description }}
+                    {% endif %}
                 </p>
                 {% if user == cartoon.author %}
                 <a href="{% url 'editor_edit' cartoon.pk %}" class="btn btn-primary w-100">✏ Редактировать</a>
