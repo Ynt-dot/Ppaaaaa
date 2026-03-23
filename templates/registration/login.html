@@ -23,11 +23,13 @@
                         {% endif %}
                     </div>
                     <div class="mb-3">
-                        <label for="{{ form.password.id_for_label }}" class="form-label">Пароль</label>
-                        {{ form.password }}
-                        {% if form.password.errors %}
-                            <div class="text-danger small">{{ form.password.errors }}</div>
-                        {% endif %}
+                        <label for="id_password" class="form-label">Пароль</label>
+                        <div class="input-group">
+                            <input type="password" name="password" class="form-control" id="id_password" required>
+                            <button class="btn btn-outline-secondary" type="button" id="togglePasswordBtn">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-success w-100">Войти</button>
                 </form>
@@ -43,4 +45,21 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+    const toggleBtn = document.getElementById('togglePasswordBtn');
+    const passwordField = document.getElementById('id_password');
+    if (toggleBtn && passwordField) {
+        toggleBtn.addEventListener('click', function() {
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+            const icon = toggleBtn.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('bi-eye');
+                icon.classList.toggle('bi-eye-slash');
+            }
+        });
+    }
+</script>
 {% endblock %}
