@@ -32,6 +32,3 @@ __pycache__/
 *.pyc
 
 data/news.html
-
-# Экспорт
-project_dump.txt
