@@ -7,3 +7,4 @@ sqlparse==0.5.0
 tzdata==2025.3
 mysqlclient==2.2.4
 requests==2.31.0
+django-debug-toolbar

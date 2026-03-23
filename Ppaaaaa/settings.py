@@ -25,9 +25,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = \
     'django-insecure-6iwoaenbt0so)+@j2zlpo-rmlh1upnzq9tu0nhe-%)r#8)_dnc'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
 ALLOWED_HOSTS = []
 
 
@@ -42,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'cartoons',
     'bootstrap4',
+    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
@@ -53,6 +51,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'Ppaaaaa.urls'
@@ -151,6 +150,10 @@ MESSAGE_TAGS = {
 }
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+INTERNAL_IPS = [
+    '127.0.0.1',
+]
 
 try:
     from .local_settings import * # type: ignore # noqa

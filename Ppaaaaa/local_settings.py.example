@@ -6,7 +6,7 @@ from .settings import BASE_DIR
 
 DEBUG = True  # На сервере поставьте False
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'ваш-домен.ru']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'ppaaaaa.ru', 'www.ppaaaaa.ru']
 
 DATABASES = {
     'default': {
