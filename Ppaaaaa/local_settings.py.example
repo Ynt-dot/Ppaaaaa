@@ -32,3 +32,9 @@ DEFAULT_FROM_EMAIL = 'Ппааааа <noreply@ppaaaaa.ru>'
 
 # Для ссылок в письмах (ваш домен уже https, если настроили SSL)
 SITE_URL = 'https://ppaaaaa.ru'
+
+ADMIN_EMAIL = 'your-email@example.com'   # email администратора
+
+DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/...'   # ваш URL
+
+DISCORD_ADMIN_USER_ID = 123456789012345678   # ваш ID

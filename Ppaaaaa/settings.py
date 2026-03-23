@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'cartoons',
     'bootstrap4',
     'debug_toolbar',
+    'axes',
 ]
 
 MIDDLEWARE = [
@@ -48,6 +49,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'axes.middleware.AxesMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
@@ -153,6 +155,22 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 INTERNAL_IPS = [
     '127.0.0.1',
+]
+
+# Axes settings
+AXES_FAILURE_LIMIT = 5               # количество неудачных попыток
+AXES_COOLOFF_TIME = 1                # блокировка на 1 час (в часах)
+AXES_LOCK_OUT_BY_COMBINATION_USER_IP = True   # блокировать по паре (username,
+# IP)
+AXES_ENABLE_ADMIN = True             # отображать логи в админке
+AXES_RESET_ON_SUCCESS = True         # сброс счётчика после успешного входа
+AXES_LOCKOUT_TEMPLATE = 'registration/locked_out.html'  # шаблон для
+# заблокированных
+
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',  # должен быть первым для
+    # отслеживания попыток
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 try:
