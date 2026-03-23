@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Мультики пользователя {{ profile_user.username }}{% endblock %}
+{% block title %}Мульты пользователя {{ profile_user.username }}{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -10,7 +10,7 @@
         <div class="p-3 bg-white">
             <h2>{{ profile_user.username }}</h2>
             <p class="text-muted">Зарегистрирован: {{ profile_user.date_joined|date:"d.m.Y" }}</p>
-            <p>Всего мультиков: {{ cartoons.paginator.count }}</p>
+            <p>Всего мультов: {{ cartoons.paginator.count }}</p>
         </div>
     </div>
 

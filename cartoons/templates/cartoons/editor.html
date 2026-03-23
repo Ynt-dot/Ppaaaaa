@@ -43,6 +43,7 @@
     .tool-group:last-child {
         border-right: none;
     }
+    /* Обычная кнопка – чёрный текст, без изменения цвета при наведении */
     .tool-btn {
         background: none;
         border: none;
@@ -50,25 +51,28 @@
         padding: 4px 5px;
         border-radius: 6px;
         transition: all 0.2s;
-        color: #6c757d;
+        color: #212529;
         position: relative;
     }
+    /* Ховер – только серый фон, цвет не меняется */
     .tool-btn:hover {
         background: #e9ecef;
-        color: #0d6efd;
+        color: #212529;
     }
+    /* Активная кнопка – серый фон, чёрный текст */
     .tool-btn.active {
-        color: #0d6efd;
-        background: #e2e6ea;
+        background: #e2e6ea !important;
+        color: #212529 !important;
     }
     .tool-btn.size-btn {
         font-size: 1.2rem;
         padding: 5px;
         line-height: 1;
     }
+    /* Размер кисти – активная кнопка: серый фон, чёрный текст */
     .tool-btn.size-btn.active {
-        background: #0d6efd;
-        color: white;
+        background: #e2e6ea;
+        color: #212529;
     }
     .color-btn {
         width: 24px;
@@ -84,8 +88,8 @@
         background: #ff0000;
     }
     .color-btn.active {
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 2px rgba(13,110,253,0.5);
+        border-color: #6c757d;
+        box-shadow: 0 0 0 2px rgba(108,117,125,0.5);
     }
     .frames-strip {
         display: flex;
@@ -140,17 +144,18 @@
         opacity: 1;
     }
     /* Альтернативные иконки при наведении (упрощённо: меняем класс иконки) */
-    .tool-btn.pencil-blue {
-        color: #0d6efd;
-    }
-    .tool-btn.pencil-black {
-        color: #212529;
-    }
-    .tool-btn.eraser-black {
-        color: #212529;
-    }
+    /* Специально для карандаша и ластика (чтобы синие классы не мешали) */
+    .tool-btn.pencil-blue,
+    .tool-btn.pencil-black,
+    .tool-btn.eraser-black,
     .tool-btn.eraser-blue {
-        color: #0d6efd;
+        color: #212529 !important;
+    }
+    .tool-btn.pencil-blue.active,
+    .tool-btn.pencil-black.active,
+    .tool-btn.eraser-black.active,
+    .tool-btn.eraser-blue.active {
+        background: #e2e6ea !important;
     }
     .toolbar,
     .frames-strip {
@@ -250,10 +255,10 @@
 
                     <!-- Инструменты рисования -->
                     <div class="tool-group">
-                        <button type="button" class="tool-btn pencil-blue" id="pencil-tool" title="Карандаш">
+                        <button type="button" class="tool-btn" id="pencil-tool" title="Карандаш">
                             <i class="bi bi-pencil"></i>
                         </button>
-                        <button type="button" class="tool-btn eraser-black" id="eraser-tool" title="Ластик">
+                        <button type="button" class="tool-btn" id="eraser-tool" title="Ластик">
                             <i class="bi bi-eraser"></i>
                         </button>
                     </div>

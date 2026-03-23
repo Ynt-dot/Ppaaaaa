@@ -189,6 +189,7 @@ async function initFrames() {
     }
     pushState();
     updateSizeButtons();
+    updateToolUI()
 }
 
 // ========== Рисование (только на drawCanvas) ==========
@@ -369,8 +370,15 @@ eraserTool.addEventListener('click', () => {
 });
 
 function updateToolUI() {
-    pencilTool.classList.toggle('pencil-blue', currentTool === 'pencil');
-    eraserTool.classList.toggle('eraser-blue', currentTool === 'eraser');
+    // Убираем active у обеих кнопок
+    pencilTool.classList.remove('active');
+    eraserTool.classList.remove('active');
+    // Добавляем active к выбранному инструменту
+    if (currentTool === 'pencil') {
+        pencilTool.classList.add('active');
+    } else {
+        eraserTool.classList.add('active');
+    }
 }
 
 sizeBtns.forEach(btn => {
