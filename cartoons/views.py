@@ -112,7 +112,7 @@ def editor(request, pk=None):
                 description=description
             )
 
-        gif_content = create_gif_from_frames(frames_data, fps)
+        gif_content = create_gif_from_frames(frames_data, fps, max_frames=50)
         cartoon.preview.save(f'cartoon_{cartoon.pk or "new"}.gif', gif_content,
                              save=False)
         cartoon.save()
