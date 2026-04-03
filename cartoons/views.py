@@ -94,6 +94,12 @@ def editor(request, pk=None):
                 'error': 'Нет кадров'
             })
 
+        if len(frames_data) > 5000:
+            return render(request, 'cartoons/editor.html', {
+                'cartoon': cartoon,
+                'error': 'Слишком много кадров. Максимум 5000 кадров.'
+            })
+
         if cartoon:
             cartoon.title = title
             cartoon.fps = fps

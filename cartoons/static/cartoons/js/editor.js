@@ -263,6 +263,10 @@ drawCanvas.addEventListener('mouseout', () => {
 // ========== Управление кадрами ==========
 
 addFrameBtn.addEventListener('click', async (e) => {
+    if (frames.length >= 5000) {
+        alert('Достигнут лимит кадров (5000). Нельзя добавить новый кадр.');
+        return;
+    }
     pushState()
     saveCurrentFrame();
     drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
@@ -536,6 +540,10 @@ function pasteFrame() {
         return;
     }
     if (currentFrameIndex < 0 || currentFrameIndex >= frames.length) return;
+    if (frames.length >= 5000) {
+        alert('Достигнут лимит кадров (5000). Нельзя вставить кадр.');
+        return;
+    }
 
     // Сохраняем состояние для отмены
     pushState();
