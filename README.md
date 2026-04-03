@@ -146,6 +146,7 @@
 - Добавить форму анонимной обратной связи
 - Добавить рекомендации (База)
 - Заказать на аутсорсе отрисовку нескольких мультиков для наполнения сайта (там же можно заказать стикеры)
+- Функция "Рандомный мульт" (Drawn)
 ## Средний приоритет
 - Реферальная система
 - Добавить цветные ники
@@ -241,3 +242,4 @@ https://theanimator.co.uk
 https://multator-fandom.fandom.com/ru/wiki/Kio-kio
 https://planeta.ru/campaigns/multator2 - это чё? Изучить... (https://planeta.ru/r/away?to=https://vk.com/club236431942, https://t.me/ D8idXXnG_1sxYTg6)
 Загуглить как работает Grease Pencil в Blender
+https://drawn.digifi.ca/play/uxj1kq - рекдама Toonator Revival на Drawn
