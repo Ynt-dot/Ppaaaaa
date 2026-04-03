@@ -365,4 +365,53 @@
 <div class="alert alert-danger">{{ error }}</div>
 {% endif %}
 <script src="{% static 'cartoons/js/editor.js' %}"></script>
+<script>
+    let formChanged = false;
+
+    // Функция, помечающая, что были изменения
+    function markChanged() {
+        formChanged = true;
+    }
+
+    // Отслеживаем начало рисования
+    const canvas = document.getElementById('draw-canvas');
+    if (canvas) {
+        canvas.addEventListener('mousedown', markChanged);
+    }
+
+    // Отслеживаем добавление/удаление кадров и другие действия, изменяющие состояние
+    const addBtn = document.getElementById('add-frame');
+    if (addBtn) addBtn.addEventListener('click', markChanged);
+    const delBtn = document.getElementById('delete-frame');
+    if (delBtn) delBtn.addEventListener('click', markChanged);
+    const previewBtn = document.getElementById('preview-btn');
+    if (previewBtn) previewBtn.addEventListener('click', markChanged);
+    // При изменении размера или цвета тоже помечаем, но это не критично, можно добавить при необходимости
+
+    // Предупреждение при попытке уйти со страницы
+    window.addEventListener('beforeunload', function (e) {
+        if (formChanged) {
+            e.preventDefault();
+            e.returnValue = 'Вы уверены, что хотите выйти? Весь текущий прогресс будет удалён.';
+            return e.returnValue;
+        }
+    });
+
+    // Отключаем предупреждение при отправке формы (сохранении мульта)
+    const editorForm = document.getElementById('editor-form');
+    if (editorForm) {
+        editorForm.addEventListener('submit', function() {
+            formChanged = false;
+        });
+    }
+
+    // Также отключаем при успешном сохранении через модальное окно (confirmSave уже отправляет форму)
+    const confirmSaveBtn = document.getElementById('confirm-save');
+    if (confirmSaveBtn) {
+        confirmSaveBtn.addEventListener('click', function() {
+            // Флаг сбросится при отправке формы, но можно и здесь
+            setTimeout(() => { formChanged = false; }, 100);
+        });
+    }
+</script>
 {% endblock %}

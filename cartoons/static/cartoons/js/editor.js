@@ -613,5 +613,69 @@ function drawCursor(x, y) {
     }
 }
 
+// ========== Добавление предупреждения при уходе со страницы редактора ==========
+
+// Предупреждение при уходе со страницы
+let formChanged = false;
+
+function markChanged() {
+    formChanged = true;
+}
+
+// Отслеживаем изменения в редакторе
+// Рисование (mousedown на canvas)
+drawCanvas.addEventListener('mousedown', markChanged);
+
+// Добавление/удаление кадров
+addFrameBtn.addEventListener('click', markChanged);
+deleteFrameBtn.addEventListener('click', markChanged);
+
+// Предпросмотр
+previewBtn.addEventListener('click', markChanged);
+
+// При изменении инструментов, размера кисти, цвета – тоже помечаем (необязательно)
+pencilTool.addEventListener('click', markChanged);
+eraserTool.addEventListener('click', markChanged);
+sizeBtns.forEach(btn => btn.addEventListener('click', markChanged));
+colorBtns.forEach(btn => btn.addEventListener('click', markChanged));
+
+// При переключении кадров через миниатюры тоже нужно помечать, потому что это действие изменяет состояние (сохраняет текущий кадр)
+// Но можно считать, что переключение без рисования не меняет данные? Лучше пометить, чтобы не потерять.
+// Добавим в обработчик клика на миниатюру, который находится в `updateFramesUI`. Проще добавить маркер в функцию loadFrame?
+// Но loadFrame не сохраняет изменения, только переключает. Однако при переключении мы сохраняем текущий кадр (saveCurrentFrame). Значит, это изменение.
+// В функции `loadFrame` вызывается `saveCurrentFrame()`. Добавим вызов markChanged внутри `loadFrame` после сохранения.
+// Но loadFrame вызывается и при инициализации. Нужно отличать. Пока просто добавим в обработчик клика.
+
+// Однако чтобы не усложнять, просто добавим маркер при любом клике по миниатюре. Это можно сделать в функции `updateFramesUI` при создании img.
+// Но проще: при каждом вызове `saveCurrentFrame` (который сохраняет кадр) помечать изменения. А `saveCurrentFrame` вызывается в `stopDrawing`, `addFrameBtn`, `deleteFrameBtn` и при переключении кадров.
+// Так что добавим вызов markChanged внутри `saveCurrentFrame`:
+
+const originalSaveCurrentFrame = saveCurrentFrame;
+saveCurrentFrame = function() {
+    originalSaveCurrentFrame();
+    markChanged();
+};
+
+// Однако осторожно: saveCurrentFrame вызывается и при сохранении мульта (перед отправкой), но там мы не хотим маркировать, потому что после сохранения предупреждение не нужно.
+// Но это нормально, потому что при отправке формы мы сбросим флаг.
+
+// Отключаем предупреждение при отправке формы
+const editorForm = document.getElementById('editor-form');
+editorForm.addEventListener('submit', () => {
+    formChanged = false;
+});
+
+// Также при клике на кнопку сохранения (открытие модального окна) не сбрасываем, но при успешном сохранении форма отправится и сбросит.
+// При отмене модального окна предупреждение останется, что правильно.
+
+// Предупреждение перед уходом
+window.addEventListener('beforeunload', (e) => {
+    if (formChanged) {
+        e.preventDefault();
+        e.returnValue = 'Вы уверены, что хотите выйти? Весь текущий прогресс будет удалён.';
+        return e.returnValue;
+    }
+});
+
 // ========== Запуск ==========
 initFrames();
