@@ -7,8 +7,8 @@
     <title>{% block title %}Мультики{% endblock %}</title>
     {% load static %}
     <link href="{% static 'cartoons/css/bootstrap.min.css' %}" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <link href="{% static 'cartoons/css/bootstrap-icons.min.css' %}" rel="stylesheet">
+    <link href="{% static 'cartoons/css/fonts.css' %}" rel="stylesheet">
     {% block extra_head %}{% endblock %}
     <style>
         /* Скрываем нативные кнопки показа пароля в Chrome, Edge, Safari */
