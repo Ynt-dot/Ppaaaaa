@@ -639,17 +639,6 @@ eraserTool.addEventListener('click', markChanged);
 sizeBtns.forEach(btn => btn.addEventListener('click', markChanged));
 colorBtns.forEach(btn => btn.addEventListener('click', markChanged));
 
-// При переключении кадров через миниатюры тоже нужно помечать, потому что это действие изменяет состояние (сохраняет текущий кадр)
-// Но можно считать, что переключение без рисования не меняет данные? Лучше пометить, чтобы не потерять.
-// Добавим в обработчик клика на миниатюру, который находится в `updateFramesUI`. Проще добавить маркер в функцию loadFrame?
-// Но loadFrame не сохраняет изменения, только переключает. Однако при переключении мы сохраняем текущий кадр (saveCurrentFrame). Значит, это изменение.
-// В функции `loadFrame` вызывается `saveCurrentFrame()`. Добавим вызов markChanged внутри `loadFrame` после сохранения.
-// Но loadFrame вызывается и при инициализации. Нужно отличать. Пока просто добавим в обработчик клика.
-
-// Однако чтобы не усложнять, просто добавим маркер при любом клике по миниатюре. Это можно сделать в функции `updateFramesUI` при создании img.
-// Но проще: при каждом вызове `saveCurrentFrame` (который сохраняет кадр) помечать изменения. А `saveCurrentFrame` вызывается в `stopDrawing`, `addFrameBtn`, `deleteFrameBtn` и при переключении кадров.
-// Так что добавим вызов markChanged внутри `saveCurrentFrame`:
-
 const originalSaveCurrentFrame = saveCurrentFrame;
 saveCurrentFrame = function() {
     originalSaveCurrentFrame();
