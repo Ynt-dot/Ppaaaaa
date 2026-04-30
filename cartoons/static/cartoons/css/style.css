@@ -164,11 +164,13 @@ input[type="password"]::-ms-clear {
 
 /* === Card previews === */
 .card-preview-img {
-    height: 180px;
-    object-fit: cover;
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    object-fit: contain;
+    background-color: #f8f9fa;
 }
 .card-preview-placeholder {
-    height: 180px;
+    aspect-ratio: 3 / 2;
 }
 
 /* === Verification pages === */
