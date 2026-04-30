@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 import uuid
 from django.utils import timezone
 from datetime import timedelta
+from django.db.models import Count
 
 
 class Cartoon(models.Model):
@@ -47,3 +48,80 @@ class EmailVerificationToken(models.Model):
 
     def __str__(self):
         return f"Token for {self.user.username}"
+
+
+class CartoonLike(models.Model):
+    cartoon = models.ForeignKey(Cartoon, on_delete=models.CASCADE,
+                                related_name='likes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                             null=True, blank=True)
+    session_key = models.CharField(max_length=40, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['cartoon', 'user'],
+                condition=models.Q(user__isnull=False),
+                name='unique_cartoon_user_like'
+            ),
+            models.UniqueConstraint(
+                fields=['cartoon', 'session_key'],
+                condition=models.Q(session_key__gt=''),
+                name='unique_cartoon_session_like'
+            ),
+        ]
+
+
+class Comment(models.Model):
+    cartoon = models.ForeignKey(Cartoon, on_delete=models.CASCADE,
+                                related_name='comments')
+    author = models.ForeignKey(User, on_delete=models.SET_NULL,
+                               null=True, blank=True)
+    author_name = models.CharField(max_length=50, blank=True)
+    text = models.TextField(max_length=2000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Комментарий к «{self.cartoon}»"
+
+    def display_author(self):
+        if self.author:
+            return self.author.username
+        return self.author_name or 'Аноним'
+
+
+class CommentLike(models.Model):
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE,
+                                related_name='likes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                             null=True, blank=True)
+    session_key = models.CharField(max_length=40, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['comment', 'user'],
+                condition=models.Q(user__isnull=False),
+                name='unique_comment_user_like'
+            ),
+            models.UniqueConstraint(
+                fields=['comment', 'session_key'],
+                condition=models.Q(session_key__gt=''),
+                name='unique_comment_session_like'
+            ),
+        ]
+
+
+class UserPreference(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE,
+                                related_name='preference')
+    comment_sort = models.CharField(
+        max_length=10,
+        default='popular',
+        choices=[('popular', 'По популярности'), ('newest', 'По новизне')]
+    )

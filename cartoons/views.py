@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Cartoon
+from .models import Cartoon, CartoonLike, Comment, CommentLike, UserPreference
 import json
 from .utils import create_gif_from_frames
 from django.contrib.auth import login
@@ -12,6 +12,10 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 import os
 from django.conf import settings
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST, require_GET
+from django.db.models import Count
+from django.urls import reverse
 
 
 def index(request):
@@ -36,15 +40,200 @@ def index(request):
     })
 
 
+def _ensure_session(request):
+    if not request.session.session_key:
+        request.session.create()
+    return request.session.session_key
+
+
+def _get_comment_sort(request):
+    if request.user.is_authenticated:
+        try:
+            return request.user.preference.comment_sort
+        except UserPreference.DoesNotExist:
+            return 'popular'
+    return request.session.get('comment_sort', 'popular')
+
+
 def detail(request, pk):
     cartoon = get_object_or_404(Cartoon, pk=pk)
-    context = {'cartoon': cartoon}
+    session_key = _ensure_session(request)
+
+    likes_count = cartoon.likes.count()
+    if request.user.is_authenticated:
+        user_liked = cartoon.likes.filter(user=request.user).exists()
+    else:
+        user_liked = cartoon.likes.filter(session_key=session_key).exists()
+
+    comment_sort = _get_comment_sort(request)
+
+    context = {
+        'cartoon': cartoon,
+        'likes_count': likes_count,
+        'user_liked': user_liked,
+        'comment_sort': comment_sort,
+    }
     if cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)
     if cartoon.tags:
-        # сортируем теги по алфавиту
         context['sorted_tags'] = sorted(cartoon.tags)
     return render(request, 'cartoons/detail.html', context)
+
+
+@require_POST
+def toggle_cartoon_like(request, pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+
+    cartoon = get_object_or_404(Cartoon, pk=pk)
+    like, created = CartoonLike.objects.get_or_create(
+        cartoon=cartoon, user=request.user,
+        defaults={'session_key': ''}
+    )
+    if not created:
+        like.delete()
+        liked = False
+    else:
+        liked = True
+
+    return JsonResponse({'liked': liked, 'count': cartoon.likes.count()})
+
+
+@require_GET
+def get_comments(request, pk):
+    cartoon = get_object_or_404(Cartoon, pk=pk)
+    session_key = _ensure_session(request)
+    page = max(1, int(request.GET.get('page', 1)))
+    sort = request.GET.get('sort', 'popular')
+    per_page = 10
+
+    qs = Comment.objects.filter(cartoon=cartoon).annotate(
+        likes_count=Count('likes')
+    )
+    if sort == 'newest':
+        qs = qs.order_by('-created_at')
+    else:
+        qs = qs.order_by('-likes_count', '-created_at')
+
+    total = qs.count()
+    start = (page - 1) * per_page
+    end = start + per_page
+    page_qs = qs[start:end]
+
+    data = []
+    for c in page_qs:
+        if request.user.is_authenticated:
+            user_liked = c.likes.filter(user=request.user).exists()
+        else:
+            user_liked = c.likes.filter(session_key=session_key).exists()
+
+        author_url = None
+        if c.author:
+            author_url = reverse('user_profile', args=[c.author.username])
+
+        data.append({
+            'id': c.id,
+            'author': c.display_author(),
+            'author_url': author_url,
+            'text': c.text,
+            'created_at': c.created_at.strftime('%d.%m.%Y %H:%M'),
+            'likes_count': c.likes_count,
+            'user_liked': user_liked,
+        })
+
+    return JsonResponse({
+        'comments': data,
+        'has_next': end < total,
+        'total': total,
+    })
+
+
+@require_POST
+def add_comment(request, pk):
+    cartoon = get_object_or_404(Cartoon, pk=pk)
+
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Неверный формат данных'}, status=400)
+
+    text = body.get('text', '').strip()
+    if not text:
+        return JsonResponse({'error': 'Комментарий не может быть пустым'},
+                            status=400)
+    if len(text) > 2000:
+        return JsonResponse(
+            {'error': 'Комментарий слишком длинный (макс. 2000 символов)'},
+            status=400
+        )
+
+    if request.user.is_authenticated:
+        comment = Comment.objects.create(
+            cartoon=cartoon,
+            author=request.user,
+            text=text,
+        )
+    else:
+        author_name = body.get('author_name', '').strip()[:50] or 'Аноним'
+        comment = Comment.objects.create(
+            cartoon=cartoon,
+            author_name=author_name,
+            text=text,
+        )
+
+    author_url = None
+    if comment.author:
+        author_url = reverse('user_profile', args=[comment.author.username])
+
+    return JsonResponse({
+        'id': comment.id,
+        'author': comment.display_author(),
+        'author_url': author_url,
+        'text': comment.text,
+        'created_at': comment.created_at.strftime('%d.%m.%Y %H:%M'),
+        'likes_count': 0,
+        'user_liked': False,
+    }, status=201)
+
+
+@require_POST
+def toggle_comment_like(request, comment_pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+
+    comment = get_object_or_404(Comment, pk=comment_pk)
+    like, created = CommentLike.objects.get_or_create(
+        comment=comment, user=request.user,
+        defaults={'session_key': ''}
+    )
+    if not created:
+        like.delete()
+        liked = False
+    else:
+        liked = True
+
+    return JsonResponse({'liked': liked, 'count': comment.likes.count()})
+
+
+@require_POST
+def set_comment_sort(request):
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Неверный формат данных'}, status=400)
+
+    sort = body.get('sort', 'popular')
+    if sort not in ('popular', 'newest'):
+        return JsonResponse({'error': 'Неверное значение'}, status=400)
+
+    if request.user.is_authenticated:
+        pref, _ = UserPreference.objects.get_or_create(user=request.user)
+        pref.comment_sort = sort
+        pref.save()
+    else:
+        request.session['comment_sort'] = sort
+
+    return JsonResponse({'sort': sort})
 
 
 def editor(request, pk=None):

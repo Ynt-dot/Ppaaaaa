@@ -33,6 +33,15 @@ h1, h2, h3, h4, .btn {
     border-color: var(--bs-primary);
     color: white;
 }
+.btn-danger {
+    background-color: #FF0000 !important;
+    border-color: #FF0000 !important;
+}
+.btn-danger:hover,
+.btn-danger:focus {
+    background-color: #cc0000 !important;
+    border-color: #cc0000 !important;
+}
 .btn-outline-danger {
     color: #FF0000 !important;
     border-color: #FF0000 !important;

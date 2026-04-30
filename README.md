@@ -138,8 +138,8 @@
 
 ### Высокий приоритет
 
-- Добавить автоматическое удаление аккаунта через 24 часа после создания, если электронная почта не подтверждена (Добавлено, но на сервере нужно настроить автоматическую задачу через cron. Пример: `0 * * * * cd /var/www/u3435329/data/www/ppaaaaa.ru && source venv/bin/activate && python manage.py delete_unverified_users >> /var/log/cron.log 2>&1` (Не забыть заменить путь))=
-- Улучшить страницу мульта (лайки, комментарии)
+- Добавить автоматическое удаление аккаунта через 24 часа после создания, если электронная почта не подтверждена (Добавлено, но на сервере нужно настроить автоматическую задачу через cron. Пример: `0 * * * * cd /var/www/u3435329/data/www/ppaaaaa.ru && source venv/bin/activate && python manage.py delete_unverified_users >> /var/log/cron.log 2>&1` (Не забыть заменить путь))
+- Убрать баг, что при сохранении мульта тоже показывается окно "Уйти?"
 - Улучшить главную страницу, добавить категории
 - Улучшить личную страницу пользователя (альбом, комментарии, заметки)
 - Добавить настройки
@@ -263,7 +263,18 @@
 <https://anishare.co>  
 <https://theanimator.co.uk>  
   
-Надо не забыть прописать `python manage.py makemigrations cartoons` при обновлении прода перед `python manage.py migrate`.  
+Надо не забыть прописать `python manage.py makemigrations cartoons` при обновлении прода перед `python manage.py migrate`.
+
+### Миграции для лайков и комментариев (добавлены 2026-04-30)
+
+При переходе на прод выполнить после `git pull`:
+
+```bash
+python manage.py makemigrations cartoons
+python manage.py migrate
+```
+
+Эти команды создадут таблицы для новых моделей: `CartoonLike`, `Comment`, `CommentLike`, `UserPreference`.  
   
 В <https://multator-fandom.fandom.com/ru/wiki/Glukovich> проверить "Факты"!
 В <https://multator-fandom.fandom.com/ru/wiki/Lexsey> проверить "Интересные факты"!

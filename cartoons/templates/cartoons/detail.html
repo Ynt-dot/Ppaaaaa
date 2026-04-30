@@ -9,9 +9,9 @@
 </div>
 
 <div class="row">
+    <!-- Левая колонка: плеер + комментарии -->
     <div class="col-md-8">
         {% if frames_json %}
-        <!-- Плеер с управлением -->
         <div class="card shadow mb-3">
             <div class="card-body text-center">
                 <img id="frame-display" src="" alt="Кадр" class="img-fluid rounded frame-display-img">
@@ -28,18 +28,73 @@
             </div>
         </div>
         {% else %}
-        <!-- Если нет покадровых данных, показываем обычный GIF -->
         {% if cartoon.preview %}
-        <img src="{{ cartoon.preview.url }}" class="img-fluid rounded shadow" alt="{{ cartoon.title }}">
+        <img src="{{ cartoon.preview.url }}" class="img-fluid rounded shadow mb-3" alt="{{ cartoon.title }}">
         {% endif %}
         {% endif %}
+
+        <!-- Комментарии -->
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0">Комментарии</h4>
+                    <div class="btn-group" role="group" aria-label="Сортировка комментариев">
+                        <button type="button"
+                                class="btn btn-sm sort-btn {% if comment_sort == 'popular' %}btn-dark{% else %}btn-outline-dark{% endif %}"
+                                data-sort="popular">По популярности</button>
+                        <button type="button"
+                                class="btn btn-sm sort-btn {% if comment_sort == 'newest' %}btn-dark{% else %}btn-outline-dark{% endif %}"
+                                data-sort="newest">По новизне</button>
+                    </div>
+                </div>
+
+                <!-- Форма добавления комментария -->
+                <div class="mb-4">
+                    {% if not user.is_authenticated %}
+                    <div class="mb-2">
+                        <input type="text" id="comment-author-name" class="form-control form-control-sm"
+                               placeholder="Ваше имя (необязательно)" maxlength="50">
+                    </div>
+                    {% endif %}
+                    <div class="d-flex gap-2">
+                        <textarea id="comment-text" class="form-control" rows="2"
+                                  placeholder="Написать комментарий..." maxlength="2000"></textarea>
+                        <button id="submit-comment-btn" class="btn btn-github align-self-end">Отправить</button>
+                    </div>
+                    <div id="comment-error" class="text-danger small mt-1" style="display:none;"></div>
+                </div>
+
+                <!-- Список комментариев -->
+                <div id="comments-list"></div>
+
+                <div class="text-center mt-3" id="load-more-container" style="display:none;">
+                    <button id="load-more-btn" class="btn btn-outline-secondary">Загрузить ещё</button>
+                </div>
+
+                <div id="no-comments-msg" class="text-muted text-center py-3" style="display:none;">
+                    Комментариев пока нет. Будьте первым!
+                </div>
+
+                <div id="comments-loading" class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-secondary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+    <!-- Правая колонка: описание и лайки -->
     <div class="col-md-4">
         <div class="card">
             <div class="card-body">
                 <h1 class="card-title h3">{{ cartoon.title }}</h1>
                 <p class="card-text">
-                    <strong>Автор:</strong> {% if cartoon.author %}<a href="{% url 'user_profile' username=cartoon.author.username %}" class="username-link">{{ cartoon.author.username }}</a>{% else %}Аноним{% endif %}<br>
+                    <strong>Автор:</strong>
+                    {% if cartoon.author %}
+                        <a href="{% url 'user_profile' username=cartoon.author.username %}" class="username-link">{{ cartoon.author.username }}</a>
+                    {% else %}
+                        Аноним
+                    {% endif %}<br>
                     <strong>Создан:</strong> {{ cartoon.created_at|date:"d.m.Y H:i" }}<br>
                     <strong>FPS:</strong> {{ cartoon.fps }}<br>
                     {% if cartoon.tags %}
@@ -49,6 +104,16 @@
                         <strong>Описание:</strong> {{ cartoon.description }}
                     {% endif %}
                 </p>
+
+                <!-- Лайки мульта -->
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <button id="cartoon-like-btn"
+                            class="btn btn-sm {% if user_liked %}btn-danger{% else %}btn-outline-danger{% endif %}"
+                            data-liked="{{ user_liked|yesno:'true,false' }}">
+                        ❤ <span id="cartoon-likes-count">{{ likes_count }}</span>
+                    </button>
+                </div>
+
                 {% if user == cartoon.author %}
                 <a href="{% url 'editor_edit' cartoon.pk %}" class="btn btn-primary w-100">✏ Редактировать</a>
                 {% endif %}
@@ -66,4 +131,235 @@
 </script>
 <script src="{% static 'cartoons/js/player.js' %}"></script>
 {% endif %}
+
+<script>
+(function () {
+    const LIKE_URL = "{% url 'toggle_cartoon_like' cartoon.pk %}";
+    const COMMENTS_URL = "{% url 'get_comments' cartoon.pk %}";
+    const ADD_COMMENT_URL = "{% url 'add_comment' cartoon.pk %}";
+    const SET_SORT_URL = "{% url 'set_comment_sort' %}";
+    const IS_AUTHENTICATED = {{ user.is_authenticated|yesno:'true,false' }};
+
+    function getCsrf() {
+        for (const c of document.cookie.split(';')) {
+            const t = c.trim();
+            if (t.startsWith('csrftoken=')) {
+                return decodeURIComponent(t.slice('csrftoken='.length));
+            }
+        }
+        return '';
+    }
+
+    function postJson(url, data) {
+        return fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrf()},
+            body: JSON.stringify(data),
+        });
+    }
+
+    function escapeHtml(str) {
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(str));
+        return d.innerHTML;
+    }
+
+    function getCommentLikeUrl(commentId) {
+        return '/comment/' + commentId + '/like/';
+    }
+
+    const LOGIN_URL = "{% url 'login' %}?next={{ request.path }}";
+
+    function showLoginHint(anchor) {
+        if (anchor.querySelector('.login-hint')) return;
+        const hint = document.createElement('small');
+        hint.className = 'login-hint text-muted ms-2';
+        hint.textContent = 'Войдите, чтобы ставить лайки';
+        anchor.appendChild(hint);
+        setTimeout(() => hint.remove(), 3000);
+    }
+
+    // === Лайк мульта ===
+    const likeBtn = document.getElementById('cartoon-like-btn');
+    const likesCount = document.getElementById('cartoon-likes-count');
+    let liking = false;
+
+    likeBtn.addEventListener('click', async () => {
+        if (liking) return;
+        liking = true;
+        try {
+            const resp = await postJson(LIKE_URL, {});
+            if (resp.status === 401) {
+                showLoginHint(likeBtn.parentElement);
+                return;
+            }
+            if (resp.ok) {
+                const d = await resp.json();
+                likesCount.textContent = d.count;
+                if (d.liked) {
+                    likeBtn.classList.replace('btn-outline-danger', 'btn-danger');
+                } else {
+                    likeBtn.classList.replace('btn-danger', 'btn-outline-danger');
+                }
+            }
+        } finally {
+            liking = false;
+        }
+    });
+
+    // === Комментарии ===
+    const commentsList = document.getElementById('comments-list');
+    const loadMoreContainer = document.getElementById('load-more-container');
+    const noCommentsMsg = document.getElementById('no-comments-msg');
+    const loadingSpinner = document.getElementById('comments-loading');
+    const loadMoreBtn = document.getElementById('load-more-btn');
+
+    let currentPage = 1;
+    let currentSort = '{{ comment_sort }}';
+    let loading = false;
+
+    function buildCommentHTML(c) {
+        const authorHTML = c.author_url
+            ? '<a href="' + escapeHtml(c.author_url) + '" class="username-link">' + escapeHtml(c.author) + '</a>'
+            : escapeHtml(c.author);
+        const likedClass = c.user_liked ? 'btn-danger' : 'btn-outline-danger';
+        return '<div class="comment-item border-bottom py-2" data-comment-id="' + c.id + '">' +
+            '<div class="d-flex justify-content-between align-items-start">' +
+            '<div><small class="fw-bold">' + authorHTML + '</small>' +
+            '<small class="text-muted ms-2">' + escapeHtml(c.created_at) + '</small></div>' +
+            '<button class="btn btn-sm ' + likedClass + ' comment-like-btn" data-comment-id="' + c.id + '">' +
+            '❤ <span class="comment-likes-count">' + c.likes_count + '</span></button>' +
+            '</div>' +
+            '<p class="mb-1 mt-1" style="white-space:pre-wrap;">' + escapeHtml(c.text) + '</p>' +
+            '</div>';
+    }
+
+    async function loadComments(reset) {
+        if (loading) return;
+        loading = true;
+
+        if (reset) {
+            currentPage = 1;
+            commentsList.innerHTML = '';
+            loadMoreContainer.style.display = 'none';
+            noCommentsMsg.style.display = 'none';
+        }
+
+        loadingSpinner.style.display = 'block';
+
+        try {
+            const resp = await fetch(COMMENTS_URL + '?page=' + currentPage + '&sort=' + currentSort);
+            const data = await resp.json();
+
+            data.comments.forEach(c => commentsList.insertAdjacentHTML('beforeend', buildCommentHTML(c)));
+
+            loadMoreContainer.style.display = data.has_next ? 'block' : 'none';
+            if (currentPage === 1 && data.total === 0) {
+                noCommentsMsg.style.display = 'block';
+            }
+            currentPage++;
+        } finally {
+            loadingSpinner.style.display = 'none';
+            loading = false;
+        }
+    }
+
+    loadMoreBtn.addEventListener('click', () => loadComments(false));
+
+    // === Лайки на комментарии (делегирование) ===
+    commentsList.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.comment-like-btn');
+        if (!btn || btn.dataset.loading) return;
+        btn.dataset.loading = '1';
+        try {
+            const resp = await postJson(getCommentLikeUrl(btn.dataset.commentId), {});
+            if (resp.status === 401) {
+                showLoginHint(btn.parentElement);
+                return;
+            }
+            if (resp.ok) {
+                const d = await resp.json();
+                btn.querySelector('.comment-likes-count').textContent = d.count;
+                if (d.liked) {
+                    btn.classList.replace('btn-outline-danger', 'btn-danger');
+                } else {
+                    btn.classList.replace('btn-danger', 'btn-outline-danger');
+                }
+            }
+        } finally {
+            delete btn.dataset.loading;
+        }
+    });
+
+    // === Сортировка ===
+    document.querySelectorAll('.sort-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const sort = btn.dataset.sort;
+            if (sort === currentSort) return;
+            currentSort = sort;
+
+            document.querySelectorAll('.sort-btn').forEach(b => {
+                b.classList.remove('btn-dark');
+                b.classList.add('btn-outline-dark');
+            });
+            btn.classList.replace('btn-outline-dark', 'btn-dark');
+
+            postJson(SET_SORT_URL, {sort});
+            loadComments(true);
+        });
+    });
+
+    // === Отправка комментария ===
+    const submitBtn = document.getElementById('submit-comment-btn');
+    const commentText = document.getElementById('comment-text');
+    const commentError = document.getElementById('comment-error');
+    const authorNameInput = document.getElementById('comment-author-name');
+
+    submitBtn.addEventListener('click', async () => {
+        const text = commentText.value.trim();
+        if (!text) {
+            commentError.textContent = 'Напишите что-нибудь!';
+            commentError.style.display = 'block';
+            return;
+        }
+        commentError.style.display = 'none';
+        submitBtn.disabled = true;
+
+        const body = {text};
+        if (!IS_AUTHENTICATED && authorNameInput) {
+            body.author_name = authorNameInput.value.trim();
+        }
+
+        try {
+            const resp = await postJson(ADD_COMMENT_URL, body);
+            const d = await resp.json();
+            if (!resp.ok) {
+                commentError.textContent = d.error || 'Ошибка при отправке';
+                commentError.style.display = 'block';
+            } else {
+                commentText.value = '';
+                if (authorNameInput) authorNameInput.value = '';
+                noCommentsMsg.style.display = 'none';
+                if (currentSort === 'newest') {
+                    commentsList.insertAdjacentHTML('afterbegin', buildCommentHTML(d));
+                } else {
+                    loadComments(true);
+                }
+            }
+        } finally {
+            submitBtn.disabled = false;
+        }
+    });
+
+    // Отправка по Ctrl+Enter
+    commentText.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.ctrlKey) {
+            submitBtn.click();
+        }
+    });
+
+    // Инициализация
+    loadComments(true);
+}());
+</script>
 {% endblock %}
