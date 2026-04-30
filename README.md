@@ -142,7 +142,6 @@
 - Улучшить редактор
   - Сделать Горячие клавиши на добавление и удаление кадра
   - Сделать проигрывание рисования статичных артов на странице мульта
-- Предупреждения в консоли браузера
 - Ссылка на YouTube
 - Убрать синий цвет со страницы регистрации, страницы "забыли пароль?" и страницы установки нового пароля
 - Есть ли смысл делать style.scc?
@@ -270,3 +269,5 @@
 <https://planeta.ru/campaigns/multator2> - это чё? Изучить... (<https://planeta.ru/r/away?to=https://vk.com/club236431942>, <https://t.me/> D8idXXnG_1sxYTg6)
 Загуглить как работает Grease Pencil в Blender
 <https://drawn.digifi.ca/play/uxj1kq> - рекдама Toonator Revival на Drawn
+
+Предупреждение `about:blank:1 An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.` в консоли браузера, вроде как, можно игнорировать. Это не реальная уязвимость, а особенность проверки Chrome. Если пытаться исправить - сломается виджет Discord.
