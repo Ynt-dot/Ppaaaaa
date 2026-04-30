@@ -7,44 +7,62 @@
 <div class="row">
     <!-- Основная колонка с сеткой мультиков -->
     <div class="col-md-9">
-        <!-- Пагинация -->
-        {% if cartoons.has_other_pages %}
-        <nav aria-label="Навигация по страницам" class="mt-2 mb-3">
-            <ul class="pagination justify-content-center">
-                {% if cartoons.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ cartoons.previous_page_number }}" aria-label="Предыдущая">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">&laquo;</span>
-                </li>
-                {% endif %}
+        <!-- Верхняя пагинация + сортировка -->
+        <div class="d-flex flex-column flex-md-row align-items-center mt-2 mb-3 gap-2">
+            <!-- Спейсер только на десктопе, чтобы пагинатор оставался по центру -->
+            <div class="d-none d-md-block flex-shrink-0" style="min-width: 140px"></div>
 
-                {% for num in cartoons.paginator.page_range %}
-                    {% if cartoons.number == num %}
-                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                    {% elif num > cartoons.number|add:'-3' and num < cartoons.number|add:'3' %}
-                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+            <nav aria-label="Навигация по страницам" class="flex-grow-1 w-100">
+                {% if cartoons.has_other_pages %}
+                <ul class="pagination justify-content-center mb-0 flex-wrap">
+                    {% if cartoons.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ cartoons.previous_page_number }}&sort={{ current_sort }}" aria-label="Предыдущая">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo;</span>
+                    </li>
                     {% endif %}
-                {% endfor %}
 
-                {% if cartoons.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ cartoons.next_page_number }}" aria-label="Следующая">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">&raquo;</span>
-                </li>
+                    {% for num in cartoons.paginator.page_range %}
+                        {% if cartoons.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > cartoons.number|add:'-3' and num < cartoons.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}&sort={{ current_sort }}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if cartoons.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ cartoons.next_page_number }}&sort={{ current_sort }}" aria-label="Следующая">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&raquo;</span>
+                    </li>
+                    {% endif %}
+                </ul>
                 {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
+            </nav>
+
+            <!-- Выпадающее меню сортировки -->
+            <div class="dropdown flex-shrink-0 align-self-end align-self-md-center" style="min-width: 140px">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    {{ sort_label }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item{% if current_sort == 'popular' %} active{% endif %}" href="?sort=popular">Популярное</a></li>
+                    <li><a class="dropdown-item{% if current_sort == 'new' %} active{% endif %}" href="?sort=new">Новое</a></li>
+                    <li><a class="dropdown-item{% if current_sort == 'trending' %} active{% endif %}" href="?sort=trending">Тренды</a></li>
+                    <li><a class="dropdown-item{% if current_sort == 'trending_24h' %} active{% endif %}" href="?sort=trending_24h">Тренды 24ч</a></li>
+                </ul>
+            </div>
+        </div>
 
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
             {% for cartoon in cartoons %}
@@ -81,13 +99,13 @@
             {% endfor %}
         </div>
 
-        <!-- Пагинация -->
+        <!-- Нижняя пагинация -->
         {% if cartoons.has_other_pages %}
         <nav aria-label="Навигация по страницам" class="mt-4">
             <ul class="pagination justify-content-center">
                 {% if cartoons.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ cartoons.previous_page_number }}" aria-label="Предыдущая">
+                    <a class="page-link" href="?page={{ cartoons.previous_page_number }}&sort={{ current_sort }}" aria-label="Предыдущая">
                         <span aria-hidden="true">&laquo;</span>
                     </a>
                 </li>
@@ -101,13 +119,13 @@
                     {% if cartoons.number == num %}
                     <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                     {% elif num > cartoons.number|add:'-3' and num < cartoons.number|add:'3' %}
-                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}&sort={{ current_sort }}">{{ num }}</a></li>
                     {% endif %}
                 {% endfor %}
 
                 {% if cartoons.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ cartoons.next_page_number }}" aria-label="Следующая">
+                    <a class="page-link" href="?page={{ cartoons.next_page_number }}&sort={{ current_sort }}" aria-label="Следующая">
                         <span aria-hidden="true">&raquo;</span>
                     </a>
                 </li>

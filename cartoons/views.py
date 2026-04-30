@@ -14,18 +14,45 @@ import os
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
-from django.db.models import Count
+from django.db.models import Count, Q
+from datetime import timedelta
 from django.urls import reverse
 
 
+SORT_LABELS = {
+    'new': 'Новое',
+    'popular': 'Популярное',
+    'trending': 'Тренды',
+    'trending_24h': 'Тренды 24ч',
+}
+
+
 def index(request):
-    cartoon_list = Cartoon.objects.all()  # все мультики, отсортированные по
-    # новизне (уже есть в Meta.ordering)
-    paginator = Paginator(cartoon_list, 12)  # 12 мультиков на странице
+    sort = request.GET.get('sort', 'popular')
+    if sort not in SORT_LABELS:
+        sort = 'new'
+
+    if sort == 'popular':
+        cartoon_list = Cartoon.objects.annotate(
+            like_count=Count('likes')
+        ).order_by('-like_count', '-created_at')
+    elif sort == 'trending':
+        week_ago = timezone.now() - timedelta(days=7)
+        cartoon_list = Cartoon.objects.annotate(
+            recent_likes=Count('likes', filter=Q(likes__created_at__gte=week_ago))
+        ).order_by('-recent_likes', '-created_at')
+    elif sort == 'trending_24h':
+        day_ago = timezone.now() - timedelta(hours=24)
+        cartoon_list = Cartoon.objects.annotate(
+            recent_likes=Count('likes', filter=Q(likes__created_at__gte=day_ago))
+        ).order_by('-recent_likes', '-created_at')
+    else:
+        cartoon_list = Cartoon.objects.all()
+
+    paginator = Paginator(cartoon_list, 12)
     page_number = request.GET.get('page')
     cartoons = paginator.get_page(page_number)
 
-    # Чтение файла новостей
     news_file = os.path.join(settings.BASE_DIR, 'data', 'news.html')
     news_content = ''
     try:
@@ -37,6 +64,8 @@ def index(request):
     return render(request, 'cartoons/index.html', {
         'cartoons': cartoons,
         'news_content': news_content,
+        'current_sort': sort,
+        'sort_label': SORT_LABELS[sort],
     })
 
 
