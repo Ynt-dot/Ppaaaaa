@@ -61,9 +61,9 @@
                 <div class="card h-100 shadow-sm">
                     <a href="{% url 'detail' cartoon.pk %}" class="text-decoration-none text-dark">
                         {% if cartoon.preview %}
-                        <img src="{{ cartoon.preview.url }}" class="card-img-top" alt="{{ cartoon.title }}" style="height: 180px; object-fit: cover;">
+                        <img src="{{ cartoon.preview.url }}" class="card-img-top card-preview-img" alt="{{ cartoon.title }}">
                         {% else %}
-                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                        <div class="card-img-top card-preview-placeholder bg-light d-flex align-items-center justify-content-center">
                             <span class="text-muted">Нет превью</span>
                         </div>
                         {% endif %}

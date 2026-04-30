@@ -1,0 +1,171 @@
+/* === Fonts === */
+body {
+    font-family: 'Comic Neue', cursive;
+}
+h1, h2, h3, h4, .btn {
+    font-family: 'Fredoka One', cursive;
+}
+
+/* === Colour tokens === */
+:root {
+    --bs-primary: #FF0000;
+    --bs-primary-hover: #6c757d;
+    --bs-link-color: #28a745;
+    --bs-link-hover-color: #218838;
+}
+
+/* === Buttons === */
+.btn-primary {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: var(--bs-primary-hover);
+    border-color: var(--bs-primary-hover);
+}
+.btn-outline-primary {
+    color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+.btn-outline-primary:hover {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: white;
+}
+.btn-outline-danger {
+    color: #FF0000 !important;
+    border-color: #FF0000 !important;
+}
+.btn-outline-danger:hover {
+    background-color: #FF0000 !important;
+    color: #fff !important;
+}
+.btn-github {
+    background-color: #fff;
+    border: 1px solid #212529;
+    color: #212529 !important;
+}
+.btn-github:hover {
+    background-color: #212529;
+    border-color: #212529;
+    color: #fff !important;
+}
+.btn-youtube {
+    background-color: #fff;
+    border: 1px solid #FF0000;
+    color: #FF0000 !important;
+}
+.btn-youtube:hover {
+    background-color: #FF0000;
+    border-color: #FF0000;
+    color: #fff !important;
+}
+.btn-red {
+    background-color: #fff;
+    border: 1px solid #FF0000;
+    color: #FF0000 !important;
+}
+.btn-red:hover {
+    background-color: #FF0000;
+    border-color: #FF0000;
+    color: #fff !important;
+}
+.btn-discord {
+    background-color: #5865F2;
+    color: #fff;
+}
+
+/* === Links === */
+a:not(.navbar-brand):not(.dropdown-item):not(.btn):not(.text-green) {
+    color: #212529;
+    text-decoration: none;
+}
+a:not(.navbar-brand):not(.dropdown-item):not(.btn):not(.text-green):hover {
+    color: #6c757d;
+    text-decoration: underline;
+}
+a:not(.username-link):not(.navbar-brand) {
+    color: #212529;
+}
+.username-link,
+a.username-link {
+    color: #28a745 !important;
+    font-weight: bold;
+}
+.username-link:hover {
+    color: #218838 !important;
+}
+
+/* === Navbar === */
+.navbar-brand img {
+    width: auto;
+}
+@media (max-width: 768px) {
+    .navbar-brand img {
+        height: 50px !important;
+    }
+}
+
+/* === Navigation === */
+.nav-link.active {
+    color: var(--bs-primary) !important;
+}
+.dropdown-item:hover {
+    background-color: #e9ecef;
+    color: #212529;
+}
+
+/* === Pagination === */
+.page-link {
+    color: #212529;
+}
+.page-link:hover {
+    background-color: #e9ecef;
+    color: #212529;
+    border-color: #dee2e6;
+}
+.page-item.active .page-link {
+    background-color: #FF0000;
+    border-color: #FF0000;
+    color: #fff;
+}
+
+/* === Password inputs (hide browser chrome) === */
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-textfield-decoration-container,
+input[type="password"]::-webkit-caps-lock-indicator {
+    display: none !important;
+}
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none !important;
+}
+
+/* === Card previews === */
+.card-preview-img {
+    height: 180px;
+    object-fit: cover;
+}
+.card-preview-placeholder {
+    height: 180px;
+}
+
+/* === Verification pages === */
+.emoji-icon {
+    font-size: 64px;
+}
+
+/* === Discord widget === */
+.discord-fallback {
+    min-height: 200px;
+}
+.discord-icon {
+    font-size: 3rem;
+    color: #5865F2;
+}
+
+/* === Detail / Player === */
+.frame-display-img {
+    max-height: 500px;
+}
