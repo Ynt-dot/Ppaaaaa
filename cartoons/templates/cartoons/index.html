@@ -78,14 +78,19 @@
                         {% endif %}
                         <div class="card-body">
                             <h5 class="card-title">{{ cartoon.title }}</h5>
-                            <p class="card-text text-muted">
-                                Автор:
+                            <p class="card-text small mb-1">
                                 {% if cartoon.author %}
                                     <a href="{% url 'user_profile' username=cartoon.author.username %}" class="username-link">{{ cartoon.author.username }}</a>
                                 {% else %}
                                     Аноним
                                 {% endif %}
                             </p>
+                            <div class="card-stats d-flex gap-2 text-muted small flex-wrap">
+                                <span title="Кадры"><i class="bi bi-film"></i> {{ cartoon.frames_data|length }}</span>
+                                <span title="Лайки"><i class="bi bi-heart-fill text-danger"></i> {{ cartoon.likes.count }}</span>
+                                <span title="Комментарии"><i class="bi bi-chat-fill"></i> {{ cartoon.comments.count }}</span>
+                                <span class="views-tooltip" data-tooltip="Уникальных: {{ cartoon.unique_views_count }} / Всего: {{ cartoon.views_count }}"><i class="bi bi-eye-fill"></i> {{ cartoon.unique_views_count }}</span>
+                            </div>
                         </div>
                     </a>
                 </div>

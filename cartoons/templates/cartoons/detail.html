@@ -18,8 +18,12 @@
                     <input type="range" id="frame-slider" class="form-range" min="0" max="0" value="0">
                     <span id="frame-counter">0 / 0</span>
                 </div>
-                <div class="d-flex gap-2">
+                <div class="d-flex align-items-center gap-2">
                     <button id="play-pause-btn" class="btn btn-github">▶️ Воспроизвести</button>
+                    <span class="views-tooltip ms-auto text-muted"
+                          data-tooltip="Уникальных: {{ unique_views }} / Всего: {{ total_views }}">
+                        <i class="bi bi-eye-fill"></i> {{ unique_views }}
+                    </span>
                 </div>
             </div>
         </div>

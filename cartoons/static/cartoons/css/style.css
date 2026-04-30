@@ -163,6 +163,37 @@ input[type="password"]::-ms-clear {
 }
 
 /* === Card previews === */
+.card-stats span {
+    white-space: nowrap;
+}
+
+/* === Views tooltip === */
+.views-tooltip {
+    position: relative;
+    cursor: default;
+}
+.views-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #6c757d;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 200;
+}
+.views-tooltip:hover::after {
+    opacity: 1;
+}
+
 .card-preview-img {
     width: 100%;
     aspect-ratio: 3 / 2;

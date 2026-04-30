@@ -19,6 +19,7 @@ class Cartoon(models.Model):
     fps = models.PositiveSmallIntegerField(default=12)
     description = models.TextField(blank=True, verbose_name="Описание")
     tags = models.JSONField(default=list, blank=True, verbose_name="Теги")
+    views_count = models.PositiveIntegerField(default=0, verbose_name="Просмотры")
 
     class Meta:
         ordering = ['-created_at']  # сортировка по новизне
@@ -137,6 +138,16 @@ class UserNote(models.Model):
 
     class Meta:
         unique_together = [('author', 'about')]
+
+
+class CartoonView(models.Model):
+    cartoon = models.ForeignKey(Cartoon, on_delete=models.CASCADE,
+                                related_name='unique_views')
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                             related_name='viewed_cartoons')
+
+    class Meta:
+        unique_together = [('cartoon', 'user')]
 
 
 class Favorite(models.Model):

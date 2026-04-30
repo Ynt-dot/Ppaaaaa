@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Cartoon, CartoonLike, Comment, CommentLike, UserPreference, UserNote, Favorite
+from .models import Cartoon, CartoonLike, Comment, CommentLike, UserPreference, UserNote, Favorite, CartoonView
 import json
 from .utils import create_gif_from_frames
 from django.contrib.auth import login
@@ -14,7 +14,7 @@ import os
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
-from django.db.models import Count, Q
+from django.db.models import Count, Q, F
 from datetime import timedelta
 from django.urls import reverse
 
@@ -34,20 +34,25 @@ def index(request):
 
     if sort == 'popular':
         cartoon_list = Cartoon.objects.annotate(
-            like_count=Count('likes')
+            like_count=Count('likes', distinct=True),
+            unique_views_count=Count('unique_views', distinct=True),
         ).order_by('-like_count', '-created_at')
     elif sort == 'trending':
         week_ago = timezone.now() - timedelta(days=7)
         cartoon_list = Cartoon.objects.annotate(
-            recent_likes=Count('likes', filter=Q(likes__created_at__gte=week_ago))
+            recent_likes=Count('likes', filter=Q(likes__created_at__gte=week_ago), distinct=True),
+            unique_views_count=Count('unique_views', distinct=True),
         ).order_by('-recent_likes', '-created_at')
     elif sort == 'trending_24h':
         day_ago = timezone.now() - timedelta(hours=24)
         cartoon_list = Cartoon.objects.annotate(
-            recent_likes=Count('likes', filter=Q(likes__created_at__gte=day_ago))
+            recent_likes=Count('likes', filter=Q(likes__created_at__gte=day_ago), distinct=True),
+            unique_views_count=Count('unique_views', distinct=True),
         ).order_by('-recent_likes', '-created_at')
     else:
-        cartoon_list = Cartoon.objects.all()
+        cartoon_list = Cartoon.objects.annotate(
+            unique_views_count=Count('unique_views', distinct=True),
+        )
 
     paginator = Paginator(cartoon_list, 12)
     page_number = request.GET.get('page')
@@ -86,9 +91,15 @@ def _get_comment_sort(request):
 
 def detail(request, pk):
     cartoon = get_object_or_404(Cartoon, pk=pk)
+    Cartoon.objects.filter(pk=pk).update(views_count=F('views_count') + 1)
+    cartoon.refresh_from_db(fields=['views_count'])
     session_key = _ensure_session(request)
 
+    if request.user.is_authenticated:
+        CartoonView.objects.get_or_create(cartoon=cartoon, user=request.user)
+
     likes_count = cartoon.likes.count()
+    unique_views = cartoon.unique_views.count()
     if request.user.is_authenticated:
         user_liked = cartoon.likes.filter(user=request.user).exists()
     else:
@@ -104,6 +115,8 @@ def detail(request, pk):
     context = {
         'cartoon': cartoon,
         'likes_count': likes_count,
+        'total_views': cartoon.views_count,
+        'unique_views': unique_views,
         'user_liked': user_liked,
         'user_favorited': user_favorited,
         'comment_sort': comment_sort,
@@ -407,20 +420,25 @@ def user_profile(request, username):
 
         if sort == 'popular':
             cartoon_list = Cartoon.objects.filter(author=profile_user).annotate(
-                like_count=Count('likes')
+                like_count=Count('likes', distinct=True),
+                unique_views_count=Count('unique_views', distinct=True),
             ).order_by('-like_count', '-created_at')
         elif sort == 'trending':
             week_ago = timezone.now() - timedelta(days=7)
             cartoon_list = Cartoon.objects.filter(author=profile_user).annotate(
-                recent_likes=Count('likes', filter=Q(likes__created_at__gte=week_ago))
+                recent_likes=Count('likes', filter=Q(likes__created_at__gte=week_ago), distinct=True),
+                unique_views_count=Count('unique_views', distinct=True),
             ).order_by('-recent_likes', '-created_at')
         elif sort == 'trending_24h':
             day_ago = timezone.now() - timedelta(hours=24)
             cartoon_list = Cartoon.objects.filter(author=profile_user).annotate(
-                recent_likes=Count('likes', filter=Q(likes__created_at__gte=day_ago))
+                recent_likes=Count('likes', filter=Q(likes__created_at__gte=day_ago), distinct=True),
+                unique_views_count=Count('unique_views', distinct=True),
             ).order_by('-recent_likes', '-created_at')
         else:
-            cartoon_list = Cartoon.objects.filter(author=profile_user).order_by('-created_at')
+            cartoon_list = Cartoon.objects.filter(author=profile_user).annotate(
+                unique_views_count=Count('unique_views', distinct=True),
+            ).order_by('-created_at')
 
         paginator = Paginator(cartoon_list, 12)
         cartoons = paginator.get_page(request.GET.get('page'))
@@ -433,6 +451,8 @@ def user_profile(request, username):
     elif tab == 'liked':
         liked_list = Cartoon.objects.filter(
             likes__user=profile_user
+        ).annotate(
+            unique_views_count=Count('unique_views', distinct=True),
         ).order_by('-likes__created_at')
         paginator = Paginator(liked_list, 12)
         context['cartoons'] = paginator.get_page(request.GET.get('page'))
@@ -440,6 +460,8 @@ def user_profile(request, username):
     elif tab == 'favorites':
         fav_list = Cartoon.objects.filter(
             favorited_by__user=profile_user
+        ).annotate(
+            unique_views_count=Count('unique_views', distinct=True),
         ).order_by('-favorited_by__created_at')
         paginator = Paginator(fav_list, 12)
         context['cartoons'] = paginator.get_page(request.GET.get('page'))
