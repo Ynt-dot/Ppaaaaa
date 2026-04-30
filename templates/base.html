@@ -36,7 +36,7 @@
         }
         /* Основные цвета */
         :root {
-            --bs-primary: #dc3545;   /* красный */
+            --bs-primary: #FF0000;   /* красный */
             --bs-primary-hover: #6c757d; /* серый для наведения */
             --bs-link-color: #28a745;     /* зелёный для ссылок */
             --bs-link-hover-color: #218838;
@@ -103,11 +103,11 @@
         }
         /* Принудительно задаём цвета для контурной красной кнопки */
         .btn-outline-danger {
-            color: #dc3545 !important;
-            border-color: #dc3545 !important;
+            color: #FF0000 !important;
+            border-color: #FF0000 !important;
         }
         .btn-outline-danger:hover {
-            background-color: #dc3545 !important;
+            background-color: #FF0000 !important;
             color: #fff !important;
         }
         /* Пагинатор: при наведении текст остаётся чёрным, фон – светло-серым */
@@ -121,22 +121,41 @@
         }
         /* Активная страница – красный фон, белый текст */
         .page-item.active .page-link {
-            background-color: #dc3545; /* красный */
-            border-color: #dc3545;
+            background-color: #FF0000; /* красный */
+            border-color: #FF0000;
             color: #fff;
         }
         /* Кнопка GitHub – белый фон, чёрная обводка, чёрный текст/иконка */
         .btn-github {
             background-color: #fff;
             border: 1px solid #212529;
-            color: #212529;
+            color: #212529 !important;
         }
         .btn-github:hover {
             background-color: #212529;
             border-color: #212529;
             color: #fff !important;
         }
-        .btn-github:hover i {
+        /* Кнопка YouTube – белый фон, красная обводка, красный текст/иконка */
+        .btn-youtube {
+            background-color: #fff;
+            border: 1px solid #FF0000;
+            color: #FF0000 !important;
+        }
+        .btn-youtube:hover {
+            background-color: #FF0000;
+            border-color: #FF0000;
+            color: #fff !important;
+        }
+        /* Кнопка красная – белый фон, красная обводка, красный текст/иконка */
+        .btn-red {
+            background-color: #fff;
+            border: 1px solid #FF0000;
+            color: #FF0000 !important;
+        }
+        .btn-red:hover {
+            background-color: #FF0000;
+            border-color: #FF0000;
             color: #fff !important;
         }
     </style>
@@ -155,7 +174,7 @@
                 <ul class="navbar-nav ms-auto">
                     <!-- Кнопка создания мульта для всех -->
                     <li class="nav-item">
-                        <a class="btn btn-outline-danger btn-sm me-2" href="{% url 'editor_create' %}">
+                        <a class="btn btn-sm btn-red me-2" href="{% url 'editor_create' %}">
                             <i class="bi bi-pencil-fill"></i> Нарисовать
                         </a>
                     </li>
