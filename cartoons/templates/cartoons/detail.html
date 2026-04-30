@@ -88,13 +88,21 @@
         <div class="card">
             <div class="card-body">
                 <h1 class="card-title h3">{{ cartoon.title }}</h1>
-                <p class="card-text">
-                    <strong>Автор:</strong>
+
+                <!-- Автор с аватаркой -->
+                <div class="d-flex align-items-center gap-2 mb-3">
                     {% if cartoon.author %}
-                        <a href="{% url 'user_profile' username=cartoon.author.username %}" class="username-link">{{ cartoon.author.username }}</a>
+                    <a href="{% url 'user_profile' username=cartoon.author.username %}">
+                        <img src="{{ author_avatar_url }}" class="user-avatar-sm" alt="{{ cartoon.author.username }}">
+                    </a>
+                    <a href="{% url 'user_profile' username=cartoon.author.username %}" class="username-link fs-5">{{ cartoon.author.username }}</a>
                     {% else %}
-                        Аноним
-                    {% endif %}<br>
+                    <img src="{{ author_avatar_url }}" class="user-avatar-sm" alt="Аноним">
+                    <span class="fs-5 text-muted">Аноним</span>
+                    {% endif %}
+                </div>
+
+                <p class="card-text">
                     <strong>Создан:</strong> {{ cartoon.created_at|date:"d.m.Y H:i" }}<br>
                     <strong>FPS:</strong> {{ cartoon.fps }}<br>
                     {% if cartoon.tags %}
@@ -122,7 +130,13 @@
                 </div>
 
                 {% if user == cartoon.author %}
-                <a href="{% url 'editor_edit' cartoon.pk %}" class="btn btn-primary w-100">✏ Редактировать</a>
+                <a href="{% url 'editor_edit' cartoon.pk %}" class="btn btn-primary w-100 mb-2">✏ Редактировать</a>
+                {% endif %}
+                {% if can_set_as_avatar %}
+                <button id="set-avatar-btn" class="btn btn-github w-100"
+                        data-url="{% url 'set_as_avatar' cartoon.pk %}">
+                    🖼 Установить в качестве аватара
+                </button>
                 {% endif %}
             </div>
         </div>
@@ -254,14 +268,19 @@
             ? '<a href="' + escapeHtml(c.author_url) + '" class="username-link">' + escapeHtml(c.author) + '</a>'
             : escapeHtml(c.author);
         const likedClass = c.user_liked ? 'btn-danger' : 'btn-outline-danger';
+        const avatarImg = '<img src="' + escapeHtml(c.avatar_url) + '" class="user-avatar-sm me-2" alt="">';
+        const avatarLink = c.author_url
+            ? '<a href="' + escapeHtml(c.author_url) + '">' + avatarImg + '</a>'
+            : avatarImg;
         return '<div class="comment-item border-bottom py-2" data-comment-id="' + c.id + '">' +
             '<div class="d-flex justify-content-between align-items-start">' +
+            '<div class="d-flex align-items-center">' + avatarLink +
             '<div><small class="fw-bold">' + authorHTML + '</small>' +
-            '<small class="text-muted ms-2">' + escapeHtml(c.created_at) + '</small></div>' +
+            '<small class="text-muted ms-2">' + escapeHtml(c.created_at) + '</small></div></div>' +
             '<button class="btn btn-sm ' + likedClass + ' comment-like-btn" data-comment-id="' + c.id + '">' +
             '❤ <span class="comment-likes-count">' + c.likes_count + '</span></button>' +
             '</div>' +
-            '<p class="mb-1 mt-1" style="white-space:pre-wrap;">' + escapeHtml(c.text) + '</p>' +
+            '<p class="mb-1 mt-1 ps-5" style="white-space:pre-wrap;">' + escapeHtml(c.text) + '</p>' +
             '</div>';
     }
 
@@ -391,6 +410,27 @@
 
     // Инициализация
     loadComments(true);
+
+    // === Установить в качестве аватара ===
+    const setAvatarBtn = document.getElementById('set-avatar-btn');
+    if (setAvatarBtn) {
+        setAvatarBtn.addEventListener('click', async () => {
+            setAvatarBtn.disabled = true;
+            try {
+                const resp = await postJson(setAvatarBtn.dataset.url, {});
+                if (resp.ok) {
+                    setAvatarBtn.textContent = '✓ Аватар установлен';
+                    setAvatarBtn.classList.replace('btn-github', 'btn-success');
+                } else {
+                    const d = await resp.json();
+                    alert(d.error || 'Ошибка при установке аватара');
+                    setAvatarBtn.disabled = false;
+                }
+            } catch (e) {
+                setAvatarBtn.disabled = false;
+            }
+        });
+    }
 }());
 </script>
 {% endblock %}

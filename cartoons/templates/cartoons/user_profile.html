@@ -8,12 +8,44 @@
     <!-- Левая колонка: инфо о пользователе + заметка -->
     <div class="col-md-3">
         <div class="card shadow-sm">
-            <div class="card-body">
-                <h2 class="h4 mb-1">{{ profile_user.username }}</h2>
+            <div class="card-body text-center">
+                <img id="profile-avatar-img" src="{{ profile_avatar_url }}" class="user-avatar mb-2" alt="{{ profile_user.username }}">
+                {% if is_own_profile %}
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#avatarModal">
+                        Сменить аватар
+                    </button>
+                </div>
+                {% endif %}
+                <h2 class="h4 mb-1 mt-2">{{ profile_user.username }}</h2>
                 <p class="text-muted small mb-1">Зарегистрирован: {{ profile_user.date_joined|date:"d.m.Y" }}</p>
                 <p class="mb-0">Мультов: {{ total_cartoons }}</p>
             </div>
         </div>
+
+        {% if is_own_profile %}
+        <!-- Модал выбора аватара -->
+        <div class="modal fade" id="avatarModal" tabindex="-1" aria-labelledby="avatarModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="avatarModalLabel">Выбрать аватар</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small">Мульты от 1 до 10 кадров доступны в качестве аватара.</p>
+                        <div id="avatar-cartoons-loading" class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+                        </div>
+                        <div id="avatar-cartoons-empty" class="text-muted text-center py-3" style="display:none;">
+                            Нет подходящих мультов (нужно от 1 до 10 кадров).
+                        </div>
+                        <div id="avatar-cartoons-grid" class="row row-cols-2 row-cols-sm-3 row-cols-md-4 g-3" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         {% if user.is_authenticated and not is_own_profile %}
         <div class="card shadow-sm mt-3">
@@ -477,16 +509,21 @@
             : escapeHtml(c.author);
         const likedClass = c.user_liked ? 'btn-danger' : 'btn-outline-danger';
         const cartoonLink = '<a href="' + escapeHtml(c.cartoon_url) + '" class="text-muted">' + escapeHtml(c.cartoon_title) + '</a>';
+        const avatarImg = '<img src="' + escapeHtml(c.avatar_url) + '" class="user-avatar-sm me-2" alt="">';
+        const avatarLink = c.author_url
+            ? '<a href="' + escapeHtml(c.author_url) + '">' + avatarImg + '</a>'
+            : avatarImg;
         return '<div class="comment-item border-bottom py-2" data-comment-id="' + c.id + '">' +
             '<div class="d-flex justify-content-between align-items-start">' +
+            '<div class="d-flex align-items-center">' + avatarLink +
             '<div><small class="fw-bold">' + authorHTML + '</small>' +
             '<small class="text-muted ms-2">' + escapeHtml(c.created_at) + '</small>' +
-            '<small class="text-muted ms-2">→ ' + cartoonLink + '</small></div>' +
+            '<small class="text-muted ms-2">→ ' + cartoonLink + '</small></div></div>' +
             (IS_AUTHENTICATED
                 ? '<button class="btn btn-sm ' + likedClass + ' comment-like-btn" data-comment-id="' + c.id + '">❤ <span class="comment-likes-count">' + c.likes_count + '</span></button>'
                 : '<span class="text-muted small">❤ ' + c.likes_count + '</span>') +
             '</div>' +
-            '<p class="mb-1 mt-1" style="white-space:pre-wrap;">' + escapeHtml(c.text) + '</p>' +
+            '<p class="mb-1 mt-1 ps-5" style="white-space:pre-wrap;">' + escapeHtml(c.text) + '</p>' +
             '</div>';
     }
 
@@ -550,6 +587,7 @@
     loadMoreBtn.addEventListener('click', () => loadComments(false));
 
     commentsList.addEventListener('click', async (e) => {
+
         const btn = e.target.closest('.comment-like-btn');
         if (!btn || btn.dataset.loading) return;
         btn.dataset.loading = '1';
@@ -570,6 +608,70 @@
     });
 
     loadComments(true);
+    {% endif %}
+
+    // === Модал выбора аватара ===
+    {% if is_own_profile %}
+    const avatarModal = document.getElementById('avatarModal');
+    if (avatarModal) {
+        const AVATAR_CARTOONS_URL = "{% url 'get_avatar_cartoons' %}";
+        const SET_AVATAR_BASE = '/cartoon/';
+        const avatarImg = document.getElementById('profile-avatar-img');
+        const grid = document.getElementById('avatar-cartoons-grid');
+        const emptyMsg = document.getElementById('avatar-cartoons-empty');
+        const loadingSpinner = document.getElementById('avatar-cartoons-loading');
+        let loaded = false;
+
+        avatarModal.addEventListener('show.bs.modal', async () => {
+            if (loaded) return;
+            try {
+                const resp = await fetch(AVATAR_CARTOONS_URL);
+                const data = await resp.json();
+                loadingSpinner.style.display = 'none';
+                if (!data.cartoons || data.cartoons.length === 0) {
+                    emptyMsg.style.display = 'block';
+                } else {
+                    grid.style.display = 'flex';
+                    grid.innerHTML = data.cartoons.map(c => {
+                        const previewSrc = c.preview_url ? escapeHtml(c.preview_url) : '';
+                        return '<div class="col">' +
+                            '<div class="card avatar-selector-item border" data-cartoon-id="' + c.id + '">' +
+                            (previewSrc ? '<img src="' + previewSrc + '" class="card-img-top" style="aspect-ratio:3/2;object-fit:contain;background:#f8f9fa">' : '') +
+                            '<div class="card-body p-1 text-center"><small>' + escapeHtml(c.title) + '</small></div>' +
+                            '</div></div>';
+                    }).join('');
+                }
+                loaded = true;
+            } catch (e) {
+                loadingSpinner.style.display = 'none';
+                emptyMsg.textContent = 'Ошибка загрузки.';
+                emptyMsg.style.display = 'block';
+            }
+        });
+
+        grid.addEventListener('click', async (e) => {
+            const item = e.target.closest('.avatar-selector-item');
+            if (!item || item.dataset.loading) return;
+            item.dataset.loading = '1';
+
+            const cartoonId = item.dataset.cartoonId;
+            try {
+                const resp = await postJson(SET_AVATAR_BASE + cartoonId + '/set-as-avatar/', {});
+                if (resp.ok) {
+                    const d = await resp.json();
+                    if (avatarImg && d.avatar_url) avatarImg.src = d.avatar_url;
+                    grid.querySelectorAll('.avatar-selector-item').forEach(el => el.classList.remove('selected'));
+                    item.classList.add('selected');
+                    bootstrap.Modal.getInstance(avatarModal).hide();
+                } else {
+                    const d = await resp.json();
+                    alert(d.error || 'Ошибка');
+                }
+            } finally {
+                delete item.dataset.loading;
+            }
+        });
+    }
     {% endif %}
 }());
 </script>

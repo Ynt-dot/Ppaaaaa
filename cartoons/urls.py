@@ -22,6 +22,8 @@ urlpatterns = [
          name='user_profile_comments'),
     path('user/<str:username>/note/', views.save_user_note, name='save_user_note'),
     path('cartoon/<int:pk>/favorite/', views.toggle_favorite, name='toggle_favorite'),
+    path('cartoon/<int:pk>/set-as-avatar/', views.set_as_avatar, name='set_as_avatar'),
+    path('my-avatar-cartoons/', views.get_avatar_cartoons, name='get_avatar_cartoons'),
     path('verify/<uuid:token>/', views.verify_email, name='verify_email'),
     path(
         'verification-sent/',

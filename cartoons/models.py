@@ -126,6 +126,10 @@ class UserPreference(models.Model):
         default='popular',
         choices=[('popular', 'По популярности'), ('newest', 'По новизне')]
     )
+    avatar = models.ForeignKey(
+        'Cartoon', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='used_as_avatar'
+    )
 
 
 class UserNote(models.Model):

@@ -220,6 +220,34 @@ input[type="password"]::-ms-clear {
     max-height: 500px;
 }
 
+/* === Avatars === */
+.user-avatar {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #dee2e6;
+}
+.user-avatar-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #dee2e6;
+    flex-shrink: 0;
+}
+.avatar-selector-item {
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+.avatar-selector-item:hover {
+    border-color: #28a745 !important;
+}
+.avatar-selector-item.selected {
+    border-color: #28a745 !important;
+    border-width: 2px !important;
+}
+
 /* === Fix: anchor btn-dark/btn-outline-dark text colour === */
 a.btn-dark,
 a.btn-dark:hover,

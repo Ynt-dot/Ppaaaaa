@@ -17,6 +17,25 @@ from django.views.decorators.http import require_POST, require_GET
 from django.db.models import Count, Q, F
 from datetime import timedelta
 from django.urls import reverse
+from django.templatetags.static import static
+
+
+def _get_user_avatar_url(user):
+    """Return avatar preview URL for user, or default avatar static URL."""
+    if user is not None:
+        pref = getattr(user, 'preference', None)
+        if pref and pref.avatar_id:
+            try:
+                if pref.avatar.preview:
+                    return pref.avatar.preview.url
+            except Exception:
+                pass
+    return static('cartoons/images/default_avatar.png')
+
+
+def _frames_count(cartoon):
+    fd = cartoon.frames_data
+    return len(fd) if isinstance(fd, list) else 0
 
 
 SORT_LABELS = {
@@ -112,6 +131,13 @@ def detail(request, pk):
     else:
         user_favorited = False
 
+    fc = _frames_count(cartoon)
+    can_set_as_avatar = (
+        request.user.is_authenticated
+        and cartoon.author == request.user
+        and 1 <= fc <= 10
+    )
+
     context = {
         'cartoon': cartoon,
         'likes_count': likes_count,
@@ -120,6 +146,8 @@ def detail(request, pk):
         'user_liked': user_liked,
         'user_favorited': user_favorited,
         'comment_sort': comment_sort,
+        'author_avatar_url': _get_user_avatar_url(cartoon.author),
+        'can_set_as_avatar': can_set_as_avatar,
     }
     if cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)
@@ -157,7 +185,7 @@ def get_comments(request, pk):
 
     qs = Comment.objects.filter(cartoon=cartoon).annotate(
         likes_count=Count('likes')
-    )
+    ).select_related('author', 'author__preference', 'author__preference__avatar')
     if sort == 'newest':
         qs = qs.order_by('-created_at')
     else:
@@ -183,6 +211,7 @@ def get_comments(request, pk):
             'id': c.id,
             'author': c.display_author(),
             'author_url': author_url,
+            'avatar_url': _get_user_avatar_url(c.author),
             'text': c.text,
             'created_at': c.created_at.strftime('%d.%m.%Y %H:%M'),
             'likes_count': c.likes_count,
@@ -237,6 +266,7 @@ def add_comment(request, pk):
         'id': comment.id,
         'author': comment.display_author(),
         'author_url': author_url,
+        'avatar_url': _get_user_avatar_url(comment.author),
         'text': comment.text,
         'created_at': comment.created_at.strftime('%d.%m.%Y %H:%M'),
         'likes_count': 0,
@@ -405,12 +435,25 @@ def user_profile(request, username):
         except UserNote.DoesNotExist:
             pass
 
+    is_own_profile = request.user == profile_user
+
+    # Аватар профиля
+    pref = getattr(profile_user, 'preference', None)
+    if pref and pref.avatar_id:
+        try:
+            profile_avatar_url = pref.avatar.preview.url
+        except Exception:
+            profile_avatar_url = static('cartoons/images/default_avatar.png')
+    else:
+        profile_avatar_url = static('cartoons/images/default_avatar.png')
+
     context = {
         'profile_user': profile_user,
         'active_tab': tab,
         'user_note': user_note,
-        'is_own_profile': request.user == profile_user,
+        'is_own_profile': is_own_profile,
         'total_cartoons': total_cartoons,
+        'profile_avatar_url': profile_avatar_url,
     }
 
     if tab == 'album':
@@ -526,7 +569,9 @@ def get_user_profile_comments(request, username):
     else:
         qs = Comment.objects.filter(author=profile_user)
 
-    qs = qs.select_related('author', 'cartoon').annotate(likes_count=Count('likes'))
+    qs = qs.select_related(
+        'author', 'author__preference', 'author__preference__avatar', 'cartoon'
+    ).annotate(likes_count=Count('likes'))
 
     if sort == 'popular':
         qs = qs.order_by('-likes_count', '-created_at')
@@ -553,6 +598,7 @@ def get_user_profile_comments(request, username):
             'id': c.id,
             'author': c.display_author(),
             'author_url': author_url,
+            'avatar_url': _get_user_avatar_url(c.author),
             'text': c.text,
             'created_at': c.created_at.strftime('%d.%m.%Y %H:%M'),
             'likes_count': c.likes_count,
@@ -566,6 +612,53 @@ def get_user_profile_comments(request, username):
         'has_next': end < total,
         'total': total,
     })
+
+
+@require_POST
+def set_as_avatar(request, pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+
+    cartoon = get_object_or_404(Cartoon, pk=pk)
+
+    if cartoon.author != request.user:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+
+    fc = _frames_count(cartoon)
+    if not (1 <= fc <= 10):
+        return JsonResponse(
+            {'error': 'Мульт должен иметь от 1 до 10 кадров'}, status=400
+        )
+
+    pref, _ = UserPreference.objects.get_or_create(user=request.user)
+    pref.avatar = cartoon
+    pref.save()
+
+    return JsonResponse({
+        'ok': True,
+        'avatar_url': cartoon.preview.url if cartoon.preview else static('cartoons/images/default_avatar.png'),
+    })
+
+
+@require_GET
+def get_avatar_cartoons(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+
+    from django.db.models.expressions import RawSQL
+    qs = Cartoon.objects.filter(author=request.user).annotate(
+        frame_count=RawSQL('JSON_LENGTH(frames_data)', [])
+    ).filter(frame_count__gte=1, frame_count__lte=10).only('id', 'title', 'preview')
+
+    eligible = []
+    for c in qs:
+        eligible.append({
+            'id': c.id,
+            'title': c.title,
+            'preview_url': c.preview.url if c.preview else None,
+        })
+
+    return JsonResponse({'cartoons': eligible})
 
 
 def verify_email(request, token):
