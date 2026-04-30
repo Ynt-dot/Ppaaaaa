@@ -72,7 +72,13 @@ h1, h2, h3, h4, .btn {
     color: #fff !important;
 }
 .btn-discord {
-    background-color: #5865F2;
+    background-color: #FF0000;
+    border-color: #FF0000;
+    color: #fff;
+}
+.btn-discord:hover {
+    background-color: #cc0000;
+    border-color: #cc0000;
     color: #fff;
 }
 
@@ -157,12 +163,9 @@ input[type="password"]::-ms-clear {
 }
 
 /* === Discord widget === */
-.discord-fallback {
-    min-height: 200px;
-}
 .discord-icon {
     font-size: 3rem;
-    color: #5865F2;
+    color: #FF0000;
 }
 
 /* === Detail / Player === */
