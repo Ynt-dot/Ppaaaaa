@@ -4,10 +4,6 @@
 {% block title %}{{ cartoon.title }}{% endblock %}
 
 {% block content %}
-<div class="mb-3">
-    <a href="{% url 'index' %}" class="btn btn-outline-secondary">← На главную</a>
-</div>
-
 <div class="row">
     <!-- Левая колонка: плеер + комментарии -->
     <div class="col-md-8">
@@ -106,12 +102,19 @@
                 </p>
 
                 <!-- Лайки мульта -->
-                <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
                     <button id="cartoon-like-btn"
                             class="btn btn-sm {% if user_liked %}btn-danger{% else %}btn-outline-danger{% endif %}"
                             data-liked="{{ user_liked|yesno:'true,false' }}">
                         ❤ <span id="cartoon-likes-count">{{ likes_count }}</span>
                     </button>
+                    {% if user.is_authenticated %}
+                    <button id="cartoon-favorite-btn"
+                            class="btn btn-sm {% if user_favorited %}btn-warning{% else %}btn-outline-warning{% endif %}"
+                            data-favorited="{{ user_favorited|yesno:'true,false' }}">
+                        ★ Избранное
+                    </button>
+                    {% endif %}
                 </div>
 
                 {% if user == cartoon.author %}
@@ -135,6 +138,7 @@
 <script>
 (function () {
     const LIKE_URL = "{% url 'toggle_cartoon_like' cartoon.pk %}";
+    const FAVORITE_URL = "{% url 'toggle_favorite' cartoon.pk %}";
     const COMMENTS_URL = "{% url 'get_comments' cartoon.pk %}";
     const ADD_COMMENT_URL = "{% url 'add_comment' cartoon.pk %}";
     const SET_SORT_URL = "{% url 'set_comment_sort' %}";
@@ -177,6 +181,29 @@
         hint.textContent = 'Войдите, чтобы ставить лайки';
         anchor.appendChild(hint);
         setTimeout(() => hint.remove(), 3000);
+    }
+
+    // === Избранное ===
+    const favBtn = document.getElementById('cartoon-favorite-btn');
+    if (favBtn) {
+        let favoring = false;
+        favBtn.addEventListener('click', async () => {
+            if (favoring) return;
+            favoring = true;
+            try {
+                const resp = await postJson(FAVORITE_URL, {});
+                if (resp.ok) {
+                    const d = await resp.json();
+                    if (d.favorited) {
+                        favBtn.classList.replace('btn-outline-warning', 'btn-warning');
+                    } else {
+                        favBtn.classList.replace('btn-warning', 'btn-outline-warning');
+                    }
+                }
+            } finally {
+                favoring = false;
+            }
+        });
     }
 
     // === Лайк мульта ===

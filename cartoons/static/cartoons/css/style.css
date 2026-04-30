@@ -186,3 +186,17 @@ input[type="password"]::-ms-clear {
 .frame-display-img {
     max-height: 500px;
 }
+
+/* === Fix: anchor btn-dark/btn-outline-dark text colour === */
+a.btn-dark,
+a.btn-dark:hover,
+a.btn-dark:focus {
+    color: #fff !important;
+}
+
+a.btn-outline-dark:hover,
+a.btn-outline-dark:focus {
+    background-color: #e9ecef !important;
+    color: #212529 !important;
+    border-color: #343a40 !important;
+}

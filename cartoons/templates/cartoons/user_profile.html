@@ -1,60 +1,100 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Мульты пользователя {{ profile_user.username }}{% endblock %}
+{% block title %}{{ profile_user.username }}{% endblock %}
 
 {% block content %}
 <div class="row">
-    <!-- Левая колонка: информация о пользователе -->
+    <!-- Левая колонка: инфо о пользователе + заметка -->
     <div class="col-md-3">
-        <div class="p-3 bg-white">
-            <h2>{{ profile_user.username }}</h2>
-            <p class="text-muted">Зарегистрирован: {{ profile_user.date_joined|date:"d.m.Y" }}</p>
-            <p>Всего мультов: {{ cartoons.paginator.count }}</p>
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="h4 mb-1">{{ profile_user.username }}</h2>
+                <p class="text-muted small mb-1">Зарегистрирован: {{ profile_user.date_joined|date:"d.m.Y" }}</p>
+                <p class="mb-0">Мультов: {{ total_cartoons }}</p>
+            </div>
         </div>
+
+        {% if user.is_authenticated and not is_own_profile %}
+        <div class="card shadow-sm mt-3">
+            <div class="card-body p-2">
+                <p class="text-uppercase text-muted mb-1" style="font-size:0.65rem;letter-spacing:.08em;font-weight:bold;">Заметка</p>
+                <textarea id="user-note-field"
+                          class="w-100 border-0 bg-transparent p-0"
+                          rows="3"
+                          maxlength="256"
+                          placeholder="Заметки видны только вам"
+                          style="resize:none;font-size:0.85rem;outline:none;color:inherit;font-family:inherit;">{{ user_note }}</textarea>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
-    <!-- Правая колонка: сетка мультиков -->
+    <!-- Правая колонка: вкладки и контент -->
     <div class="col-md-9">
-        <!-- Пагинация -->
-        {% if cartoons.has_other_pages %}
-        <nav aria-label="Навигация по страницам" class="mt-2 mb-3">
-            <ul class="pagination justify-content-center">
-                {% if cartoons.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ cartoons.previous_page_number }}" aria-label="Предыдущая">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">&laquo;</span>
-                </li>
-                {% endif %}
+        <!-- Вкладки -->
+        <div class="d-flex gap-1 mb-3 flex-wrap">
+            <a href="?tab=album"
+               class="btn btn-sm {% if active_tab == 'album' %}btn-dark{% else %}btn-outline-dark{% endif %}">Альбом</a>
+            <a href="?tab=comments"
+               class="btn btn-sm {% if active_tab == 'comments' %}btn-dark{% else %}btn-outline-dark{% endif %}">Комментарии</a>
+            <a href="?tab=liked"
+               class="btn btn-sm {% if active_tab == 'liked' %}btn-dark{% else %}btn-outline-dark{% endif %}">Понравившееся</a>
+            <a href="?tab=favorites"
+               class="btn btn-sm {% if active_tab == 'favorites' %}btn-dark{% else %}btn-outline-dark{% endif %}">Избранное</a>
+        </div>
 
-                {% for num in cartoons.paginator.page_range %}
-                    {% if cartoons.number == num %}
-                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                    {% elif num > cartoons.number|add:'-3' and num < cartoons.number|add:'3' %}
-                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+        <!-- === АЛЬБОМ === -->
+        {% if active_tab == 'album' %}
+        <div class="d-flex flex-column flex-md-row align-items-center mb-3 gap-2">
+            <nav class="flex-grow-1 w-100">
+                {% if cartoons.has_other_pages %}
+                <ul class="pagination justify-content-center mb-0 flex-wrap">
+                    {% if cartoons.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?tab=album&sort={{ current_sort }}&page={{ cartoons.previous_page_number }}">&laquo;</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
                     {% endif %}
-                {% endfor %}
 
-                {% if cartoons.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ cartoons.next_page_number }}" aria-label="Следующая">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">&raquo;</span>
-                </li>
+                    {% for num in cartoons.paginator.page_range %}
+                        {% if cartoons.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > cartoons.number|add:'-3' and num < cartoons.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?tab=album&sort={{ current_sort }}&page={{ num }}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if cartoons.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?tab=album&sort={{ current_sort }}&page={{ cartoons.next_page_number }}">&raquo;</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                    {% endif %}
+                </ul>
                 {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
-        
+            </nav>
+
+            <div class="dropdown flex-shrink-0 align-self-end align-self-md-center" style="min-width:140px">
+                <button class="btn btn-dark btn-sm dropdown-toggle w-100" type="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                    {{ sort_label }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item{% if current_sort == 'popular' %} active{% endif %}"
+                           href="?tab=album&sort=popular">Популярное</a></li>
+                    <li><a class="dropdown-item{% if current_sort == 'new' %} active{% endif %}"
+                           href="?tab=album&sort=new">Новое</a></li>
+                    <li><a class="dropdown-item{% if current_sort == 'trending' %} active{% endif %}"
+                           href="?tab=album&sort=trending">Тренды</a></li>
+                    <li><a class="dropdown-item{% if current_sort == 'trending_24h' %} active{% endif %}"
+                           href="?tab=album&sort=trending_24h">Тренды 24ч</a></li>
+                </ul>
+            </div>
+        </div>
+
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
             {% for cartoon in cartoons %}
             <div class="col">
@@ -69,8 +109,133 @@
                         {% endif %}
                         <div class="card-body">
                             <h5 class="card-title">{{ cartoon.title }}</h5>
-                            <p class="card-text text-muted">
-                                Создан: {{ cartoon.created_at|date:"d.m.Y" }}
+                            <p class="card-text text-muted small">{{ cartoon.created_at|date:"d.m.Y" }}</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <p class="text-center py-4">У этого пользователя пока нет мультов.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if cartoons.has_other_pages %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if cartoons.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?tab=album&sort={{ current_sort }}&page={{ cartoons.previous_page_number }}">&laquo;</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                {% endif %}
+
+                {% for num in cartoons.paginator.page_range %}
+                    {% if cartoons.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > cartoons.number|add:'-3' and num < cartoons.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?tab=album&sort={{ current_sort }}&page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if cartoons.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?tab=album&sort={{ current_sort }}&page={{ cartoons.next_page_number }}">&raquo;</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        <!-- === КОММЕНТАРИИ === -->
+        {% elif active_tab == 'comments' %}
+        <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-sm btn-dark comment-type-btn" data-type="user">
+                    Комментарии пользователя
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-dark comment-type-btn" data-type="cartoon">
+                    Комментарии к мультам
+                </button>
+            </div>
+            <div class="btn-group ms-auto" role="group">
+                <button type="button" class="btn btn-sm btn-dark profile-sort-btn" data-sort="newest">По новизне</button>
+                <button type="button" class="btn btn-sm btn-outline-dark profile-sort-btn" data-sort="popular">По популярности</button>
+            </div>
+        </div>
+
+        <div id="profile-comments-list"></div>
+
+        <div id="profile-comments-loading" class="text-center py-3">
+            <div class="spinner-border spinner-border-sm text-secondary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+        </div>
+
+        <div id="profile-no-comments" class="text-muted text-center py-3" style="display:none;">
+            Комментариев нет.
+        </div>
+
+        <div class="text-center mt-3" id="profile-load-more-container" style="display:none;">
+            <button id="profile-load-more-btn" class="btn btn-outline-secondary">Загрузить ещё</button>
+        </div>
+
+        <!-- === ПОНРАВИВШЕЕСЯ === -->
+        {% elif active_tab == 'liked' %}
+        {% if cartoons.has_other_pages %}
+        <nav class="mb-3">
+            <ul class="pagination justify-content-center mb-0 flex-wrap">
+                {% if cartoons.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?tab=liked&page={{ cartoons.previous_page_number }}">&laquo;</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                {% endif %}
+
+                {% for num in cartoons.paginator.page_range %}
+                    {% if cartoons.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > cartoons.number|add:'-3' and num < cartoons.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?tab=liked&page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if cartoons.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?tab=liked&page={{ cartoons.next_page_number }}">&raquo;</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+            {% for cartoon in cartoons %}
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <a href="{% url 'detail' cartoon.pk %}" class="text-decoration-none text-dark">
+                        {% if cartoon.preview %}
+                        <img src="{{ cartoon.preview.url }}" class="card-img-top card-preview-img" alt="{{ cartoon.title }}">
+                        {% else %}
+                        <div class="card-img-top card-preview-placeholder bg-light d-flex align-items-center justify-content-center">
+                            <span class="text-muted">Нет превью</span>
+                        </div>
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ cartoon.title }}</h5>
+                            <p class="card-text text-muted small">
+                                {% if cartoon.author %}
+                                <a href="{% url 'user_profile' username=cartoon.author.username %}" class="username-link">{{ cartoon.author.username }}</a>
+                                {% else %}
+                                Аноним
+                                {% endif %}
                             </p>
                         </div>
                     </a>
@@ -78,51 +243,315 @@
             </div>
             {% empty %}
             <div class="col-12">
-                <div class="alert alert-info">
-                    У этого пользователя пока нет мультиков.
-                </div>
+                <p class="text-center py-4">Нет понравившихся мультов.</p>
             </div>
             {% endfor %}
         </div>
 
-        <!-- Пагинация -->
         {% if cartoons.has_other_pages %}
-        <nav aria-label="Навигация по страницам" class="mt-4">
+        <nav class="mt-4">
             <ul class="pagination justify-content-center">
                 {% if cartoons.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ cartoons.previous_page_number }}" aria-label="Предыдущая">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
+                    <a class="page-link" href="?tab=liked&page={{ cartoons.previous_page_number }}">&laquo;</a>
                 </li>
                 {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">&laquo;</span>
-                </li>
+                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
                 {% endif %}
 
                 {% for num in cartoons.paginator.page_range %}
                     {% if cartoons.number == num %}
                     <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                     {% elif num > cartoons.number|add:'-3' and num < cartoons.number|add:'3' %}
-                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                    <li class="page-item"><a class="page-link" href="?tab=liked&page={{ num }}">{{ num }}</a></li>
                     {% endif %}
                 {% endfor %}
 
                 {% if cartoons.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ cartoons.next_page_number }}" aria-label="Следующая">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
+                    <a class="page-link" href="?tab=liked&page={{ cartoons.next_page_number }}">&raquo;</a>
                 </li>
                 {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">&raquo;</span>
-                </li>
+                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
                 {% endif %}
             </ul>
         </nav>
         {% endif %}
+
+        <!-- === ИЗБРАННОЕ === -->
+        {% elif active_tab == 'favorites' %}
+        {% if cartoons.has_other_pages %}
+        <nav class="mb-3">
+            <ul class="pagination justify-content-center mb-0 flex-wrap">
+                {% if cartoons.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?tab=favorites&page={{ cartoons.previous_page_number }}">&laquo;</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                {% endif %}
+
+                {% for num in cartoons.paginator.page_range %}
+                    {% if cartoons.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > cartoons.number|add:'-3' and num < cartoons.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?tab=favorites&page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if cartoons.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?tab=favorites&page={{ cartoons.next_page_number }}">&raquo;</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+            {% for cartoon in cartoons %}
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <a href="{% url 'detail' cartoon.pk %}" class="text-decoration-none text-dark">
+                        {% if cartoon.preview %}
+                        <img src="{{ cartoon.preview.url }}" class="card-img-top card-preview-img" alt="{{ cartoon.title }}">
+                        {% else %}
+                        <div class="card-img-top card-preview-placeholder bg-light d-flex align-items-center justify-content-center">
+                            <span class="text-muted">Нет превью</span>
+                        </div>
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ cartoon.title }}</h5>
+                            <p class="card-text text-muted small">
+                                {% if cartoon.author %}
+                                <a href="{% url 'user_profile' username=cartoon.author.username %}" class="username-link">{{ cartoon.author.username }}</a>
+                                {% else %}
+                                Аноним
+                                {% endif %}
+                            </p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <p class="text-center py-4">Нет мультов в избранном.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if cartoons.has_other_pages %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if cartoons.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?tab=favorites&page={{ cartoons.previous_page_number }}">&laquo;</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                {% endif %}
+
+                {% for num in cartoons.paginator.page_range %}
+                    {% if cartoons.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > cartoons.number|add:'-3' and num < cartoons.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?tab=favorites&page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if cartoons.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?tab=favorites&page={{ cartoons.next_page_number }}">&raquo;</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    function getCsrf() {
+        for (const c of document.cookie.split(';')) {
+            const t = c.trim();
+            if (t.startsWith('csrftoken=')) return decodeURIComponent(t.slice('csrftoken='.length));
+        }
+        return '';
+    }
+
+    function postJson(url, data) {
+        return fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrf()},
+            body: JSON.stringify(data),
+        });
+    }
+
+    function escapeHtml(str) {
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(str));
+        return d.innerHTML;
+    }
+
+    // === Заметка ===
+    const noteField = document.getElementById('user-note-field');
+    if (noteField) {
+        const NOTE_URL = "{% url 'save_user_note' profile_user.username %}";
+        let savedValue = noteField.value;
+        let saveTimer = null;
+
+        function saveNote() {
+            if (noteField.value === savedValue) return;
+            savedValue = noteField.value;
+            // keepalive: запрос завершится даже при навигации со страницы
+            fetch(NOTE_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrf()},
+                body: JSON.stringify({text: noteField.value}),
+                keepalive: true,
+            });
+        }
+
+        noteField.addEventListener('input', () => {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(saveNote, 1000);
+        });
+
+        noteField.addEventListener('blur', () => {
+            clearTimeout(saveTimer);
+            saveNote();
+        });
+    }
+
+    // === Комментарии на вкладке "Комментарии" ===
+    {% if active_tab == 'comments' %}
+    const COMMENTS_API = "{% url 'user_profile_comments' profile_user.username %}";
+    const IS_AUTHENTICATED = {{ user.is_authenticated|yesno:'true,false' }};
+
+    const commentsList = document.getElementById('profile-comments-list');
+    const loadMoreContainer = document.getElementById('profile-load-more-container');
+    const noCommentsMsg = document.getElementById('profile-no-comments');
+    const loadingSpinner = document.getElementById('profile-comments-loading');
+    const loadMoreBtn = document.getElementById('profile-load-more-btn');
+
+    let currentType = 'user';
+    let currentSort = 'newest';
+    let currentPage = 1;
+    let loading = false;
+
+    function getCommentLikeUrl(id) {
+        return '/comment/' + id + '/like/';
+    }
+
+    function buildCommentHTML(c) {
+        const authorHTML = c.author_url
+            ? '<a href="' + escapeHtml(c.author_url) + '" class="username-link">' + escapeHtml(c.author) + '</a>'
+            : escapeHtml(c.author);
+        const likedClass = c.user_liked ? 'btn-danger' : 'btn-outline-danger';
+        const cartoonLink = '<a href="' + escapeHtml(c.cartoon_url) + '" class="text-muted">' + escapeHtml(c.cartoon_title) + '</a>';
+        return '<div class="comment-item border-bottom py-2" data-comment-id="' + c.id + '">' +
+            '<div class="d-flex justify-content-between align-items-start">' +
+            '<div><small class="fw-bold">' + authorHTML + '</small>' +
+            '<small class="text-muted ms-2">' + escapeHtml(c.created_at) + '</small>' +
+            '<small class="text-muted ms-2">→ ' + cartoonLink + '</small></div>' +
+            (IS_AUTHENTICATED
+                ? '<button class="btn btn-sm ' + likedClass + ' comment-like-btn" data-comment-id="' + c.id + '">❤ <span class="comment-likes-count">' + c.likes_count + '</span></button>'
+                : '<span class="text-muted small">❤ ' + c.likes_count + '</span>') +
+            '</div>' +
+            '<p class="mb-1 mt-1" style="white-space:pre-wrap;">' + escapeHtml(c.text) + '</p>' +
+            '</div>';
+    }
+
+    async function loadComments(reset) {
+        if (loading) return;
+        loading = true;
+
+        if (reset) {
+            currentPage = 1;
+            commentsList.innerHTML = '';
+            loadMoreContainer.style.display = 'none';
+            noCommentsMsg.style.display = 'none';
+        }
+
+        loadingSpinner.style.display = 'block';
+
+        try {
+            const url = COMMENTS_API + '?type=' + currentType + '&sort=' + currentSort + '&page=' + currentPage;
+            const resp = await fetch(url);
+            const data = await resp.json();
+
+            data.comments.forEach(c => commentsList.insertAdjacentHTML('beforeend', buildCommentHTML(c)));
+
+            loadMoreContainer.style.display = data.has_next ? 'block' : 'none';
+            if (currentPage === 1 && data.total === 0) {
+                noCommentsMsg.style.display = 'block';
+            }
+            currentPage++;
+        } finally {
+            loadingSpinner.style.display = 'none';
+            loading = false;
+        }
+    }
+
+    document.querySelectorAll('.comment-type-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.dataset.type === currentType) return;
+            currentType = btn.dataset.type;
+            document.querySelectorAll('.comment-type-btn').forEach(b => {
+                b.classList.remove('btn-dark');
+                b.classList.add('btn-outline-dark');
+            });
+            btn.classList.replace('btn-outline-dark', 'btn-dark');
+            loadComments(true);
+        });
+    });
+
+    document.querySelectorAll('.profile-sort-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.dataset.sort === currentSort) return;
+            currentSort = btn.dataset.sort;
+            document.querySelectorAll('.profile-sort-btn').forEach(b => {
+                b.classList.remove('btn-dark');
+                b.classList.add('btn-outline-dark');
+            });
+            btn.classList.replace('btn-outline-dark', 'btn-dark');
+            loadComments(true);
+        });
+    });
+
+    loadMoreBtn.addEventListener('click', () => loadComments(false));
+
+    commentsList.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.comment-like-btn');
+        if (!btn || btn.dataset.loading) return;
+        btn.dataset.loading = '1';
+        try {
+            const resp = await postJson(getCommentLikeUrl(btn.dataset.commentId), {});
+            if (resp.ok) {
+                const d = await resp.json();
+                btn.querySelector('.comment-likes-count').textContent = d.count;
+                if (d.liked) {
+                    btn.classList.replace('btn-outline-danger', 'btn-danger');
+                } else {
+                    btn.classList.replace('btn-danger', 'btn-outline-danger');
+                }
+            }
+        } finally {
+            delete btn.dataset.loading;
+        }
+    });
+
+    loadComments(true);
+    {% endif %}
+}());
+</script>
 {% endblock %}

@@ -125,3 +125,27 @@ class UserPreference(models.Model):
         default='popular',
         choices=[('popular', 'По популярности'), ('newest', 'По новизне')]
     )
+
+
+class UserNote(models.Model):
+    author = models.ForeignKey(User, on_delete=models.CASCADE,
+                               related_name='authored_notes')
+    about = models.ForeignKey(User, on_delete=models.CASCADE,
+                              related_name='notes_about')
+    text = models.TextField(max_length=256, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [('author', 'about')]
+
+
+class Favorite(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                             related_name='favorites')
+    cartoon = models.ForeignKey(Cartoon, on_delete=models.CASCADE,
+                                related_name='favorited_by')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [('user', 'cartoon')]
+        ordering = ['-created_at']

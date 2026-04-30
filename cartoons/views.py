@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Cartoon, CartoonLike, Comment, CommentLike, UserPreference
+from .models import Cartoon, CartoonLike, Comment, CommentLike, UserPreference, UserNote, Favorite
 import json
 from .utils import create_gif_from_frames
 from django.contrib.auth import login
@@ -96,10 +96,16 @@ def detail(request, pk):
 
     comment_sort = _get_comment_sort(request)
 
+    if request.user.is_authenticated:
+        user_favorited = cartoon.favorited_by.filter(user=request.user).exists()
+    else:
+        user_favorited = False
+
     context = {
         'cartoon': cartoon,
         'likes_count': likes_count,
         'user_liked': user_liked,
+        'user_favorited': user_favorited,
         'comment_sort': comment_sort,
     }
     if cartoon.frames_data:
@@ -371,14 +377,172 @@ def register(request):
 
 
 def user_profile(request, username):
-    user = get_object_or_404(User, username=username)
-    cartoon_list = Cartoon.objects.filter(author=user).order_by('-created_at')
-    paginator = Paginator(cartoon_list, 12)
-    page_number = request.GET.get('page')
-    cartoons = paginator.get_page(page_number)
-    return render(request, 'cartoons/user_profile.html', {
-        'profile_user': user,
-        'cartoons': cartoons,
+    profile_user = get_object_or_404(User, username=username)
+    tab = request.GET.get('tab', 'album')
+    if tab not in ('album', 'comments', 'liked', 'favorites'):
+        tab = 'album'
+
+    total_cartoons = Cartoon.objects.filter(author=profile_user).count()
+
+    user_note = ''
+    if request.user.is_authenticated and request.user != profile_user:
+        try:
+            note_obj = UserNote.objects.get(author=request.user, about=profile_user)
+            user_note = note_obj.text
+        except UserNote.DoesNotExist:
+            pass
+
+    context = {
+        'profile_user': profile_user,
+        'active_tab': tab,
+        'user_note': user_note,
+        'is_own_profile': request.user == profile_user,
+        'total_cartoons': total_cartoons,
+    }
+
+    if tab == 'album':
+        sort = request.GET.get('sort', 'new')
+        if sort not in SORT_LABELS:
+            sort = 'new'
+
+        if sort == 'popular':
+            cartoon_list = Cartoon.objects.filter(author=profile_user).annotate(
+                like_count=Count('likes')
+            ).order_by('-like_count', '-created_at')
+        elif sort == 'trending':
+            week_ago = timezone.now() - timedelta(days=7)
+            cartoon_list = Cartoon.objects.filter(author=profile_user).annotate(
+                recent_likes=Count('likes', filter=Q(likes__created_at__gte=week_ago))
+            ).order_by('-recent_likes', '-created_at')
+        elif sort == 'trending_24h':
+            day_ago = timezone.now() - timedelta(hours=24)
+            cartoon_list = Cartoon.objects.filter(author=profile_user).annotate(
+                recent_likes=Count('likes', filter=Q(likes__created_at__gte=day_ago))
+            ).order_by('-recent_likes', '-created_at')
+        else:
+            cartoon_list = Cartoon.objects.filter(author=profile_user).order_by('-created_at')
+
+        paginator = Paginator(cartoon_list, 12)
+        cartoons = paginator.get_page(request.GET.get('page'))
+        context.update({
+            'cartoons': cartoons,
+            'current_sort': sort,
+            'sort_label': SORT_LABELS[sort],
+        })
+
+    elif tab == 'liked':
+        liked_list = Cartoon.objects.filter(
+            likes__user=profile_user
+        ).order_by('-likes__created_at')
+        paginator = Paginator(liked_list, 12)
+        context['cartoons'] = paginator.get_page(request.GET.get('page'))
+
+    elif tab == 'favorites':
+        fav_list = Cartoon.objects.filter(
+            favorited_by__user=profile_user
+        ).order_by('-favorited_by__created_at')
+        paginator = Paginator(fav_list, 12)
+        context['cartoons'] = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'cartoons/user_profile.html', context)
+
+
+@require_POST
+def save_user_note(request, username):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+
+    about_user = get_object_or_404(User, username=username)
+    if request.user == about_user:
+        return JsonResponse({'error': 'forbidden'}, status=400)
+
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Неверный формат данных'}, status=400)
+
+    text = body.get('text', '')[:256]
+    if text:
+        UserNote.objects.update_or_create(
+            author=request.user, about=about_user,
+            defaults={'text': text}
+        )
+    else:
+        UserNote.objects.filter(author=request.user, about=about_user).delete()
+
+    return JsonResponse({'ok': True})
+
+
+@require_POST
+def toggle_favorite(request, pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+
+    cartoon = get_object_or_404(Cartoon, pk=pk)
+    fav, created = Favorite.objects.get_or_create(user=request.user, cartoon=cartoon)
+    if not created:
+        fav.delete()
+        favorited = False
+    else:
+        favorited = True
+
+    return JsonResponse({'favorited': favorited})
+
+
+@require_GET
+def get_user_profile_comments(request, username):
+    profile_user = get_object_or_404(User, username=username)
+    session_key = _ensure_session(request)
+
+    comment_type = request.GET.get('type', 'user')
+    sort = request.GET.get('sort', 'newest')
+    page = max(1, int(request.GET.get('page', 1)))
+    per_page = 10
+
+    if comment_type == 'cartoon':
+        qs = Comment.objects.filter(cartoon__author=profile_user)
+    else:
+        qs = Comment.objects.filter(author=profile_user)
+
+    qs = qs.select_related('author', 'cartoon').annotate(likes_count=Count('likes'))
+
+    if sort == 'popular':
+        qs = qs.order_by('-likes_count', '-created_at')
+    else:
+        qs = qs.order_by('-created_at')
+
+    total = qs.count()
+    start = (page - 1) * per_page
+    end = start + per_page
+    page_qs = qs[start:end]
+
+    data = []
+    for c in page_qs:
+        if request.user.is_authenticated:
+            user_liked = c.likes.filter(user=request.user).exists()
+        else:
+            user_liked = c.likes.filter(session_key=session_key).exists()
+
+        author_url = None
+        if c.author:
+            author_url = reverse('user_profile', args=[c.author.username])
+
+        data.append({
+            'id': c.id,
+            'author': c.display_author(),
+            'author_url': author_url,
+            'text': c.text,
+            'created_at': c.created_at.strftime('%d.%m.%Y %H:%M'),
+            'likes_count': c.likes_count,
+            'user_liked': user_liked,
+            'cartoon_title': c.cartoon.title,
+            'cartoon_url': reverse('detail', args=[c.cartoon_id]),
+        })
+
+    return JsonResponse({
+        'comments': data,
+        'has_next': end < total,
+        'total': total,
     })
 
 

@@ -18,6 +18,10 @@ urlpatterns = [
     path('set-comment-sort/', views.set_comment_sort, name='set_comment_sort'),
     path('register/', views.register, name='register'),
     path('user/<str:username>/', views.user_profile, name='user_profile'),
+    path('user/<str:username>/comments/', views.get_user_profile_comments,
+         name='user_profile_comments'),
+    path('user/<str:username>/note/', views.save_user_note, name='save_user_note'),
+    path('cartoon/<int:pk>/favorite/', views.toggle_favorite, name='toggle_favorite'),
     path('verify/<uuid:token>/', views.verify_email, name='verify_email'),
     path(
         'verification-sent/',
