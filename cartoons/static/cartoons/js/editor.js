@@ -443,6 +443,7 @@ confirmSave.addEventListener('click', () => {
     document.getElementById('tags-input').value = JSON.stringify(tags);
     document.getElementById('description-input').value = description;
     document.getElementById('frames-input').value = JSON.stringify(frames);
+    formChanged = false;
     document.getElementById('editor-form').submit();
 });
 
