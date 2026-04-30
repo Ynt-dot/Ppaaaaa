@@ -146,13 +146,25 @@
                 <hr>
                 <div class="mt-3 text-center">
                     <h5>Наш Discord</h5>
-                    <iframe src="https://discord.com/widget?id=1478337136846438503&theme=dark" 
-                            width="100%" 
-                            height="400" 
-                            allowtransparency="true" 
-                            frameborder="0" 
+                    <!-- iframe без src — src подставляется только если Discord доступен -->
+                    <iframe id="discord-iframe"
+                            style="display:none"
+                            width="100%"
+                            height="400"
+                            allowtransparency="true"
+                            frameborder="0"
                             sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts">
                     </iframe>
+                    <!-- Заглушка видна сразу; скрывается только если Discord доступен -->
+                    <div id="discord-fallback" style="min-height:200px;" class="d-flex flex-column align-items-center justify-content-center gap-3 rounded p-4 bg-dark text-white">
+                        <i class="bi bi-discord" style="font-size:3rem; color:#5865F2;"></i>
+                        <p class="mb-1 fw-bold">Виджет Discord недоступен</p>
+                        <p class="mb-2 small text-secondary">Возможно, Discord заблокирован в вашем регионе.<br>Попробуйте использовать VPN.</p>
+                        <a href="https://discord.gg/gJXcfahTjP" target="_blank" rel="noopener noreferrer"
+                           class="btn btn-sm" style="background-color:#5865F2; color:#fff;">
+                            <i class="bi bi-discord me-1"></i>Присоединиться к серверу
+                        </a>
+                    </div>
                 </div>
 
                 <hr>
@@ -169,4 +181,33 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    const GUILD_ID = '1478337136846438503';
+    const TIMEOUT_MS = 3000;
+
+    const iframe = document.getElementById('discord-iframe');
+    const fallback = document.getElementById('discord-fallback');
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    // no-cors: запрос достигает Discord → успех (opaque); заблокирован → ошибка сети
+    fetch('https://discord.com/', { mode: 'no-cors', signal: controller.signal })
+        .then(function () {
+            clearTimeout(timer);
+            // Discord доступен — подставляем src только сейчас и показываем iframe
+            iframe.src = 'https://discord.com/widget?id=' + GUILD_ID + '&theme=dark';
+            iframe.style.display = '';
+            fallback.classList.remove('d-flex');
+            fallback.classList.add('d-none');
+        })
+        .catch(function () {
+            // Discord недоступен — заглушка уже видна, ничего не делаем
+        });
+})();
+</script>
 {% endblock %}
