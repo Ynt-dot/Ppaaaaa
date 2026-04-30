@@ -33,7 +33,7 @@
     <!-- Правая колонка: вкладки и контент -->
     <div class="col-md-9">
         <!-- Вкладки -->
-        <div class="d-flex gap-1 mb-3 flex-wrap">
+        <div class="d-flex gap-1 mb-3 flex-wrap justify-content-center">
             <a href="?tab=album"
                class="btn btn-sm {% if active_tab == 'album' %}btn-dark{% else %}btn-outline-dark{% endif %}">Альбом</a>
             <a href="?tab=comments"
@@ -47,6 +47,7 @@
         <!-- === АЛЬБОМ === -->
         {% if active_tab == 'album' %}
         <div class="d-flex flex-column flex-md-row align-items-center mb-3 gap-2">
+            <div class="d-none d-md-block flex-shrink-0" style="min-width:140px"></div>
             <nav class="flex-grow-1 w-100">
                 {% if cartoons.has_other_pages %}
                 <ul class="pagination justify-content-center mb-0 flex-wrap">
