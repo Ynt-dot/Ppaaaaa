@@ -130,6 +130,11 @@ a.username-link {
     background-color: #e9ecef;
     color: #212529;
 }
+.dropdown-item.active,
+.dropdown-item:active {
+    background-color: #212529 !important;
+    color: #fff !important;
+}
 
 /* === Pagination === */
 .page-link {
