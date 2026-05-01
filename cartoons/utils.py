@@ -3,10 +3,19 @@ from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
 from django.core.mail import send_mail
+from django.core.mail.utils import DNS_NAME
 from django.urls import reverse
 from django.conf import settings
 from .models import EmailVerificationToken
 from django.utils import timezone
+
+# На некоторых Windows-машинах socket.getfqdn() возвращает имя хоста
+# с точкой в конце (например "FLTP-5i5-8512."), что ломает IDNA-кодек
+# при установке SMTP-соединения. Проверяем и подменяем на 'localhost'.
+try:
+    DNS_NAME.get_fqdn()
+except UnicodeEncodeError:
+    DNS_NAME._fqdn = 'localhost'
 
 
 def create_gif_from_frames(frames_data, fps=12, max_frames=None):

@@ -6,7 +6,7 @@
 <div class="row justify-content-center">
     <div class="col-md-6">
         <div class="card shadow">
-            <div class="card-header bg-primary text-white">
+            <div class="card-header bg-success text-white">
                 <h4 class="mb-0">Подтверждение email</h4>
             </div>
             <div class="card-body text-center">
@@ -28,7 +28,7 @@
                 <h6>Не получили письмо?</h6>
                 <form method="post" action="{% url 'resend_verification' %}">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-outline-primary btn-sm">Отправить письмо повторно</button>
+                    <button type="submit" class="btn btn-outline-success btn-sm">Отправить письмо повторно</button>
                 </form>
 
                 {% if messages %}
@@ -43,7 +43,7 @@
                 {% endif %}
 
                 <div class="mt-3">
-                    <a href="{% url 'index' %}" class="btn btn-primary">На главную</a>
+                    <a href="{% url 'index' %}" class="btn btn-success">На главную</a>
                 </div>
             </div>
         </div>

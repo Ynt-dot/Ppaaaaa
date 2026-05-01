@@ -12,6 +12,28 @@ h1, h2, h3, h4, .btn {
     --bs-primary-hover: #6c757d;
     --bs-link-color: #28a745;
     --bs-link-hover-color: #218838;
+    --bs-success: #28a745;
+    --bs-success-rgb: 40, 167, 69;
+}
+
+.bg-success {
+    background-color: #28a745 !important;
+}
+.btn-success {
+    --bs-btn-bg: #28a745;
+    --bs-btn-border-color: #28a745;
+    --bs-btn-hover-bg: #218838;
+    --bs-btn-hover-border-color: #1e7e34;
+    --bs-btn-active-bg: #1e7e34;
+    --bs-btn-active-border-color: #1c7430;
+}
+.btn-outline-success {
+    --bs-btn-color: #28a745;
+    --bs-btn-border-color: #28a745;
+    --bs-btn-hover-bg: #28a745;
+    --bs-btn-hover-border-color: #28a745;
+    --bs-btn-active-bg: #28a745;
+    --bs-btn-active-border-color: #28a745;
 }
 
 /* === Buttons === */

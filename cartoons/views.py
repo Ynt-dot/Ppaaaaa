@@ -15,6 +15,7 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
 from django.db.models import Count, Q, F
+from django.db import transaction
 from datetime import timedelta
 from django.urls import reverse
 from django.templatetags.static import static
@@ -330,7 +331,7 @@ def editor(request, pk=None):
         cartoon = None
 
     if request.method == 'POST':
-        title = request.POST.get('title')
+        title = request.POST.get('title', '')[:15]
         fps_str = request.POST.get('fps', '10')
         frames_json = request.POST.get('frames')
         tags_json = request.POST.get('tags', '[]')
@@ -412,13 +413,16 @@ def register(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.is_active = False
-            user.save()
-            send_verification_email(user)
-            # Сохраняем id пользователя в сессии для повторной отправки
-            request.session['pending_user_id'] = user.id
-            return redirect('verification_sent')
+            try:
+                with transaction.atomic():
+                    user = form.save(commit=False)
+                    user.is_active = False
+                    user.save()
+                    send_verification_email(user)
+                request.session['pending_user_id'] = user.id
+                return redirect('verification_sent')
+            except Exception:
+                form.add_error(None, 'Не удалось отправить письмо подтверждения. Попробуйте позже.')
     else:
         form = CustomUserCreationForm()
     return render(request, 'registration/register.html', {'form': form})
@@ -708,7 +712,7 @@ def verify_email(request, token):
     token_obj.delete()
 
     # Автоматически входим пользователя (опционально)
-    login(request, user)
+    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
 
     return render(
         request,
