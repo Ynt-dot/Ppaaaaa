@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static cartoon_tags %}
 
 {% block title %}Ппааааа{% endblock %}
 
@@ -66,35 +66,7 @@
 
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
             {% for cartoon in cartoons %}
-            <div class="col">
-                <div class="card h-100 shadow-sm">
-                    <a href="{% url 'detail' cartoon.pk %}" class="text-decoration-none text-dark">
-                        {% if cartoon.preview %}
-                        <img src="{{ cartoon.preview.url }}" class="card-img-top card-preview-img" alt="{{ cartoon.title }}">
-                        {% else %}
-                        <div class="card-img-top card-preview-placeholder bg-light d-flex align-items-center justify-content-center">
-                            <span class="text-muted">Нет превью</span>
-                        </div>
-                        {% endif %}
-                        <div class="card-body">
-                            <h5 class="card-title">{{ cartoon.title }}</h5>
-                            <p class="card-text small mb-1">
-                                {% if cartoon.author %}
-                                    <a href="{% url 'user_profile' username=cartoon.author.username %}" class="username-link">{{ cartoon.author.username }}</a>
-                                {% else %}
-                                    Аноним
-                                {% endif %}
-                            </p>
-                            <div class="card-stats d-flex gap-2 text-muted small flex-wrap">
-                                <span title="Кадры"><i class="bi bi-film"></i> {{ cartoon.frames_data|length }}</span>
-                                <span title="Лайки"><i class="bi bi-heart-fill text-danger"></i> {{ cartoon.likes.count }}</span>
-                                <span title="Комментарии"><i class="bi bi-chat-fill"></i> {{ cartoon.comments.count }}</span>
-                                <span class="views-tooltip" data-tooltip="Уникальных: {{ cartoon.unique_views_count }} / Всего: {{ cartoon.views_count }}"><i class="bi bi-eye-fill"></i> {{ cartoon.unique_views_count }}</span>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-            </div>
+            {% include 'cartoons/cartoon_card.html' with show_author=True %}
             {% empty %}
             <div class="col-12">
                 <div class="alert alert-info">

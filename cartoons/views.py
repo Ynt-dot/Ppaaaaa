@@ -71,7 +71,7 @@ def index(request):
     else:
         cartoon_list = Cartoon.objects.annotate(
             unique_views_count=Count('unique_views', distinct=True),
-        )
+        ).order_by('-created_at')
 
     paginator = Paginator(cartoon_list, 12)
     page_number = request.GET.get('page')
@@ -116,6 +116,8 @@ def detail(request, pk):
 
     if request.user.is_authenticated:
         CartoonView.objects.get_or_create(cartoon=cartoon, user=request.user)
+        if cartoon.author == request.user:
+            Cartoon.objects.filter(pk=pk).update(author_last_seen_comments=timezone.now())
 
     likes_count = cartoon.likes.count()
     unique_views = cartoon.unique_views.count()
@@ -485,6 +487,18 @@ def user_profile(request, username):
             cartoon_list = Cartoon.objects.filter(author=profile_user).annotate(
                 unique_views_count=Count('unique_views', distinct=True),
             ).order_by('-created_at')
+
+        if is_own_profile:
+            cartoon_list = cartoon_list.annotate(
+                new_comments_count=Count(
+                    'comments',
+                    filter=(
+                        Q(comments__created_at__gt=F('author_last_seen_comments')) |
+                        Q(author_last_seen_comments__isnull=True)
+                    ),
+                    distinct=True,
+                )
+            )
 
         paginator = Paginator(cartoon_list, 12)
         cartoons = paginator.get_page(request.GET.get('page'))

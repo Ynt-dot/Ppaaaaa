@@ -20,6 +20,7 @@ class Cartoon(models.Model):
     description = models.TextField(blank=True, verbose_name="Описание")
     tags = models.JSONField(default=list, blank=True, verbose_name="Теги")
     views_count = models.PositiveIntegerField(default=0, verbose_name="Просмотры")
+    author_last_seen_comments = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']  # сортировка по новизне
