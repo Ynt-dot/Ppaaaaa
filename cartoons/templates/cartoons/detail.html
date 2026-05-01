@@ -50,18 +50,16 @@
 
                 <!-- Форма добавления комментария -->
                 <div class="mb-4">
-                    {% if not user.is_authenticated %}
-                    <div class="mb-2">
-                        <input type="text" id="comment-author-name" class="form-control form-control-sm"
-                               placeholder="Ваше имя (необязательно)" maxlength="50">
-                    </div>
-                    {% endif %}
+                    {% if user.is_authenticated %}
                     <div class="d-flex gap-2">
                         <textarea id="comment-text" class="form-control" rows="2"
                                   placeholder="Написать комментарий..." maxlength="2000"></textarea>
                         <button id="submit-comment-btn" class="btn btn-github align-self-end">Отправить</button>
                     </div>
                     <div id="comment-error" class="text-danger small mt-1" style="display:none;"></div>
+                    {% else %}
+                    <p class="text-muted small mb-0"><a href="{% url 'register' %}" class="username-link">Зарегистрируйтесь</a>, чтобы оставить комментарий.</p>
+                    {% endif %}
                 </div>
 
                 <!-- Список комментариев -->
@@ -367,50 +365,45 @@
     const submitBtn = document.getElementById('submit-comment-btn');
     const commentText = document.getElementById('comment-text');
     const commentError = document.getElementById('comment-error');
-    const authorNameInput = document.getElementById('comment-author-name');
 
-    submitBtn.addEventListener('click', async () => {
-        const text = commentText.value.trim();
-        if (!text) {
-            commentError.textContent = 'Напишите что-нибудь!';
-            commentError.style.display = 'block';
-            return;
-        }
-        commentError.style.display = 'none';
-        submitBtn.disabled = true;
-
-        const body = {text};
-        if (!IS_AUTHENTICATED && authorNameInput) {
-            body.author_name = authorNameInput.value.trim();
-        }
-
-        try {
-            const resp = await postJson(ADD_COMMENT_URL, body);
-            const d = await resp.json();
-            if (!resp.ok) {
-                commentError.textContent = d.error || 'Ошибка при отправке';
+    if (submitBtn && commentText) {
+        submitBtn.addEventListener('click', async () => {
+            const text = commentText.value.trim();
+            if (!text) {
+                commentError.textContent = 'Напишите что-нибудь!';
                 commentError.style.display = 'block';
-            } else {
-                commentText.value = '';
-                if (authorNameInput) authorNameInput.value = '';
-                noCommentsMsg.style.display = 'none';
-                if (currentSort === 'newest') {
-                    commentsList.insertAdjacentHTML('afterbegin', buildCommentHTML(d));
-                } else {
-                    loadComments(true);
-                }
+                return;
             }
-        } finally {
-            submitBtn.disabled = false;
-        }
-    });
+            commentError.style.display = 'none';
+            submitBtn.disabled = true;
 
-    // Отправка по Ctrl+Enter
-    commentText.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && e.ctrlKey) {
-            submitBtn.click();
-        }
-    });
+            try {
+                const resp = await postJson(ADD_COMMENT_URL, {text});
+                const d = await resp.json();
+                if (!resp.ok) {
+                    commentError.textContent = d.error || 'Ошибка при отправке';
+                    commentError.style.display = 'block';
+                } else {
+                    commentText.value = '';
+                    noCommentsMsg.style.display = 'none';
+                    if (currentSort === 'newest') {
+                        commentsList.insertAdjacentHTML('afterbegin', buildCommentHTML(d));
+                    } else {
+                        loadComments(true);
+                    }
+                }
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Отправка по Ctrl+Enter
+        commentText.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                submitBtn.click();
+            }
+        });
+    }
 
     // Инициализация
     loadComments(true);

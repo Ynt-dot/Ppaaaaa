@@ -250,19 +250,14 @@ def add_comment(request, pk):
             status=400
         )
 
-    if request.user.is_authenticated:
-        comment = Comment.objects.create(
-            cartoon=cartoon,
-            author=request.user,
-            text=text,
-        )
-    else:
-        author_name = body.get('author_name', '').strip()[:50] or 'Аноним'
-        comment = Comment.objects.create(
-            cartoon=cartoon,
-            author_name=author_name,
-            text=text,
-        )
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Войдите, чтобы оставить комментарий'}, status=403)
+
+    comment = Comment.objects.create(
+        cartoon=cartoon,
+        author=request.user,
+        text=text,
+    )
 
     author_url = None
     if comment.author:
