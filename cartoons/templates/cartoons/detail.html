@@ -234,12 +234,13 @@
 
     const LOGIN_URL = "{% url 'login' %}?next={{ request.path }}";
 
-    function showLoginHint(anchor) {
-        if (anchor.querySelector('.login-hint')) return;
+    function showLoginHint(beforeEl) {
+        const parent = beforeEl.parentElement;
+        if (parent.querySelector('.login-hint')) return;
         const hint = document.createElement('small');
-        hint.className = 'login-hint text-muted ms-2';
+        hint.className = 'login-hint text-muted me-2';
         hint.textContent = 'Войдите, чтобы ставить лайки';
-        anchor.appendChild(hint);
+        parent.insertBefore(hint, beforeEl);
         setTimeout(() => hint.remove(), 3000);
     }
 
@@ -274,7 +275,7 @@
         liking = true;
         try {
             const resp = await postJson(LIKE_URL, {});
-            if (resp.status === 401) { showLoginHint(likeBtn.parentElement); return; }
+            if (resp.status === 401) { showLoginHint(likeBtn); return; }
             if (resp.ok) {
                 const d = await resp.json();
                 likesCount.textContent = d.count;
@@ -312,8 +313,10 @@
             '<div class="d-flex align-items-center">' + avatarLink +
             '<div><small class="fw-bold">' + authorHTML + '</small>' +
             '<small class="text-muted ms-2">' + escapeHtml(c.created_at) + '</small></div></div>' +
+            '<span class="d-flex align-items-center gap-1">' +
             '<button class="btn btn-sm ' + likedClass + ' comment-like-btn" data-comment-id="' + c.id + '">' +
             '❤ <span class="comment-likes-count">' + c.likes_count + '</span></button>' +
+            '</span>' +
             '</div>' +
             '<p class="mb-1 mt-1 ps-5" style="white-space:pre-wrap;">' + escapeHtml(c.text) + '</p>' +
             '</div>';
@@ -350,7 +353,7 @@
         btn.dataset.loading = '1';
         try {
             const resp = await postJson(getCommentLikeUrl(btn.dataset.commentId), {});
-            if (resp.status === 401) { showLoginHint(btn.parentElement); return; }
+            if (resp.status === 401) { showLoginHint(btn); return; }
             if (resp.ok) {
                 const d = await resp.json();
                 btn.querySelector('.comment-likes-count').textContent = d.count;
