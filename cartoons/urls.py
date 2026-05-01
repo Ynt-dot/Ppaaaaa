@@ -21,6 +21,7 @@ urlpatterns = [
     path('user/<str:username>/comments/', views.get_user_profile_comments,
          name='user_profile_comments'),
     path('user/<str:username>/note/', views.save_user_note, name='save_user_note'),
+    path('cartoon/<int:pk>/recommendations/', views.get_recommendations, name='get_recommendations'),
     path('cartoon/<int:pk>/favorite/', views.toggle_favorite, name='toggle_favorite'),
     path('cartoon/<int:pk>/set-as-avatar/', views.set_as_avatar, name='set_as_avatar'),
     path('my-avatar-cartoons/', views.get_avatar_cartoons, name='get_avatar_cartoons'),

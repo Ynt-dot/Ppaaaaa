@@ -131,6 +131,8 @@ class UserPreference(models.Model):
         'Cartoon', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='used_as_avatar'
     )
+    rec_sort = models.CharField(max_length=20, default='trending')
+    rec_author_filter = models.BooleanField(default=False)
 
 
 class UserNote(models.Model):

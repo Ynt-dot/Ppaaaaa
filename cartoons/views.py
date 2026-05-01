@@ -14,7 +14,8 @@ import os
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
-from django.db.models import Count, Q, F
+from django.db.models import Count, Q, F, Case, When, Value, IntegerField
+from django.template.loader import render_to_string
 from django.db import transaction
 from datetime import timedelta
 from django.urls import reverse
@@ -143,6 +144,18 @@ def detail(request, pk):
 
     is_used_as_avatar = cartoon.used_as_avatar.exists()
 
+    if request.user.is_authenticated:
+        try:
+            _pref = request.user.preference
+            rec_sort = _pref.rec_sort or 'trending'
+            rec_author_filter = _pref.rec_author_filter
+        except UserPreference.DoesNotExist:
+            rec_sort = 'trending_week'
+            rec_author_filter = False
+    else:
+        rec_sort = 'trending_week'
+        rec_author_filter = False
+
     context = {
         'cartoon': cartoon,
         'likes_count': likes_count,
@@ -154,12 +167,74 @@ def detail(request, pk):
         'author_avatar_url': _get_user_avatar_url(cartoon.author),
         'can_set_as_avatar': can_set_as_avatar and not is_used_as_avatar,
         'is_used_as_avatar': is_used_as_avatar,
+        'rec_sort': rec_sort,
+        'rec_author_filter': rec_author_filter,
     }
     if cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)
     if cartoon.tags:
         context['sorted_tags'] = sorted(cartoon.tags)
     return render(request, 'cartoons/detail.html', context)
+
+
+@require_GET
+def get_recommendations(request, pk):
+    cartoon = get_object_or_404(Cartoon, pk=pk)
+    author_filter = request.GET.get('filter', 'all')
+    sort = request.GET.get('sort', 'trending')
+    if sort not in ('trending', 'trending_24h', 'new', 'popular'):
+        sort = 'trending'
+
+    if request.user.is_authenticated:
+        pref, _ = UserPreference.objects.get_or_create(user=request.user)
+        pref.rec_sort = sort
+        pref.rec_author_filter = (author_filter == 'author')
+        pref.save(update_fields=['rec_sort', 'rec_author_filter'])
+
+    qs = Cartoon.objects.all()
+    if author_filter == 'author' and cartoon.author:
+        qs = qs.filter(author=cartoon.author)
+    qs = qs.exclude(pk=pk)
+
+    now = timezone.now()
+    if sort == 'trending':
+        week_ago = now - timedelta(days=7)
+        qs = qs.annotate(sort_val=Count('likes', filter=Q(likes__created_at__gte=week_ago), distinct=True))
+        order = ['-sort_val', '-created_at']
+    elif sort == 'trending_24h':
+        day_ago = now - timedelta(hours=24)
+        qs = qs.annotate(sort_val=Count('likes', filter=Q(likes__created_at__gte=day_ago), distinct=True))
+        order = ['-sort_val', '-created_at']
+    elif sort == 'new':
+        order = ['-created_at']
+    else:  # popular
+        qs = qs.annotate(sort_val=Count('likes', distinct=True))
+        order = ['-sort_val', '-created_at']
+
+    qs = qs.annotate(unique_views_count=Count('unique_views', distinct=True))
+
+    if request.user.is_authenticated:
+        viewed_ids = list(
+            CartoonView.objects.filter(user=request.user).values_list('cartoon_id', flat=True)
+        )
+        qs = qs.annotate(
+            is_viewed=Case(
+                When(pk__in=viewed_ids, then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            )
+        )
+        order = ['is_viewed'] + order
+
+    qs = qs.select_related('author', 'author__preference', 'author__preference__avatar').order_by(*order)[:10]
+
+    show_author = (author_filter != 'author')
+    html = ''.join(
+        render_to_string('cartoons/cartoon_card.html', {'cartoon': c, 'show_author': show_author}, request=request)
+        for c in qs
+    )
+
+    return JsonResponse({'html': html, 'empty': len(html) == 0})
 
 
 @require_POST

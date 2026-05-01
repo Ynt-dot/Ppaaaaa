@@ -5,8 +5,10 @@
 
 {% block content %}
 <div class="row">
-    <!-- Левая колонка: плеер + комментарии -->
+    <!-- Левая колонка: плеер, инфо, комментарии -->
     <div class="col-md-8">
+
+        <!-- Плеер -->
         {% if frames_json %}
         <div class="card shadow mb-3">
             <div class="card-body text-center">
@@ -33,12 +35,90 @@
         {% endif %}
         {% endif %}
 
+        <!-- Инфо-блок -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h1 class="h4 mb-3">{{ cartoon.title }}</h1>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+                    <!-- Автор -->
+                    <div class="d-flex align-items-center gap-2">
+                        {% if cartoon.author %}
+                        <a href="{% url 'user_profile' username=cartoon.author.username %}">
+                            <img src="{{ author_avatar_url }}" class="user-avatar-md" alt="{{ cartoon.author.username }}">
+                        </a>
+                        <div>
+                            <a href="{% url 'user_profile' username=cartoon.author.username %}" class="username-link fs-5 d-block lh-1">{{ cartoon.author.username }}</a>
+                            <small class="text-muted">{{ cartoon.created_at|date:"d.m.Y H:i" }}, {{ cartoon.fps }} FPS</small>
+                        </div>
+                        {% else %}
+                        <img src="{{ author_avatar_url }}" class="user-avatar-md" alt="Аноним">
+                        <div>
+                            <span class="fs-5 text-muted d-block lh-1">Аноним</span>
+                            <small class="text-muted">{{ cartoon.created_at|date:"d.m.Y H:i" }}, {{ cartoon.fps }} FPS</small>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Кнопки: лайк, избранное, ⋯ -->
+                    <div class="d-flex align-items-center gap-2">
+                        <button id="cartoon-like-btn"
+                                class="btn btn-sm {% if user_liked %}btn-danger{% else %}btn-outline-danger{% endif %}"
+                                data-liked="{{ user_liked|yesno:'true,false' }}">
+                            ❤ <span id="cartoon-likes-count">{{ likes_count }}</span>
+                        </button>
+                        {% if user.is_authenticated %}
+                        <button id="cartoon-favorite-btn"
+                                class="btn btn-sm {% if user_favorited %}btn-warning{% else %}btn-outline-warning{% endif %}"
+                                data-favorited="{{ user_favorited|yesno:'true,false' }}">
+                            ★ Избранное
+                        </button>
+                        {% endif %}
+                        {% if user == cartoon.author and not is_used_as_avatar or can_set_as_avatar %}
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" aria-expanded="false">⋯</button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {% if user == cartoon.author and not is_used_as_avatar %}
+                                <li><a class="dropdown-item" href="{% url 'editor_edit' cartoon.pk %}">✏ Редактировать</a></li>
+                                {% endif %}
+                                {% if can_set_as_avatar %}
+                                <li>
+                                    <button class="dropdown-item" id="set-avatar-btn" data-url="{% url 'set_as_avatar' cartoon.pk %}">
+                                        🖼 Установить аватар
+                                    </button>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if cartoon.tags or cartoon.description %}
+                <hr class="my-2">
+                {% if cartoon.tags %}
+                <div class="small mb-1">
+                    <strong>Теги:</strong>
+                    <span id="tags-text" class="tags-clamp">{{ sorted_tags|join:", " }}</span>
+                    <button id="tags-toggle" class="btn btn-link btn-sm p-0 d-none" style="font-size:0.78rem; vertical-align:baseline;">ещё</button>
+                </div>
+                {% endif %}
+                {% if cartoon.description %}
+                <div class="small">
+                    <span id="desc-text" class="desc-clamp">{{ cartoon.description }}</span>
+                    <button id="desc-toggle" class="btn btn-link btn-sm p-0 d-none" style="font-size:0.78rem; vertical-align:baseline;">ещё</button>
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
         <!-- Комментарии -->
         <div class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4 class="mb-0">Комментарии</h4>
-                    <div class="btn-group" role="group" aria-label="Сортировка комментариев">
+                    <div class="btn-group" role="group">
                         <button type="button"
                                 class="btn btn-sm sort-btn {% if comment_sort == 'popular' %}btn-dark{% else %}btn-outline-dark{% endif %}"
                                 data-sort="popular">По популярности</button>
@@ -48,7 +128,6 @@
                     </div>
                 </div>
 
-                <!-- Форма добавления комментария -->
                 <div class="mb-4">
                     {% if user.is_authenticated %}
                     <div class="d-flex gap-2">
@@ -62,17 +141,14 @@
                     {% endif %}
                 </div>
 
-                <!-- Список комментариев -->
                 <div id="comments-list"></div>
 
                 <div class="text-center mt-3" id="load-more-container" style="display:none;">
                     <button id="load-more-btn" class="btn btn-outline-secondary">Загрузить ещё</button>
                 </div>
-
                 <div id="no-comments-msg" class="text-muted text-center py-3" style="display:none;">
                     Комментариев пока нет. Будьте первым!
                 </div>
-
                 <div id="comments-loading" class="text-center py-3">
                     <div class="spinner-border spinner-border-sm text-secondary" role="status">
                         <span class="visually-hidden">Загрузка...</span>
@@ -81,65 +157,31 @@
             </div>
         </div>
     </div>
-    <!-- Правая колонка: описание и лайки -->
+
+    <!-- Правая колонка: рекомендации -->
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h1 class="card-title h3">{{ cartoon.title }}</h1>
-
-                <!-- Автор с аватаркой -->
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    {% if cartoon.author %}
-                    <a href="{% url 'user_profile' username=cartoon.author.username %}">
-                        <img src="{{ author_avatar_url }}" class="user-avatar-md" alt="{{ cartoon.author.username }}">
-                    </a>
-                    <div>
-                        <a href="{% url 'user_profile' username=cartoon.author.username %}" class="username-link fs-2 d-block lh-1">{{ cartoon.author.username }}</a>
-                        <small class="text-muted">{{ cartoon.created_at|date:"d.m.Y H:i" }}, {{ cartoon.fps }}FPS</small>
-                    </div>
-                    {% else %}
-                    <img src="{{ author_avatar_url }}" class="user-avatar-md" alt="Аноним">
-                    <div>
-                        <span class="fs-2 text-muted d-block lh-1">Аноним</span>
-                        <small class="text-muted">{{ cartoon.created_at|date:"d.m.Y H:i" }}, {{ cartoon.fps }}FPS</small>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <p class="card-text">
-                    {% if cartoon.tags %}
-                        <strong>Теги (ключевые слова):</strong> {{ sorted_tags|join:", " }}<br>
-                    {% endif %}
-                    {% if cartoon.description %}
-                        <strong>Описание:</strong> {{ cartoon.description }}
-                    {% endif %}
-                </p>
-
-                <!-- Лайки мульта -->
-                <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-                    <button id="cartoon-like-btn"
-                            class="btn btn-sm {% if user_liked %}btn-danger{% else %}btn-outline-danger{% endif %}"
-                            data-liked="{{ user_liked|yesno:'true,false' }}">
-                        ❤ <span id="cartoon-likes-count">{{ likes_count }}</span>
-                    </button>
-                    {% if user.is_authenticated %}
-                    <button id="cartoon-favorite-btn"
-                            class="btn btn-sm {% if user_favorited %}btn-warning{% else %}btn-outline-warning{% endif %}"
-                            data-favorited="{{ user_favorited|yesno:'true,false' }}">
-                        ★ Избранное
-                    </button>
-                    {% endif %}
-                </div>
-
-                {% if user == cartoon.author and not is_used_as_avatar %}
-                <a href="{% url 'editor_edit' cartoon.pk %}" class="btn btn-primary w-100 mb-2">✏ Редактировать</a>
+        <div class="d-flex align-items-center mb-2">
+            <h6 class="fw-bold mb-0">Рекомендации</h6>
+        </div>
+        <div class="d-flex gap-2 mb-3">
+            <select id="rec-filter-select" class="form-select form-select-sm">
+                <option value="all" {% if not rec_author_filter %}selected{% endif %}>Все мульты</option>
+                {% if cartoon.author %}
+                <option value="author" {% if rec_author_filter %}selected{% endif %}>Автор: {{ cartoon.author.username }}</option>
                 {% endif %}
-                {% if can_set_as_avatar %}
-                <button id="set-avatar-btn" class="btn btn-github w-100"
-                        data-url="{% url 'set_as_avatar' cartoon.pk %}">
-                    🖼 Установить в качестве аватара
-                </button>
-                {% endif %}
+            </select>
+            <select id="rec-sort-select" class="form-select form-select-sm">
+                <option value="trending" {% if rec_sort == 'trending' %}selected{% endif %}>Тренды</option>
+                <option value="trending_24h" {% if rec_sort == 'trending_24h' %}selected{% endif %}>Тренды 24ч</option>
+                <option value="new" {% if rec_sort == 'new' %}selected{% endif %}>Новые</option>
+                <option value="popular" {% if rec_sort == 'popular' %}selected{% endif %}>Популярные</option>
+            </select>
+        </div>
+        <div id="rec-container" class="row row-cols-1 g-2"></div>
+        <p id="rec-empty" class="text-muted text-center small mt-2" style="display:none;">Мультов не найдено</p>
+        <div id="rec-loading" class="text-center py-3">
+            <div class="spinner-border spinner-border-sm text-secondary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
             </div>
         </div>
     </div>
@@ -162,14 +204,12 @@
     const COMMENTS_URL = "{% url 'get_comments' cartoon.pk %}";
     const ADD_COMMENT_URL = "{% url 'add_comment' cartoon.pk %}";
     const SET_SORT_URL = "{% url 'set_comment_sort' %}";
-    const IS_AUTHENTICATED = {{ user.is_authenticated|yesno:'true,false' }};
+    const REC_URL = "{% url 'get_recommendations' cartoon.pk %}";
 
     function getCsrf() {
         for (const c of document.cookie.split(';')) {
             const t = c.trim();
-            if (t.startsWith('csrftoken=')) {
-                return decodeURIComponent(t.slice('csrftoken='.length));
-            }
+            if (t.startsWith('csrftoken=')) return decodeURIComponent(t.slice('csrftoken='.length));
         }
         return '';
     }
@@ -220,9 +260,7 @@
                         favBtn.classList.replace('btn-warning', 'btn-outline-warning');
                     }
                 }
-            } finally {
-                favoring = false;
-            }
+            } finally { favoring = false; }
         });
     }
 
@@ -236,10 +274,7 @@
         liking = true;
         try {
             const resp = await postJson(LIKE_URL, {});
-            if (resp.status === 401) {
-                showLoginHint(likeBtn.parentElement);
-                return;
-            }
+            if (resp.status === 401) { showLoginHint(likeBtn.parentElement); return; }
             if (resp.ok) {
                 const d = await resp.json();
                 likesCount.textContent = d.count;
@@ -249,9 +284,7 @@
                     likeBtn.classList.replace('btn-danger', 'btn-outline-danger');
                 }
             }
-        } finally {
-            liking = false;
-        }
+        } finally { liking = false; }
     });
 
     // === Комментарии ===
@@ -289,26 +322,19 @@
     async function loadComments(reset) {
         if (loading) return;
         loading = true;
-
         if (reset) {
             currentPage = 1;
             commentsList.innerHTML = '';
             loadMoreContainer.style.display = 'none';
             noCommentsMsg.style.display = 'none';
         }
-
         loadingSpinner.style.display = 'block';
-
         try {
             const resp = await fetch(COMMENTS_URL + '?page=' + currentPage + '&sort=' + currentSort);
             const data = await resp.json();
-
             data.comments.forEach(c => commentsList.insertAdjacentHTML('beforeend', buildCommentHTML(c)));
-
             loadMoreContainer.style.display = data.has_next ? 'block' : 'none';
-            if (currentPage === 1 && data.total === 0) {
-                noCommentsMsg.style.display = 'block';
-            }
+            if (currentPage === 1 && data.total === 0) noCommentsMsg.style.display = 'block';
             currentPage++;
         } finally {
             loadingSpinner.style.display = 'none';
@@ -318,17 +344,13 @@
 
     loadMoreBtn.addEventListener('click', () => loadComments(false));
 
-    // === Лайки на комментарии (делегирование) ===
     commentsList.addEventListener('click', async (e) => {
         const btn = e.target.closest('.comment-like-btn');
         if (!btn || btn.dataset.loading) return;
         btn.dataset.loading = '1';
         try {
             const resp = await postJson(getCommentLikeUrl(btn.dataset.commentId), {});
-            if (resp.status === 401) {
-                showLoginHint(btn.parentElement);
-                return;
-            }
+            if (resp.status === 401) { showLoginHint(btn.parentElement); return; }
             if (resp.ok) {
                 const d = await resp.json();
                 btn.querySelector('.comment-likes-count').textContent = d.count;
@@ -338,30 +360,24 @@
                     btn.classList.replace('btn-danger', 'btn-outline-danger');
                 }
             }
-        } finally {
-            delete btn.dataset.loading;
-        }
+        } finally { delete btn.dataset.loading; }
     });
 
-    // === Сортировка ===
     document.querySelectorAll('.sort-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
             const sort = btn.dataset.sort;
             if (sort === currentSort) return;
             currentSort = sort;
-
             document.querySelectorAll('.sort-btn').forEach(b => {
                 b.classList.remove('btn-dark');
                 b.classList.add('btn-outline-dark');
             });
             btn.classList.replace('btn-outline-dark', 'btn-dark');
-
             postJson(SET_SORT_URL, {sort});
             loadComments(true);
         });
     });
 
-    // === Отправка комментария ===
     const submitBtn = document.getElementById('submit-comment-btn');
     const commentText = document.getElementById('comment-text');
     const commentError = document.getElementById('comment-error');
@@ -376,7 +392,6 @@
             }
             commentError.style.display = 'none';
             submitBtn.disabled = true;
-
             try {
                 const resp = await postJson(ADD_COMMENT_URL, {text});
                 const d = await resp.json();
@@ -392,23 +407,17 @@
                         loadComments(true);
                     }
                 }
-            } finally {
-                submitBtn.disabled = false;
-            }
+            } finally { submitBtn.disabled = false; }
         });
 
-        // Отправка по Ctrl+Enter
         commentText.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && e.ctrlKey) {
-                submitBtn.click();
-            }
+            if (e.key === 'Enter' && e.ctrlKey) submitBtn.click();
         });
     }
 
-    // Инициализация
     loadComments(true);
 
-    // === Установить в качестве аватара ===
+    // === Установить аватар ===
     const setAvatarBtn = document.getElementById('set-avatar-btn');
     if (setAvatarBtn) {
         setAvatarBtn.addEventListener('click', async () => {
@@ -417,17 +426,64 @@
                 const resp = await postJson(setAvatarBtn.dataset.url, {});
                 if (resp.ok) {
                     setAvatarBtn.textContent = '✓ Аватар установлен';
-                    setAvatarBtn.classList.replace('btn-github', 'btn-success');
+                    setAvatarBtn.classList.add('text-success');
                 } else {
                     const d = await resp.json();
                     alert(d.error || 'Ошибка при установке аватара');
                     setAvatarBtn.disabled = false;
                 }
-            } catch (e) {
-                setAvatarBtn.disabled = false;
-            }
+            } catch (e) { setAvatarBtn.disabled = false; }
         });
     }
+
+    // === Рекомендации ===
+    const recContainer = document.getElementById('rec-container');
+    const recEmpty = document.getElementById('rec-empty');
+    const recLoading = document.getElementById('rec-loading');
+    const recFilterSelect = document.getElementById('rec-filter-select');
+    const recSortSelect = document.getElementById('rec-sort-select');
+
+    async function loadRecommendations() {
+        recLoading.style.display = 'block';
+        recContainer.innerHTML = '';
+        recEmpty.style.display = 'none';
+        const filter = recFilterSelect.value;
+        const sort = recSortSelect.value;
+        try {
+            const resp = await fetch(REC_URL + '?filter=' + filter + '&sort=' + sort);
+            const data = await resp.json();
+            recContainer.innerHTML = data.html;
+            recEmpty.style.display = data.empty ? 'block' : 'none';
+        } catch (e) {
+            recContainer.innerHTML = '';
+        } finally {
+            recLoading.style.display = 'none';
+        }
+    }
+
+    recFilterSelect.addEventListener('change', loadRecommendations);
+    recSortSelect.addEventListener('change', loadRecommendations);
+    loadRecommendations();
+
+    // === Свернуть/развернуть теги и описание ===
+    function initClamp(textEl, toggleBtn) {
+        if (!textEl || !toggleBtn) return;
+        // Используем requestAnimationFrame, чтобы элемент успел отрисоваться
+        requestAnimationFrame(() => {
+            if (textEl.scrollHeight > textEl.clientHeight + 2) {
+                toggleBtn.classList.remove('d-none');
+            }
+        });
+        let expanded = false;
+        toggleBtn.addEventListener('click', () => {
+            expanded = !expanded;
+            textEl.classList.toggle('expanded', expanded);
+            toggleBtn.textContent = expanded ? 'свернуть' : 'ещё';
+        });
+    }
+
+    initClamp(document.getElementById('tags-text'), document.getElementById('tags-toggle'));
+    initClamp(document.getElementById('desc-text'), document.getElementById('desc-toggle'));
 }());
 </script>
 {% endblock %}

@@ -231,6 +231,28 @@ input[type="password"]::-ms-clear {
     font-size: 64px;
 }
 
+/* === Clamp (теги / описание) === */
+.tags-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.tags-clamp.expanded {
+    display: block;
+    overflow: visible;
+}
+.desc-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.desc-clamp.expanded {
+    display: block;
+    overflow: visible;
+}
+
 /* === Discord widget === */
 .discord-icon {
     font-size: 3rem;
