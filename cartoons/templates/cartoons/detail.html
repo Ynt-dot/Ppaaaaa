@@ -90,21 +90,25 @@
                 <h1 class="card-title h3">{{ cartoon.title }}</h1>
 
                 <!-- Автор с аватаркой -->
-                <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="d-flex align-items-center gap-3 mb-3">
                     {% if cartoon.author %}
                     <a href="{% url 'user_profile' username=cartoon.author.username %}">
-                        <img src="{{ author_avatar_url }}" class="user-avatar-sm" alt="{{ cartoon.author.username }}">
+                        <img src="{{ author_avatar_url }}" class="user-avatar-md" alt="{{ cartoon.author.username }}">
                     </a>
-                    <a href="{% url 'user_profile' username=cartoon.author.username %}" class="username-link fs-5">{{ cartoon.author.username }}</a>
+                    <div>
+                        <a href="{% url 'user_profile' username=cartoon.author.username %}" class="username-link fs-2 d-block lh-1">{{ cartoon.author.username }}</a>
+                        <small class="text-muted">{{ cartoon.created_at|date:"d.m.Y H:i" }}, {{ cartoon.fps }}FPS</small>
+                    </div>
                     {% else %}
-                    <img src="{{ author_avatar_url }}" class="user-avatar-sm" alt="Аноним">
-                    <span class="fs-5 text-muted">Аноним</span>
+                    <img src="{{ author_avatar_url }}" class="user-avatar-md" alt="Аноним">
+                    <div>
+                        <span class="fs-2 text-muted d-block lh-1">Аноним</span>
+                        <small class="text-muted">{{ cartoon.created_at|date:"d.m.Y H:i" }}, {{ cartoon.fps }}FPS</small>
+                    </div>
                     {% endif %}
                 </div>
 
                 <p class="card-text">
-                    <strong>Создан:</strong> {{ cartoon.created_at|date:"d.m.Y H:i" }}<br>
-                    <strong>FPS:</strong> {{ cartoon.fps }}<br>
                     {% if cartoon.tags %}
                         <strong>Теги (ключевые слова):</strong> {{ sorted_tags|join:", " }}<br>
                     {% endif %}

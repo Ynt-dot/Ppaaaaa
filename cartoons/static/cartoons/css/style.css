@@ -228,6 +228,14 @@ input[type="password"]::-ms-clear {
     object-fit: cover;
     border: 2px solid #dee2e6;
 }
+.user-avatar-md {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #dee2e6;
+    flex-shrink: 0;
+}
 .user-avatar-sm {
     width: 32px;
     height: 32px;
