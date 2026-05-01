@@ -640,6 +640,18 @@ def set_as_avatar(request, pk):
     })
 
 
+@require_POST
+def delete_avatar(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+
+    pref, _ = UserPreference.objects.get_or_create(user=request.user)
+    pref.avatar = None
+    pref.save()
+
+    return JsonResponse({'ok': True, 'avatar_url': static('cartoons/images/default_avatar.png')})
+
+
 @require_GET
 def get_avatar_cartoons(request):
     if not request.user.is_authenticated:

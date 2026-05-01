@@ -33,7 +33,10 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <p class="text-muted small">Мульты от 1 до 10 кадров доступны в качестве аватара.</p>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <p class="text-muted small mb-0">Мульты от 1 до 10 кадров доступны в качестве аватара.</p>
+                            <button id="avatar-delete-btn" class="btn btn-sm btn-outline-danger">Удалить аватар</button>
+                        </div>
                         <div id="avatar-cartoons-loading" class="text-center py-3">
                             <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
                         </div>
@@ -625,6 +628,8 @@
         const loadingSpinner = document.getElementById('avatar-cartoons-loading');
         const loadMoreContainer = document.getElementById('avatar-load-more-container');
         const loadMoreBtn = document.getElementById('avatar-load-more-btn');
+        const deleteBtn = document.getElementById('avatar-delete-btn');
+        const DELETE_AVATAR_URL = "{% url 'delete_avatar' %}";
         let avatarOffset = 0;
         let avatarLoading = false;
         let avatarInitialized = false;
@@ -675,6 +680,27 @@
         });
 
         loadMoreBtn.addEventListener('click', loadAvatarCartoons);
+
+        deleteBtn.addEventListener('click', async () => {
+            if (deleteBtn.dataset.loading) return;
+            deleteBtn.dataset.loading = '1';
+            deleteBtn.disabled = true;
+            try {
+                const resp = await postJson(DELETE_AVATAR_URL, {});
+                if (resp.ok) {
+                    const d = await resp.json();
+                    if (avatarImg && d.avatar_url) avatarImg.src = d.avatar_url;
+                    grid.querySelectorAll('.avatar-selector-item').forEach(el => el.classList.remove('selected'));
+                    bootstrap.Modal.getInstance(avatarModal).hide();
+                } else {
+                    const d = await resp.json();
+                    alert(d.error || 'Ошибка');
+                }
+            } finally {
+                delete deleteBtn.dataset.loading;
+                deleteBtn.disabled = false;
+            }
+        });
 
         grid.addEventListener('click', async (e) => {
             const item = e.target.closest('.avatar-selector-item');
