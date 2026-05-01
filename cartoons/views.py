@@ -150,10 +150,10 @@ def detail(request, pk):
             rec_sort = _pref.rec_sort or 'trending'
             rec_author_filter = _pref.rec_author_filter
         except UserPreference.DoesNotExist:
-            rec_sort = 'trending_week'
+            rec_sort = 'trending'
             rec_author_filter = False
     else:
-        rec_sort = 'trending_week'
+        rec_sort = 'trending'
         rec_author_filter = False
 
     context = {
@@ -256,54 +256,180 @@ def toggle_cartoon_like(request, pk):
     return JsonResponse({'liked': liked, 'count': cartoon.likes.count()})
 
 
+def _serialize_comment(comment, request, session_key, current_level=0, max_inline_level=2, root_level=0):
+    """Serialize comment with nested replies up to max_inline_level."""
+    if request.user.is_authenticated:
+        user_liked = comment.likes.filter(user=request.user).exists()
+    else:
+        user_liked = comment.likes.filter(session_key=session_key).exists()
+
+    author_url = reverse('user_profile', args=[comment.author.username]) if comment.author else None
+
+    try:
+        likes_count = comment.likes_count
+    except AttributeError:
+        likes_count = comment.likes.count()
+
+    replies_data = []
+    has_more_replies = False
+    has_deeper_replies = False
+    per_used = 0
+
+    if current_level < max_inline_level:
+        rel = current_level - root_level
+        per_used = 2 if rel == 0 else 1
+        per_load = 3
+        qs = comment.replies.annotate(
+            likes_count=Count('likes', distinct=True)
+        ).select_related('author', 'author__preference', 'author__preference__avatar')
+        if request.user.is_authenticated:
+            qs = qs.annotate(
+                is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
+            ).order_by('is_mine', '-likes_count', 'created_at')
+        else:
+            qs = qs.order_by('-likes_count', 'created_at')
+        total_r = qs.count()
+        has_more_replies = total_r > per_used
+        for r in qs[:per_used]:
+            replies_data.append(_serialize_comment(r, request, session_key, current_level + 1, max_inline_level, root_level))
+    elif current_level == max_inline_level:
+        has_deeper_replies = comment.replies.exists()
+
+    is_own = request.user.is_authenticated and comment.author_id == request.user.id
+
+    return {
+        'id': comment.id,
+        'author': comment.display_author(),
+        'author_url': author_url,
+        'avatar_url': _get_user_avatar_url(comment.author),
+        'text': comment.text,
+        'is_edited': comment.is_edited,
+        'is_own': is_own,
+        'created_at': comment.created_at.strftime('%d.%m.%Y %H:%M'),
+        'likes_count': likes_count,
+        'user_liked': user_liked,
+        'level': comment.level,
+        'per_used': per_used,
+        'per_load': per_load if current_level < max_inline_level else 3,
+        'replies': replies_data,
+        'has_more_replies': has_more_replies,
+        'has_deeper_replies': has_deeper_replies,
+    }
+
+
 @require_GET
 def get_comments(request, pk):
     cartoon = get_object_or_404(Cartoon, pk=pk)
     session_key = _ensure_session(request)
     page = max(1, int(request.GET.get('page', 1)))
     sort = request.GET.get('sort', 'popular')
-    per_page = 10
+    per_page = 3
 
-    qs = Comment.objects.filter(cartoon=cartoon).annotate(
-        likes_count=Count('likes')
+    qs = Comment.objects.filter(cartoon=cartoon, parent=None).annotate(
+        likes_count=Count('likes', distinct=True)
     ).select_related('author', 'author__preference', 'author__preference__avatar')
-    if sort == 'newest':
-        qs = qs.order_by('-created_at')
+    if request.user.is_authenticated:
+        qs = qs.annotate(
+            is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
+        )
+        if sort == 'newest':
+            qs = qs.order_by('is_mine', '-created_at')
+        else:
+            qs = qs.order_by('is_mine', '-likes_count', '-created_at')
     else:
-        qs = qs.order_by('-likes_count', '-created_at')
+        if sort == 'newest':
+            qs = qs.order_by('-created_at')
+        else:
+            qs = qs.order_by('-likes_count', '-created_at')
 
     total = qs.count()
     start = (page - 1) * per_page
     end = start + per_page
-    page_qs = qs[start:end]
+    comments = list(qs[start:end])
 
-    data = []
-    for c in page_qs:
-        if request.user.is_authenticated:
-            user_liked = c.likes.filter(user=request.user).exists()
-        else:
-            user_liked = c.likes.filter(session_key=session_key).exists()
-
-        author_url = None
-        if c.author:
-            author_url = reverse('user_profile', args=[c.author.username])
-
-        data.append({
-            'id': c.id,
-            'author': c.display_author(),
-            'author_url': author_url,
-            'avatar_url': _get_user_avatar_url(c.author),
-            'text': c.text,
-            'created_at': c.created_at.strftime('%d.%m.%Y %H:%M'),
-            'likes_count': c.likes_count,
-            'user_liked': user_liked,
-        })
+    data = [_serialize_comment(c, request, session_key) for c in comments]
 
     return JsonResponse({
         'comments': data,
         'has_next': end < total,
         'total': total,
     })
+
+
+@require_GET
+def get_replies(request, comment_pk):
+    parent = get_object_or_404(Comment, pk=comment_pk)
+    session_key = _ensure_session(request)
+
+    try:
+        per_page = int(request.GET.get('per_page', 0))
+        if per_page < 1 or per_page > 50:
+            raise ValueError
+    except (ValueError, TypeError):
+        per_page = 3
+
+    try:
+        offset = max(0, int(request.GET.get('offset', 0)))
+    except (ValueError, TypeError):
+        offset = 0
+
+    qs = parent.replies.annotate(
+        likes_count=Count('likes', distinct=True)
+    ).select_related('author', 'author__preference', 'author__preference__avatar')
+    if request.user.is_authenticated:
+        qs = qs.annotate(
+            is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
+        ).order_by('is_mine', '-likes_count', 'created_at')
+    else:
+        qs = qs.order_by('-likes_count', 'created_at')
+
+    total = qs.count()
+    start = offset
+    end = offset + per_page
+    replies = list(qs[start:end])
+
+    child_level = parent.level + 1
+    max_inline = 2 if child_level <= 1 else child_level
+    data = [_serialize_comment(r, request, session_key, current_level=child_level, max_inline_level=max_inline) for r in replies]
+
+    return JsonResponse({'comments': data, 'has_next': end < total})
+
+
+@require_GET
+def get_thread(request, comment_pk):
+    """Returns thread for modal: the root comment + paginated direct replies deeply nested."""
+    root = get_object_or_404(Comment, pk=comment_pk)
+    session_key = _ensure_session(request)
+    page = max(1, int(request.GET.get('page', 1)))
+    per_page = 10
+
+    qs = root.replies.annotate(
+        likes_count=Count('likes', distinct=True)
+    ).select_related('author', 'author__preference', 'author__preference__avatar')
+    if request.user.is_authenticated:
+        qs = qs.annotate(
+            is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
+        ).order_by('is_mine', '-likes_count', 'created_at')
+    else:
+        qs = qs.order_by('-likes_count', 'created_at')
+
+    per_page = 3
+    total = qs.count()
+    start = (page - 1) * per_page
+    end = start + per_page
+    replies = list(qs[start:end])
+
+    max_inline = root.level + 3
+    child_level = root.level + 1
+    replies_data = [_serialize_comment(r, request, session_key, current_level=child_level, max_inline_level=max_inline, root_level=child_level) for r in replies]
+
+    root_data = _serialize_comment(root, request, session_key, current_level=root.level, max_inline_level=root.level - 1, root_level=root.level)
+    root_data['replies'] = replies_data
+    root_data['has_more_replies'] = end < total
+    root_data['per_used'] = per_page
+    root_data['per_load'] = per_page
+
+    return JsonResponse({'root': root_data, 'has_next': end < total, 'page': page})
 
 
 @require_POST
@@ -328,26 +454,49 @@ def add_comment(request, pk):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'Войдите, чтобы оставить комментарий'}, status=403)
 
+    parent = None
+    level = 0
+    parent_id = body.get('parent_id')
+    if parent_id:
+        try:
+            parent = Comment.objects.get(pk=int(parent_id), cartoon=cartoon)
+            level = parent.level + 1
+        except Comment.DoesNotExist:
+            return JsonResponse({'error': 'Комментарий не найден'}, status=404)
+
     comment = Comment.objects.create(
         cartoon=cartoon,
         author=request.user,
+        parent=parent,
+        level=level,
         text=text,
     )
+    comment.likes_count = 0
 
-    author_url = None
-    if comment.author:
-        author_url = reverse('user_profile', args=[comment.author.username])
+    session_key = _ensure_session(request)
+    data = _serialize_comment(comment, request, session_key, current_level=level, max_inline_level=level - 1)
+    return JsonResponse(data, status=201)
 
-    return JsonResponse({
-        'id': comment.id,
-        'author': comment.display_author(),
-        'author_url': author_url,
-        'avatar_url': _get_user_avatar_url(comment.author),
-        'text': comment.text,
-        'created_at': comment.created_at.strftime('%d.%m.%Y %H:%M'),
-        'likes_count': 0,
-        'user_liked': False,
-    }, status=201)
+@require_POST
+def edit_comment(request, comment_pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+    comment = get_object_or_404(Comment, pk=comment_pk)
+    if comment.author != request.user:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Неверный формат данных'}, status=400)
+    text = body.get('text', '').strip()
+    if not text:
+        return JsonResponse({'error': 'Комментарий не может быть пустым'}, status=400)
+    if len(text) > 2000:
+        return JsonResponse({'error': 'Слишком длинный (макс. 2000 символов)'}, status=400)
+    comment.text = text
+    comment.is_edited = True
+    comment.save(update_fields=['text', 'is_edited'])
+    return JsonResponse({'ok': True, 'text': text})
 
 
 @require_POST

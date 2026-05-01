@@ -78,10 +78,14 @@ class CartoonLike(models.Model):
 class Comment(models.Model):
     cartoon = models.ForeignKey(Cartoon, on_delete=models.CASCADE,
                                 related_name='comments')
+    parent = models.ForeignKey('self', on_delete=models.CASCADE,
+                               null=True, blank=True, related_name='replies')
+    level = models.PositiveSmallIntegerField(default=0)
     author = models.ForeignKey(User, on_delete=models.SET_NULL,
                                null=True, blank=True)
     author_name = models.CharField(max_length=50, blank=True)
     text = models.TextField(max_length=2000)
+    is_edited = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -5,10 +5,8 @@
 
 {% block content %}
 <div class="row">
-    <!-- Левая колонка: плеер, инфо, комментарии -->
     <div class="col-md-8">
 
-        <!-- Плеер -->
         {% if frames_json %}
         <div class="card shadow mb-3">
             <div class="card-body text-center">
@@ -35,13 +33,10 @@
         {% endif %}
         {% endif %}
 
-        <!-- Инфо-блок -->
         <div class="card mb-3">
             <div class="card-body">
                 <h1 class="h4 mb-3">{{ cartoon.title }}</h1>
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-
-                    <!-- Автор -->
                     <div class="d-flex align-items-center gap-2">
                         {% if cartoon.author %}
                         <a href="{% url 'user_profile' username=cartoon.author.username %}">
@@ -59,8 +54,6 @@
                         </div>
                         {% endif %}
                     </div>
-
-                    <!-- Кнопки: лайк, избранное, ⋯ -->
                     <div class="d-flex align-items-center gap-2">
                         <button id="cartoon-like-btn"
                                 class="btn btn-sm {% if user_liked %}btn-danger{% else %}btn-outline-danger{% endif %}"
@@ -119,20 +112,15 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4 class="mb-0">Комментарии</h4>
                     <div class="btn-group" role="group">
-                        <button type="button"
-                                class="btn btn-sm sort-btn {% if comment_sort == 'popular' %}btn-dark{% else %}btn-outline-dark{% endif %}"
-                                data-sort="popular">По популярности</button>
-                        <button type="button"
-                                class="btn btn-sm sort-btn {% if comment_sort == 'newest' %}btn-dark{% else %}btn-outline-dark{% endif %}"
-                                data-sort="newest">По новизне</button>
+                        <button type="button" class="btn btn-sm sort-btn {% if comment_sort == 'popular' %}btn-dark{% else %}btn-outline-dark{% endif %}" data-sort="popular">По популярности</button>
+                        <button type="button" class="btn btn-sm sort-btn {% if comment_sort == 'newest' %}btn-dark{% else %}btn-outline-dark{% endif %}" data-sort="newest">По новизне</button>
                     </div>
                 </div>
 
                 <div class="mb-4">
                     {% if user.is_authenticated %}
                     <div class="d-flex gap-2">
-                        <textarea id="comment-text" class="form-control" rows="2"
-                                  placeholder="Написать комментарий..." maxlength="2000"></textarea>
+                        <textarea id="comment-text" class="form-control" rows="2" placeholder="Написать комментарий..." maxlength="2000"></textarea>
                         <button id="submit-comment-btn" class="btn btn-github align-self-end">Отправить</button>
                     </div>
                     <div id="comment-error" class="text-danger small mt-1" style="display:none;"></div>
@@ -150,15 +138,13 @@
                     Комментариев пока нет. Будьте первым!
                 </div>
                 <div id="comments-loading" class="text-center py-3">
-                    <div class="spinner-border spinner-border-sm text-secondary" role="status">
-                        <span class="visually-hidden">Загрузка...</span>
-                    </div>
+                    <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Правая колонка: рекомендации -->
+    <!-- Рекомендации -->
     <div class="col-md-4">
         <div class="d-flex align-items-center mb-2">
             <h6 class="fw-bold mb-0">Рекомендации</h6>
@@ -180,9 +166,21 @@
         <div id="rec-container" class="row row-cols-1 g-2"></div>
         <p id="rec-empty" class="text-muted text-center small mt-2" style="display:none;">Мультов не найдено</p>
         <div id="rec-loading" class="text-center py-3">
-            <div class="spinner-border spinner-border-sm text-secondary" role="status">
-                <span class="visually-hidden">Загрузка...</span>
+            <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Модал: ветка комментариев -->
+<div class="modal fade" id="threadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button id="thread-back-btn" class="btn btn-sm btn-outline-secondary d-none me-2">← Назад</button>
+                <h5 class="modal-title">Ветка комментариев</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+            <div class="modal-body" id="thread-modal-body"></div>
         </div>
     </div>
 </div>
@@ -199,12 +197,13 @@
 
 <script>
 (function () {
-    const LIKE_URL = "{% url 'toggle_cartoon_like' cartoon.pk %}";
-    const FAVORITE_URL = "{% url 'toggle_favorite' cartoon.pk %}";
-    const COMMENTS_URL = "{% url 'get_comments' cartoon.pk %}";
+    const LIKE_URL        = "{% url 'toggle_cartoon_like' cartoon.pk %}";
+    const FAVORITE_URL    = "{% url 'toggle_favorite' cartoon.pk %}";
+    const COMMENTS_URL    = "{% url 'get_comments' cartoon.pk %}";
     const ADD_COMMENT_URL = "{% url 'add_comment' cartoon.pk %}";
-    const SET_SORT_URL = "{% url 'set_comment_sort' %}";
-    const REC_URL = "{% url 'get_recommendations' cartoon.pk %}";
+    const SET_SORT_URL    = "{% url 'set_comment_sort' %}";
+    const REC_URL         = "{% url 'get_recommendations' cartoon.pk %}";
+    const IS_AUTH         = {{ user.is_authenticated|yesno:'true,false' }};
 
     function getCsrf() {
         for (const c of document.cookie.split(';')) {
@@ -213,7 +212,6 @@
         }
         return '';
     }
-
     function postJson(url, data) {
         return fetch(url, {
             method: 'POST',
@@ -221,18 +219,11 @@
             body: JSON.stringify(data),
         });
     }
-
-    function escapeHtml(str) {
+    function escapeHtml(s) {
         const d = document.createElement('div');
-        d.appendChild(document.createTextNode(str));
+        d.appendChild(document.createTextNode(s));
         return d.innerHTML;
     }
-
-    function getCommentLikeUrl(commentId) {
-        return '/comment/' + commentId + '/like/';
-    }
-
-    const LOGIN_URL = "{% url 'login' %}?next={{ request.path }}";
 
     function showLoginHint(beforeEl) {
         const parent = beforeEl.parentElement;
@@ -244,88 +235,197 @@
         setTimeout(() => hint.remove(), 3000);
     }
 
-    // === Избранное ===
-    const favBtn = document.getElementById('cartoon-favorite-btn');
-    if (favBtn) {
-        let favoring = false;
-        favBtn.addEventListener('click', async () => {
-            if (favoring) return;
-            favoring = true;
-            try {
-                const resp = await postJson(FAVORITE_URL, {});
-                if (resp.ok) {
-                    const d = await resp.json();
-                    if (d.favorited) {
-                        favBtn.classList.replace('btn-outline-warning', 'btn-warning');
-                    } else {
-                        favBtn.classList.replace('btn-warning', 'btn-outline-warning');
-                    }
-                }
-            } finally { favoring = false; }
-        });
-    }
-
-    // === Лайк мульта ===
-    const likeBtn = document.getElementById('cartoon-like-btn');
+    // ── Лайк мульта ──────────────────────────────────────────────────────────
+    const likeBtn    = document.getElementById('cartoon-like-btn');
     const likesCount = document.getElementById('cartoon-likes-count');
     let liking = false;
-
     likeBtn.addEventListener('click', async () => {
-        if (liking) return;
-        liking = true;
+        if (liking) return; liking = true;
         try {
             const resp = await postJson(LIKE_URL, {});
             if (resp.status === 401) { showLoginHint(likeBtn); return; }
             if (resp.ok) {
                 const d = await resp.json();
                 likesCount.textContent = d.count;
-                if (d.liked) {
-                    likeBtn.classList.replace('btn-outline-danger', 'btn-danger');
-                } else {
-                    likeBtn.classList.replace('btn-danger', 'btn-outline-danger');
-                }
+                likeBtn.classList.replace(d.liked ? 'btn-outline-danger' : 'btn-danger',
+                                          d.liked ? 'btn-danger' : 'btn-outline-danger');
             }
         } finally { liking = false; }
     });
 
-    // === Комментарии ===
-    const commentsList = document.getElementById('comments-list');
+    // ── Избранное ─────────────────────────────────────────────────────────────
+    const favBtn = document.getElementById('cartoon-favorite-btn');
+    if (favBtn) {
+        let favoring = false;
+        favBtn.addEventListener('click', async () => {
+            if (favoring) return; favoring = true;
+            try {
+                const resp = await postJson(FAVORITE_URL, {});
+                if (resp.ok) {
+                    const d = await resp.json();
+                    favBtn.classList.replace(d.favorited ? 'btn-outline-warning' : 'btn-warning',
+                                             d.favorited ? 'btn-warning' : 'btn-outline-warning');
+                }
+            } finally { favoring = false; }
+        });
+    }
+
+    // ── Установить аватар ────────────────────────────────────────────────────
+    const setAvatarBtn = document.getElementById('set-avatar-btn');
+    if (setAvatarBtn) {
+        setAvatarBtn.addEventListener('click', async () => {
+            setAvatarBtn.disabled = true;
+            try {
+                const resp = await postJson(setAvatarBtn.dataset.url, {});
+                if (resp.ok) { setAvatarBtn.textContent = '✓ Аватар установлен'; setAvatarBtn.classList.add('text-success'); }
+                else { const d = await resp.json(); alert(d.error || 'Ошибка'); setAvatarBtn.disabled = false; }
+            } catch { setAvatarBtn.disabled = false; }
+        });
+    }
+
+    // ── Рекомендации ─────────────────────────────────────────────────────────
+    const recContainer     = document.getElementById('rec-container');
+    const recEmpty         = document.getElementById('rec-empty');
+    const recLoading       = document.getElementById('rec-loading');
+    const recFilterSelect  = document.getElementById('rec-filter-select');
+    const recSortSelect    = document.getElementById('rec-sort-select');
+
+    async function loadRecommendations() {
+        recLoading.style.display = 'block'; recContainer.innerHTML = ''; recEmpty.style.display = 'none';
+        try {
+            const resp = await fetch(REC_URL + '?filter=' + recFilterSelect.value + '&sort=' + recSortSelect.value);
+            const data = await resp.json();
+            recContainer.innerHTML = data.html;
+            recEmpty.style.display = data.empty ? 'block' : 'none';
+        } finally { recLoading.style.display = 'none'; }
+    }
+    recFilterSelect.addEventListener('change', loadRecommendations);
+    recSortSelect.addEventListener('change', loadRecommendations);
+    loadRecommendations();
+
+    // ── Теги / описание ──────────────────────────────────────────────────────
+    function initClamp(textEl, toggleBtn) {
+        if (!textEl || !toggleBtn) return;
+        requestAnimationFrame(() => {
+            if (textEl.scrollHeight > textEl.clientHeight + 2) toggleBtn.classList.remove('d-none');
+        });
+        toggleBtn.addEventListener('click', () => {
+            const exp = textEl.classList.toggle('expanded');
+            toggleBtn.textContent = exp ? 'свернуть' : 'ещё';
+        });
+    }
+    initClamp(document.getElementById('tags-text'), document.getElementById('tags-toggle'));
+    initClamp(document.getElementById('desc-text'), document.getElementById('desc-toggle'));
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // КОММЕНТАРИИ
+    // ══════════════════════════════════════════════════════════════════════════
+    const commentsList     = document.getElementById('comments-list');
     const loadMoreContainer = document.getElementById('load-more-container');
-    const noCommentsMsg = document.getElementById('no-comments-msg');
-    const loadingSpinner = document.getElementById('comments-loading');
-    const loadMoreBtn = document.getElementById('load-more-btn');
+    const noCommentsMsg    = document.getElementById('no-comments-msg');
+    const loadingSpinner   = document.getElementById('comments-loading');
+    const loadMoreBtn      = document.getElementById('load-more-btn');
 
     let currentPage = 1;
     let currentSort = '{{ comment_sort }}';
-    let loading = false;
+    let commentsLoading = false;
 
-    function buildCommentHTML(c) {
-        const authorHTML = c.author_url
-            ? '<a href="' + escapeHtml(c.author_url) + '" class="username-link">' + escapeHtml(c.author) + '</a>'
-            : escapeHtml(c.author);
-        const likedClass = c.user_liked ? 'btn-danger' : 'btn-outline-danger';
-        const avatarImg = '<img src="' + escapeHtml(c.avatar_url) + '" class="user-avatar-sm me-2" alt="">';
-        const avatarLink = c.author_url
-            ? '<a href="' + escapeHtml(c.author_url) + '">' + avatarImg + '</a>'
-            : avatarImg;
-        return '<div class="comment-item border-bottom py-2" data-comment-id="' + c.id + '">' +
-            '<div class="d-flex justify-content-between align-items-start">' +
-            '<div class="d-flex align-items-center">' + avatarLink +
-            '<div><small class="fw-bold">' + authorHTML + '</small>' +
-            '<small class="text-muted ms-2">' + escapeHtml(c.created_at) + '</small></div></div>' +
-            '<span class="d-flex align-items-center gap-1">' +
-            '<button class="btn btn-sm ' + likedClass + ' comment-like-btn" data-comment-id="' + c.id + '">' +
-            '❤ <span class="comment-likes-count">' + c.likes_count + '</span></button>' +
-            '</span>' +
-            '</div>' +
-            '<p class="mb-0 mt-1 ps-5 desc-clamp comment-text-clamp" style="white-space:pre-wrap;">' + escapeHtml(c.text) + '</p>' +
-            '<button class="comment-expand-btn btn btn-link btn-sm p-0 ps-5 d-none" style="font-size:0.78rem;">ещё</button>' +
-            '</div>';
+    function initCommentClamp(el) {
+        const cBody = el.querySelector(':scope > .c-indent > .d-flex > .c-body');
+        if (!cBody) return;
+        const textEl    = cBody.querySelector('.comment-text-clamp');
+        const toggleBtn = cBody.querySelector('.comment-expand-btn');
+        if (!textEl || !toggleBtn) return;
+        requestAnimationFrame(() => {
+            if (textEl.scrollHeight > textEl.clientHeight + 2) toggleBtn.classList.remove('d-none');
+        });
     }
 
+    function buildCommentEl(c) {
+        const likedClass = c.user_liked ? 'btn-danger' : 'btn-outline-danger';
+        const authorHTML = c.author_url
+            ? `<a href="${escapeHtml(c.author_url)}" class="username-link">${escapeHtml(c.author)}</a>`
+            : escapeHtml(c.author);
+        const avatarImg  = `<img src="${escapeHtml(c.avatar_url)}" class="user-avatar-sm" alt="">`;
+        const avatarLink = c.author_url ? `<a href="${escapeHtml(c.author_url)}">${avatarImg}</a>` : avatarImg;
+        const indent     = Math.min(c.level, 6) * 20;
+
+        const editedMark   = c.is_edited ? `<small class="text-muted edited-mark" style="font-size:0.72rem;">изм.</small>` : '';
+        const replyBtnHTML = IS_AUTH
+            ? `<button class="reply-btn btn btn-link btn-sm p-0" style="font-size:0.78rem;" data-comment-id="${c.id}">Ответить</button>`
+            : '';
+        const editBtnHTML  = c.is_own
+            ? `<button class="edit-btn btn btn-link btn-sm p-0" style="font-size:0.78rem;" data-comment-id="${c.id}">Редактировать</button>`
+            : '';
+        const replyFormHTML = IS_AUTH ? `
+            <div class="reply-form mt-2" data-form-id="${c.id}" style="display:none;">
+                <div class="d-flex gap-2">
+                    <textarea class="form-control form-control-sm reply-textarea" rows="2" maxlength="2000" placeholder="Написать ответ..."></textarea>
+                    <div class="d-flex flex-column gap-1">
+                        <button class="btn btn-sm btn-github submit-reply-btn" data-comment-id="${c.id}" data-level="${c.level}">Отправить</button>
+                        <button class="btn btn-sm btn-outline-secondary cancel-reply-btn" data-form-id="${c.id}">Отмена</button>
+                    </div>
+                </div>
+                <div class="reply-error text-danger small mt-1" style="display:none;"></div>
+            </div>` : '';
+        const editFormHTML = c.is_own ? `
+            <div class="edit-form mt-2" data-edit-form-id="${c.id}" style="display:none;">
+                <div class="d-flex gap-2">
+                    <textarea class="form-control form-control-sm edit-textarea" rows="2" maxlength="2000">${escapeHtml(c.text)}</textarea>
+                    <div class="d-flex flex-column gap-1">
+                        <button class="btn btn-sm btn-github submit-edit-btn" data-comment-id="${c.id}">Сохранить</button>
+                        <button class="btn btn-sm btn-outline-secondary cancel-edit-btn" data-edit-form-id="${c.id}">Отмена</button>
+                    </div>
+                </div>
+                <div class="edit-error text-danger small mt-1" style="display:none;"></div>
+            </div>` : '';
+
+        let bottomHTML = '';
+        if (c.has_more_replies)  bottomHTML += `<button class="load-replies-btn btn btn-outline-secondary btn-sm" data-comment-id="${c.id}" data-offset="${c.per_used || 0}" data-per="${c.per_load || 3}">Загрузить ещё ответы</button> `;
+        if (c.has_deeper_replies) bottomHTML += `<button class="view-thread-btn btn btn-outline-secondary btn-sm" data-comment-id="${c.id}">Посмотреть ветку</button>`;
+
+        const div = document.createElement('div');
+        div.className = 'comment-item py-2 border-bottom';
+        div.dataset.commentId = c.id;
+        div.dataset.level = c.level;
+        div.innerHTML = `<div class="c-indent" style="margin-left:${indent}px">
+            <div class="d-flex gap-2 align-items-start">
+                <div class="flex-shrink-0">${avatarLink}</div>
+                <div class="flex-grow-1 min-w-0 c-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div><small class="fw-bold">${authorHTML}</small>
+                        <small class="text-muted ms-2">${escapeHtml(c.created_at)}</small></div>
+                        <span class="d-flex align-items-center gap-1 ms-2 flex-shrink-0">
+                            <button class="btn btn-sm ${likedClass} comment-like-btn" data-comment-id="${c.id}">
+                                ❤ <span class="comment-likes-count">${c.likes_count}</span>
+                            </button>
+                        </span>
+                    </div>
+                    <p class="mb-0 mt-1 desc-clamp comment-text-clamp" style="white-space:pre-wrap;">${escapeHtml(c.text)}</p>
+                    <div class="d-flex justify-content-between align-items-center comment-meta-row">
+                        <button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.78rem;">ещё</button>
+                        ${editedMark}
+                    </div>
+                    <div class="mt-1 d-flex gap-2 flex-wrap">${replyBtnHTML}${editBtnHTML}</div>
+                    ${replyFormHTML}
+                    ${editFormHTML}
+                    <div class="replies-container" data-parent-id="${c.id}"></div>
+                    ${bottomHTML ? `<div class="mt-1">${bottomHTML}</div>` : ''}
+                </div>
+            </div>
+        </div>`;
+
+        const repliesContainer = div.querySelector('.replies-container');
+        if (c.replies) c.replies.forEach(r => repliesContainer.appendChild(buildCommentEl(r)));
+
+        initCommentClamp(div);
+        return div;
+    }
+
+    // ── Загрузка верхнеуровневых комментариев ─────────────────────────────
     async function loadComments(reset) {
-        if (loading) return;
-        loading = true;
+        if (commentsLoading) return;
+        commentsLoading = true;
         if (reset) {
             currentPage = 1;
             commentsList.innerHTML = '';
@@ -336,183 +436,292 @@
         try {
             const resp = await fetch(COMMENTS_URL + '?page=' + currentPage + '&sort=' + currentSort);
             const data = await resp.json();
-            data.comments.forEach(c => commentsList.insertAdjacentHTML('beforeend', buildCommentHTML(c)));
-            initCommentClamps();
+            data.comments.forEach(c => commentsList.appendChild(buildCommentEl(c)));
             loadMoreContainer.style.display = data.has_next ? 'block' : 'none';
             if (currentPage === 1 && data.total === 0) noCommentsMsg.style.display = 'block';
             currentPage++;
-        } finally {
-            loadingSpinner.style.display = 'none';
-            loading = false;
-        }
+        } finally { loadingSpinner.style.display = 'none'; commentsLoading = false; }
     }
 
     loadMoreBtn.addEventListener('click', () => loadComments(false));
 
-    commentsList.addEventListener('click', async (e) => {
-        const btn = e.target.closest('.comment-like-btn');
-        if (!btn || btn.dataset.loading) return;
+    // ── Универсальный обработчик кликов по комментариям ───────────────────
+    function handleCommentClick(e, root) {
+        // Лайк
+        const likeBtn = e.target.closest('.comment-like-btn');
+        if (likeBtn) { handleCommentLike(likeBtn); return; }
+
+        // Развернуть/свернуть текст
+        const expandBtn = e.target.closest('.comment-expand-btn');
+        if (expandBtn) {
+            const cBody = expandBtn.closest('.c-body');
+            const textEl = cBody ? cBody.querySelector('.comment-text-clamp') : null;
+            if (textEl) { const exp = textEl.classList.toggle('expanded'); expandBtn.textContent = exp ? 'свернуть' : 'ещё'; }
+            return;
+        }
+
+        // Кнопка «Ответить»
+        const replyBtn = e.target.closest('.reply-btn');
+        if (replyBtn) {
+            const id = replyBtn.dataset.commentId;
+            const form = root.querySelector(`.reply-form[data-form-id="${id}"]`);
+            if (form) {
+                const visible = form.style.display !== 'none';
+                form.style.display = visible ? 'none' : 'block';
+                if (!visible) form.querySelector('textarea').focus();
+            }
+            return;
+        }
+
+        // Отмена ответа
+        const cancelBtn = e.target.closest('.cancel-reply-btn');
+        if (cancelBtn) {
+            const form = root.querySelector(`.reply-form[data-form-id="${cancelBtn.dataset.formId}"]`);
+            if (form) { form.style.display = 'none'; form.querySelector('textarea').value = ''; form.querySelector('.reply-error').style.display = 'none'; }
+            return;
+        }
+
+        // Отправить ответ
+        const submitBtn = e.target.closest('.submit-reply-btn');
+        if (submitBtn) { handleSubmitReply(submitBtn, root); return; }
+
+        // Загрузить ещё ответы
+        const loadRepliesBtn = e.target.closest('.load-replies-btn');
+        if (loadRepliesBtn) { handleLoadReplies(loadRepliesBtn, root); return; }
+
+        // Посмотреть ветку
+        const viewThreadBtn = e.target.closest('.view-thread-btn');
+        if (viewThreadBtn) { openThreadModal(viewThreadBtn.dataset.commentId, root === threadModalBody); return; }
+
+        // Редактировать
+        const editBtn = e.target.closest('.edit-btn');
+        if (editBtn) {
+            const id = editBtn.dataset.commentId;
+            const editForm = root.querySelector(`.edit-form[data-edit-form-id="${id}"]`);
+            if (editForm) editForm.style.display = editForm.style.display === 'none' ? 'block' : 'none';
+            return;
+        }
+
+        // Отмена редактирования
+        const cancelEditBtn = e.target.closest('.cancel-edit-btn');
+        if (cancelEditBtn) {
+            const editForm = root.querySelector(`.edit-form[data-edit-form-id="${cancelEditBtn.dataset.editFormId}"]`);
+            if (editForm) { editForm.style.display = 'none'; editForm.querySelector('.edit-error').style.display = 'none'; }
+            return;
+        }
+
+        // Сохранить редактирование
+        const submitEditBtn = e.target.closest('.submit-edit-btn');
+        if (submitEditBtn) { handleSubmitEdit(submitEditBtn, root); return; }
+    }
+
+    commentsList.addEventListener('click', e => handleCommentClick(e, commentsList));
+
+    async function handleCommentLike(btn) {
+        if (btn.dataset.loading) return;
         btn.dataset.loading = '1';
         try {
-            const resp = await postJson(getCommentLikeUrl(btn.dataset.commentId), {});
+            const resp = await postJson(`/comment/${btn.dataset.commentId}/like/`, {});
             if (resp.status === 401) { showLoginHint(btn); return; }
             if (resp.ok) {
                 const d = await resp.json();
                 btn.querySelector('.comment-likes-count').textContent = d.count;
-                if (d.liked) {
-                    btn.classList.replace('btn-outline-danger', 'btn-danger');
-                } else {
-                    btn.classList.replace('btn-danger', 'btn-outline-danger');
-                }
+                btn.classList.replace(d.liked ? 'btn-outline-danger' : 'btn-danger',
+                                      d.liked ? 'btn-danger' : 'btn-outline-danger');
             }
         } finally { delete btn.dataset.loading; }
-    });
+    }
 
+    async function handleSubmitReply(submitBtn, root) {
+        const commentId = submitBtn.dataset.commentId;
+        const level     = parseInt(submitBtn.dataset.level);
+        const form      = root.querySelector(`.reply-form[data-form-id="${commentId}"]`);
+        const textarea  = form.querySelector('textarea');
+        const errorEl   = form.querySelector('.reply-error');
+        const text      = textarea.value.trim();
+        if (!text) { errorEl.textContent = 'Напишите что-нибудь!'; errorEl.style.display = 'block'; return; }
+        errorEl.style.display = 'none';
+        submitBtn.disabled = true;
+        try {
+            const resp = await postJson(ADD_COMMENT_URL, {text, parent_id: parseInt(commentId)});
+            const d = await resp.json();
+            if (!resp.ok) { errorEl.textContent = d.error || 'Ошибка'; errorEl.style.display = 'block'; }
+            else {
+                form.style.display = 'none'; textarea.value = '';
+                if (level >= 2) {
+                    const commentEl = root.querySelector(`.comment-item[data-comment-id="${commentId}"]`);
+                    if (commentEl && !commentEl.querySelector('.view-thread-btn')) {
+                        const cBody = commentEl.querySelector('.c-body');
+                        let bottomDiv = cBody.querySelector('.mt-1:last-child');
+                        const btn = document.createElement('button');
+                        btn.className = 'view-thread-btn btn btn-outline-secondary btn-sm';
+                        btn.dataset.commentId = commentId;
+                        btn.textContent = 'Посмотреть ветку';
+                        if (bottomDiv && bottomDiv.querySelector('.load-replies-btn, .view-thread-btn')) {
+                            bottomDiv.appendChild(btn);
+                        } else {
+                            bottomDiv = document.createElement('div');
+                            bottomDiv.className = 'mt-1';
+                            bottomDiv.appendChild(btn);
+                            cBody.appendChild(bottomDiv);
+                        }
+                    }
+                } else {
+                    const repliesContainer = root.querySelector(`.replies-container[data-parent-id="${commentId}"]`);
+                    if (repliesContainer) repliesContainer.insertBefore(buildCommentEl(d), repliesContainer.firstChild);
+                }
+            }
+        } finally { submitBtn.disabled = false; }
+    }
+
+    async function handleSubmitEdit(submitBtn, root) {
+        const commentId = submitBtn.dataset.commentId;
+        const editForm  = root.querySelector(`.edit-form[data-edit-form-id="${commentId}"]`);
+        const textarea  = editForm.querySelector('.edit-textarea');
+        const errorEl   = editForm.querySelector('.edit-error');
+        const text      = textarea.value.trim();
+        if (!text) { errorEl.textContent = 'Напишите что-нибудь!'; errorEl.style.display = 'block'; return; }
+        errorEl.style.display = 'none';
+        submitBtn.disabled = true;
+        try {
+            const resp = await postJson(`/comment/${commentId}/edit/`, {text});
+            const d    = await resp.json();
+            if (!resp.ok) { errorEl.textContent = d.error || 'Ошибка'; errorEl.style.display = 'block'; }
+            else {
+                editForm.style.display = 'none';
+                const commentEl = root.querySelector(`.comment-item[data-comment-id="${commentId}"]`);
+                if (commentEl) {
+                    const cBody  = commentEl.querySelector('.c-body');
+                    const textEl = cBody.querySelector('.comment-text-clamp');
+                    if (textEl) { textEl.textContent = d.text; textEl.classList.remove('expanded'); }
+                    textarea.value = d.text;
+                    const metaRow = cBody.querySelector('.comment-meta-row');
+                    if (metaRow && !metaRow.querySelector('.edited-mark')) {
+                        const mark = document.createElement('small');
+                        mark.className = 'text-muted edited-mark';
+                        mark.style.fontSize = '0.72rem';
+                        mark.textContent = 'изм.';
+                        metaRow.appendChild(mark);
+                    }
+                }
+            }
+        } finally { submitBtn.disabled = false; }
+    }
+
+    async function handleLoadReplies(loadBtn, root) {
+        const commentId = loadBtn.dataset.commentId;
+        const offset    = parseInt(loadBtn.dataset.offset) || 0;
+        const per       = parseInt(loadBtn.dataset.per) || 3;
+        loadBtn.disabled = true;
+        try {
+            const resp = await fetch(`/comment/${commentId}/replies/?offset=${offset}&per_page=${per}`);
+            const data = await resp.json();
+            const repliesContainer = root.querySelector(`.replies-container[data-parent-id="${commentId}"]`);
+            if (repliesContainer) data.comments.forEach(c => repliesContainer.appendChild(buildCommentEl(c)));
+            if (data.has_next) { loadBtn.dataset.offset = offset + per; loadBtn.disabled = false; }
+            else loadBtn.remove();
+        } catch { loadBtn.disabled = false; }
+    }
+
+    // ── Сортировка комментариев ───────────────────────────────────────────
     document.querySelectorAll('.sort-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', () => {
             const sort = btn.dataset.sort;
             if (sort === currentSort) return;
             currentSort = sort;
-            document.querySelectorAll('.sort-btn').forEach(b => {
-                b.classList.remove('btn-dark');
-                b.classList.add('btn-outline-dark');
-            });
+            document.querySelectorAll('.sort-btn').forEach(b => { b.classList.remove('btn-dark'); b.classList.add('btn-outline-dark'); });
             btn.classList.replace('btn-outline-dark', 'btn-dark');
             postJson(SET_SORT_URL, {sort});
             loadComments(true);
         });
     });
 
-    const submitBtn = document.getElementById('submit-comment-btn');
-    const commentText = document.getElementById('comment-text');
-    const commentError = document.getElementById('comment-error');
+    // ── Отправка нового комментария ───────────────────────────────────────
+    const submitCommentBtn = document.getElementById('submit-comment-btn');
+    const commentText      = document.getElementById('comment-text');
+    const commentError     = document.getElementById('comment-error');
 
-    if (submitBtn && commentText) {
-        submitBtn.addEventListener('click', async () => {
+    if (submitCommentBtn && commentText) {
+        submitCommentBtn.addEventListener('click', async () => {
             const text = commentText.value.trim();
-            if (!text) {
-                commentError.textContent = 'Напишите что-нибудь!';
-                commentError.style.display = 'block';
-                return;
-            }
+            if (!text) { commentError.textContent = 'Напишите что-нибудь!'; commentError.style.display = 'block'; return; }
             commentError.style.display = 'none';
-            submitBtn.disabled = true;
+            submitCommentBtn.disabled = true;
             try {
                 const resp = await postJson(ADD_COMMENT_URL, {text});
                 const d = await resp.json();
-                if (!resp.ok) {
-                    commentError.textContent = d.error || 'Ошибка при отправке';
-                    commentError.style.display = 'block';
-                } else {
+                if (!resp.ok) { commentError.textContent = d.error || 'Ошибка'; commentError.style.display = 'block'; }
+                else {
                     commentText.value = '';
                     noCommentsMsg.style.display = 'none';
-                    if (currentSort === 'newest') {
-                        commentsList.insertAdjacentHTML('afterbegin', buildCommentHTML(d));
-                        initCommentClamps();
-                    } else {
-                        loadComments(true);
-                    }
+                    if (currentSort === 'newest') commentsList.insertBefore(buildCommentEl(d), commentsList.firstChild);
+                    else loadComments(true);
                 }
-            } finally { submitBtn.disabled = false; }
+            } finally { submitCommentBtn.disabled = false; }
         });
-
-        commentText.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && e.ctrlKey) submitBtn.click();
-        });
+        commentText.addEventListener('keydown', e => { if (e.key === 'Enter' && e.ctrlKey) submitCommentBtn.click(); });
     }
 
     loadComments(true);
 
-    // === Установить аватар ===
-    const setAvatarBtn = document.getElementById('set-avatar-btn');
-    if (setAvatarBtn) {
-        setAvatarBtn.addEventListener('click', async () => {
-            setAvatarBtn.disabled = true;
-            try {
-                const resp = await postJson(setAvatarBtn.dataset.url, {});
-                if (resp.ok) {
-                    setAvatarBtn.textContent = '✓ Аватар установлен';
-                    setAvatarBtn.classList.add('text-success');
-                } else {
-                    const d = await resp.json();
-                    alert(d.error || 'Ошибка при установке аватара');
-                    setAvatarBtn.disabled = false;
-                }
-            } catch (e) { setAvatarBtn.disabled = false; }
-        });
+    // ── Модал: ветка комментариев ─────────────────────────────────────────
+    const threadModalEl  = document.getElementById('threadModal');
+    const threadModalBody = document.getElementById('thread-modal-body');
+    const threadBackBtn  = document.getElementById('thread-back-btn');
+    let threadRootId = null;
+    let threadPage   = 1;
+    let threadModalInstance = null;
+    let threadHistory = [];
+
+    threadModalBody.addEventListener('click', e => handleCommentClick(e, threadModalBody));
+
+    threadModalEl.addEventListener('hidden.bs.modal', () => {
+        threadHistory = [];
+        threadBackBtn.classList.add('d-none');
+    });
+
+    threadBackBtn.addEventListener('click', () => {
+        if (!threadHistory.length) return;
+        const prev = threadHistory.pop();
+        threadRootId = prev.rootId;
+        threadPage   = prev.page;
+        threadModalBody.innerHTML = prev.bodyHTML;
+        if (!threadHistory.length) threadBackBtn.classList.add('d-none');
+    });
+
+    async function openThreadModal(commentId, fromWithinModal) {
+        if (fromWithinModal) {
+            threadHistory.push({
+                rootId: threadRootId,
+                page: threadPage,
+                bodyHTML: threadModalBody.innerHTML,
+            });
+            threadBackBtn.classList.remove('d-none');
+        } else {
+            threadHistory = [];
+            threadBackBtn.classList.add('d-none');
+        }
+        threadRootId = commentId;
+        threadPage   = 1;
+        threadModalBody.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-secondary"></div></div>';
+        if (!threadModalEl.classList.contains('show')) {
+            if (!threadModalInstance) threadModalInstance = new bootstrap.Modal(threadModalEl);
+            threadModalInstance.show();
+        }
+        await loadThread();
     }
 
-    // === Рекомендации ===
-    const recContainer = document.getElementById('rec-container');
-    const recEmpty = document.getElementById('rec-empty');
-    const recLoading = document.getElementById('rec-loading');
-    const recFilterSelect = document.getElementById('rec-filter-select');
-    const recSortSelect = document.getElementById('rec-sort-select');
-
-    async function loadRecommendations() {
-        recLoading.style.display = 'block';
-        recContainer.innerHTML = '';
-        recEmpty.style.display = 'none';
-        const filter = recFilterSelect.value;
-        const sort = recSortSelect.value;
+    async function loadThread() {
         try {
-            const resp = await fetch(REC_URL + '?filter=' + filter + '&sort=' + sort);
+            const resp = await fetch(`/comment/${threadRootId}/thread/?page=1`);
             const data = await resp.json();
-            recContainer.innerHTML = data.html;
-            recEmpty.style.display = data.empty ? 'block' : 'none';
-        } catch (e) {
-            recContainer.innerHTML = '';
-        } finally {
-            recLoading.style.display = 'none';
+            threadModalBody.innerHTML = '';
+            threadModalBody.appendChild(buildCommentEl(data.root));
+        } catch {
+            threadModalBody.innerHTML = '<p class="text-muted text-center">Ошибка загрузки</p>';
         }
     }
 
-    recFilterSelect.addEventListener('change', loadRecommendations);
-    recSortSelect.addEventListener('change', loadRecommendations);
-    loadRecommendations();
-
-    // === Свернуть/развернуть комментарии ===
-    function initCommentClamps() {
-        requestAnimationFrame(() => {
-            commentsList.querySelectorAll('.comment-text-clamp:not([data-clamp-init])').forEach(el => {
-                el.dataset.clampInit = '1';
-                const btn = el.nextElementSibling;
-                if (!btn) return;
-                if (el.scrollHeight > el.clientHeight + 2) {
-                    btn.classList.remove('d-none');
-                }
-            });
-        });
-    }
-
-    commentsList.addEventListener('click', (e) => {
-        const btn = e.target.closest('.comment-expand-btn');
-        if (!btn) return;
-        const textEl = btn.previousElementSibling;
-        if (!textEl) return;
-        const expanded = textEl.classList.toggle('expanded');
-        btn.textContent = expanded ? 'свернуть' : 'ещё';
-    });
-
-    // === Свернуть/развернуть теги и описание ===
-    function initClamp(textEl, toggleBtn) {
-        if (!textEl || !toggleBtn) return;
-        // Используем requestAnimationFrame, чтобы элемент успел отрисоваться
-        requestAnimationFrame(() => {
-            if (textEl.scrollHeight > textEl.clientHeight + 2) {
-                toggleBtn.classList.remove('d-none');
-            }
-        });
-        let expanded = false;
-        toggleBtn.addEventListener('click', () => {
-            expanded = !expanded;
-            textEl.classList.toggle('expanded', expanded);
-            toggleBtn.textContent = expanded ? 'свернуть' : 'ещё';
-        });
-    }
-
-    initClamp(document.getElementById('tags-text'), document.getElementById('tags-toggle'));
-    initClamp(document.getElementById('desc-text'), document.getElementById('desc-toggle'));
 }());
 </script>
 {% endblock %}
