@@ -318,7 +318,8 @@
             '❤ <span class="comment-likes-count">' + c.likes_count + '</span></button>' +
             '</span>' +
             '</div>' +
-            '<p class="mb-1 mt-1 ps-5" style="white-space:pre-wrap;">' + escapeHtml(c.text) + '</p>' +
+            '<p class="mb-0 mt-1 ps-5 desc-clamp comment-text-clamp" style="white-space:pre-wrap;">' + escapeHtml(c.text) + '</p>' +
+            '<button class="comment-expand-btn btn btn-link btn-sm p-0 ps-5 d-none" style="font-size:0.78rem;">ещё</button>' +
             '</div>';
     }
 
@@ -336,6 +337,7 @@
             const resp = await fetch(COMMENTS_URL + '?page=' + currentPage + '&sort=' + currentSort);
             const data = await resp.json();
             data.comments.forEach(c => commentsList.insertAdjacentHTML('beforeend', buildCommentHTML(c)));
+            initCommentClamps();
             loadMoreContainer.style.display = data.has_next ? 'block' : 'none';
             if (currentPage === 1 && data.total === 0) noCommentsMsg.style.display = 'block';
             currentPage++;
@@ -406,6 +408,7 @@
                     noCommentsMsg.style.display = 'none';
                     if (currentSort === 'newest') {
                         commentsList.insertAdjacentHTML('afterbegin', buildCommentHTML(d));
+                        initCommentClamps();
                     } else {
                         loadComments(true);
                     }
@@ -467,6 +470,29 @@
     recFilterSelect.addEventListener('change', loadRecommendations);
     recSortSelect.addEventListener('change', loadRecommendations);
     loadRecommendations();
+
+    // === Свернуть/развернуть комментарии ===
+    function initCommentClamps() {
+        requestAnimationFrame(() => {
+            commentsList.querySelectorAll('.comment-text-clamp:not([data-clamp-init])').forEach(el => {
+                el.dataset.clampInit = '1';
+                const btn = el.nextElementSibling;
+                if (!btn) return;
+                if (el.scrollHeight > el.clientHeight + 2) {
+                    btn.classList.remove('d-none');
+                }
+            });
+        });
+    }
+
+    commentsList.addEventListener('click', (e) => {
+        const btn = e.target.closest('.comment-expand-btn');
+        if (!btn) return;
+        const textEl = btn.previousElementSibling;
+        if (!textEl) return;
+        const expanded = textEl.classList.toggle('expanded');
+        btn.textContent = expanded ? 'свернуть' : 'ещё';
+    });
 
     // === Свернуть/развернуть теги и описание ===
     function initClamp(textEl, toggleBtn) {
