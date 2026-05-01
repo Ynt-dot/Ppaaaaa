@@ -138,6 +138,8 @@ def detail(request, pk):
         and 1 <= fc <= 10
     )
 
+    is_used_as_avatar = cartoon.used_as_avatar.exists()
+
     context = {
         'cartoon': cartoon,
         'likes_count': likes_count,
@@ -147,7 +149,8 @@ def detail(request, pk):
         'user_favorited': user_favorited,
         'comment_sort': comment_sort,
         'author_avatar_url': _get_user_avatar_url(cartoon.author),
-        'can_set_as_avatar': can_set_as_avatar,
+        'can_set_as_avatar': can_set_as_avatar and not is_used_as_avatar,
+        'is_used_as_avatar': is_used_as_avatar,
     }
     if cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)
@@ -317,10 +320,10 @@ def set_comment_sort(request):
 def editor(request, pk=None):
     if pk:
         cartoon = get_object_or_404(Cartoon, pk=pk)
-        # Проверяем, что текущий пользователь — автор, если мульт принадлежит
-        # кому-то
         if cartoon.author and cartoon.author != request.user:
             return redirect('index')
+        if cartoon.used_as_avatar.exists():
+            return redirect('detail', pk=pk)
     else:
         cartoon = None
 

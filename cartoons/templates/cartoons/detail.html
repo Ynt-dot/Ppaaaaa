@@ -129,7 +129,7 @@
                     {% endif %}
                 </div>
 
-                {% if user == cartoon.author %}
+                {% if user == cartoon.author and not is_used_as_avatar %}
                 <a href="{% url 'editor_edit' cartoon.pk %}" class="btn btn-primary w-100 mb-2">✏ Редактировать</a>
                 {% endif %}
                 {% if can_set_as_avatar %}
