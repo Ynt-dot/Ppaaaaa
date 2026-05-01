@@ -645,20 +645,21 @@ def get_avatar_cartoons(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'login_required'}, status=401)
 
-    from django.db.models.expressions import RawSQL
-    qs = Cartoon.objects.filter(author=request.user).annotate(
-        frame_count=RawSQL('JSON_LENGTH(frames_data)', [])
-    ).filter(frame_count__gte=1, frame_count__lte=10).only('id', 'title', 'preview')
+    per_page = 12
+    offset = max(0, int(request.GET.get('offset', 0)))
 
-    eligible = []
-    for c in qs:
-        eligible.append({
-            'id': c.id,
-            'title': c.title,
-            'preview_url': c.preview.url if c.preview else None,
-        })
+    qs = Cartoon.objects.filter(author=request.user).only('id', 'title', 'preview', 'frames_data')
 
-    return JsonResponse({'cartoons': eligible})
+    eligible = [
+        {'id': c.id, 'title': c.title, 'preview_url': c.preview.url if c.preview else None}
+        for c in qs
+        if 1 <= _frames_count(c) <= 10
+    ]
+
+    page = eligible[offset:offset + per_page]
+    has_next = offset + per_page < len(eligible)
+
+    return JsonResponse({'cartoons': page, 'has_next': has_next})
 
 
 def verify_email(request, token):

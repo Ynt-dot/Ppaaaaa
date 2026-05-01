@@ -41,6 +41,9 @@
                             Нет подходящих мультов (нужно от 1 до 10 кадров).
                         </div>
                         <div id="avatar-cartoons-grid" class="row row-cols-2 row-cols-sm-3 row-cols-md-4 g-3" style="display:none;"></div>
+                        <div class="text-center mt-3" id="avatar-load-more-container" style="display:none;">
+                            <button id="avatar-load-more-btn" class="btn btn-sm btn-outline-secondary">Загрузить ещё</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -620,34 +623,58 @@
         const grid = document.getElementById('avatar-cartoons-grid');
         const emptyMsg = document.getElementById('avatar-cartoons-empty');
         const loadingSpinner = document.getElementById('avatar-cartoons-loading');
-        let loaded = false;
+        const loadMoreContainer = document.getElementById('avatar-load-more-container');
+        const loadMoreBtn = document.getElementById('avatar-load-more-btn');
+        let avatarOffset = 0;
+        let avatarLoading = false;
+        let avatarInitialized = false;
 
-        avatarModal.addEventListener('show.bs.modal', async () => {
-            if (loaded) return;
+        function buildAvatarCard(c) {
+            const previewSrc = c.preview_url ? escapeHtml(c.preview_url) : '';
+            return '<div class="col">' +
+                '<div class="card avatar-selector-item border" data-cartoon-id="' + c.id + '">' +
+                (previewSrc ? '<img src="' + previewSrc + '" class="card-img-top" style="aspect-ratio:3/2;object-fit:contain;background:#f8f9fa">' : '') +
+                '<div class="card-body p-1 text-center"><small>' + escapeHtml(c.title) + '</small></div>' +
+                '</div></div>';
+        }
+
+        async function loadAvatarCartoons() {
+            if (avatarLoading) return;
+            avatarLoading = true;
+            loadMoreBtn.disabled = true;
             try {
-                const resp = await fetch(AVATAR_CARTOONS_URL);
+                const resp = await fetch(AVATAR_CARTOONS_URL + '?offset=' + avatarOffset);
                 const data = await resp.json();
                 loadingSpinner.style.display = 'none';
-                if (!data.cartoons || data.cartoons.length === 0) {
-                    emptyMsg.style.display = 'block';
-                } else {
+
+                if (data.cartoons && data.cartoons.length > 0) {
                     grid.style.display = 'flex';
-                    grid.innerHTML = data.cartoons.map(c => {
-                        const previewSrc = c.preview_url ? escapeHtml(c.preview_url) : '';
-                        return '<div class="col">' +
-                            '<div class="card avatar-selector-item border" data-cartoon-id="' + c.id + '">' +
-                            (previewSrc ? '<img src="' + previewSrc + '" class="card-img-top" style="aspect-ratio:3/2;object-fit:contain;background:#f8f9fa">' : '') +
-                            '<div class="card-body p-1 text-center"><small>' + escapeHtml(c.title) + '</small></div>' +
-                            '</div></div>';
-                    }).join('');
+                    grid.insertAdjacentHTML('beforeend', data.cartoons.map(buildAvatarCard).join(''));
+                    avatarOffset += data.cartoons.length;
                 }
-                loaded = true;
+
+                if (avatarOffset === 0 && (!data.cartoons || data.cartoons.length === 0)) {
+                    emptyMsg.style.display = 'block';
+                }
+
+                loadMoreContainer.style.display = data.has_next ? 'block' : 'none';
             } catch (e) {
                 loadingSpinner.style.display = 'none';
                 emptyMsg.textContent = 'Ошибка загрузки.';
                 emptyMsg.style.display = 'block';
+            } finally {
+                avatarLoading = false;
+                loadMoreBtn.disabled = false;
             }
+        }
+
+        avatarModal.addEventListener('show.bs.modal', () => {
+            if (avatarInitialized) return;
+            avatarInitialized = true;
+            loadAvatarCartoons();
         });
+
+        loadMoreBtn.addEventListener('click', loadAvatarCartoons);
 
         grid.addEventListener('click', async (e) => {
             const item = e.target.closest('.avatar-selector-item');
