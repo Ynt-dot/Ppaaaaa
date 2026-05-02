@@ -351,6 +351,10 @@
         const indent     = Math.min(c.level, 6) * 20;
 
         const editedMark   = c.is_edited ? `<small class="text-muted edited-mark" style="font-size:0.72rem;">изм.</small>` : '';
+        const pinnedBadge  = `<i class="bi bi-pin-fill pin-badge ms-1" style="font-size:0.72rem;${c.is_pinned ? '' : 'display:none;'}"></i>`;
+        const pinBtnHTML   = c.can_pin
+            ? `<button class="pin-btn btn btn-link btn-sm p-0 ms-auto" style="font-size:0.82rem;" data-comment-id="${c.id}" title="${c.is_pinned ? 'Открепить' : 'Закрепить'}"><i class="bi ${c.is_pinned ? 'bi-pin-fill' : 'bi-pin'}"></i></button>`
+            : '';
         const replyBtnHTML = IS_AUTH
             ? `<button class="reply-btn btn btn-link btn-sm p-0" style="font-size:0.78rem;" data-comment-id="${c.id}">Ответить</button>`
             : '';
@@ -385,7 +389,7 @@
         if (c.has_deeper_replies) bottomHTML += `<button class="view-thread-btn btn btn-outline-secondary btn-sm" data-comment-id="${c.id}">Посмотреть ветку</button>`;
 
         const div = document.createElement('div');
-        div.className = 'comment-item py-2 border-bottom';
+        div.className = 'comment-item py-2 border-bottom' + (c.is_pinned ? ' pinned-comment' : '');
         div.dataset.commentId = c.id;
         div.dataset.level = c.level;
         div.innerHTML = `<div class="c-indent" style="margin-left:${indent}px">
@@ -394,7 +398,7 @@
                 <div class="flex-grow-1 min-w-0 c-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div><small class="fw-bold">${authorHTML}</small>
-                        <small class="text-muted ms-2">${escapeHtml(c.created_at)}</small></div>
+                        <small class="text-muted ms-2">${escapeHtml(c.created_at)}${pinnedBadge}</small></div>
                         <span class="d-flex align-items-center gap-1 ms-2 flex-shrink-0">
                             <button class="btn btn-sm ${likedClass} comment-like-btn" data-comment-id="${c.id}">
                                 ❤ <span class="comment-likes-count">${c.likes_count}</span>
@@ -402,9 +406,10 @@
                         </span>
                     </div>
                     <p class="mb-0 mt-1 desc-clamp comment-text-clamp" style="white-space:pre-wrap;">${escapeHtml(c.text)}</p>
-                    <div class="d-flex justify-content-between align-items-center comment-meta-row">
+                    <div class="d-flex align-items-center comment-meta-row">
                         <button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.78rem;">ещё</button>
                         ${editedMark}
+                        ${pinBtnHTML}
                     </div>
                     <div class="mt-1 d-flex gap-2 flex-wrap">${replyBtnHTML}${editBtnHTML}</div>
                     ${replyFormHTML}
@@ -513,6 +518,10 @@
         // Сохранить редактирование
         const submitEditBtn = e.target.closest('.submit-edit-btn');
         if (submitEditBtn) { handleSubmitEdit(submitEditBtn, root); return; }
+
+        // Закрепить/открепить
+        const pinBtn = e.target.closest('.pin-btn');
+        if (pinBtn) { handlePinComment(pinBtn, root); return; }
     }
 
     commentsList.addEventListener('click', e => handleCommentClick(e, commentsList));
@@ -572,6 +581,26 @@
                 }
             }
         } finally { submitBtn.disabled = false; }
+    }
+
+    async function handlePinComment(pinBtn, root) {
+        if (pinBtn.dataset.loading) return;
+        pinBtn.dataset.loading = '1';
+        try {
+            const commentId = pinBtn.dataset.commentId;
+            const resp = await postJson(`/comment/${commentId}/pin/`, {});
+            if (resp.ok) {
+                const d = await resp.json();
+                const commentEl = root.querySelector(`.comment-item[data-comment-id="${commentId}"]`);
+                if (commentEl) {
+                    commentEl.classList.toggle('pinned-comment', d.pinned);
+                    commentEl.querySelector('.pin-badge').style.display = d.pinned ? '' : 'none';
+                    const icon = pinBtn.querySelector('i');
+                    icon.className = d.pinned ? 'bi bi-pin-fill' : 'bi bi-pin';
+                    pinBtn.title = d.pinned ? 'Открепить' : 'Закрепить';
+                }
+            }
+        } finally { delete pinBtn.dataset.loading; }
     }
 
     async function handleSubmitEdit(submitBtn, root) {

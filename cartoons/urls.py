@@ -14,6 +14,7 @@ urlpatterns = [
     path('cartoon/<int:pk>/comments/add/', views.add_comment,
          name='add_comment'),
     path('comment/<int:comment_pk>/edit/', views.edit_comment, name='edit_comment'),
+    path('comment/<int:comment_pk>/pin/', views.pin_comment, name='pin_comment'),
     path('comment/<int:comment_pk>/like/', views.toggle_comment_like,
          name='toggle_comment_like'),
     path('comment/<int:comment_pk>/replies/', views.get_replies, name='get_replies'),

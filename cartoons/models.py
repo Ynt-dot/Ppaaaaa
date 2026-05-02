@@ -86,6 +86,7 @@ class Comment(models.Model):
     author_name = models.CharField(max_length=50, blank=True)
     text = models.TextField(max_length=2000)
     is_edited = models.BooleanField(default=False)
+    is_pinned = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

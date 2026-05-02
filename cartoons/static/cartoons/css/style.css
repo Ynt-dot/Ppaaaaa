@@ -242,6 +242,12 @@ input[type="password"]::-ms-clear {
     display: block;
     overflow: visible;
 }
+.comment-item.pinned-comment {
+    border: 2px solid #212529;
+    border-radius: 6px;
+    padding: 2px 6px;
+}
+
 .desc-clamp {
     display: -webkit-box;
     -webkit-line-clamp: 3;

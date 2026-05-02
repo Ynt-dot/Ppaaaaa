@@ -256,7 +256,7 @@ def toggle_cartoon_like(request, pk):
     return JsonResponse({'liked': liked, 'count': cartoon.likes.count()})
 
 
-def _serialize_comment(comment, request, session_key, current_level=0, max_inline_level=2, root_level=0):
+def _serialize_comment(comment, request, session_key, current_level=0, max_inline_level=2, root_level=0, cartoon_author_id=None):
     """Serialize comment with nested replies up to max_inline_level."""
     if request.user.is_authenticated:
         user_liked = comment.likes.filter(user=request.user).exists()
@@ -285,17 +285,18 @@ def _serialize_comment(comment, request, session_key, current_level=0, max_inlin
         if request.user.is_authenticated:
             qs = qs.annotate(
                 is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
-            ).order_by('is_mine', '-likes_count', 'created_at')
+            ).order_by('is_mine', '-is_pinned', '-likes_count', 'created_at')
         else:
-            qs = qs.order_by('-likes_count', 'created_at')
+            qs = qs.order_by('-is_pinned', '-likes_count', 'created_at')
         total_r = qs.count()
         has_more_replies = total_r > per_used
         for r in qs[:per_used]:
-            replies_data.append(_serialize_comment(r, request, session_key, current_level + 1, max_inline_level, root_level))
+            replies_data.append(_serialize_comment(r, request, session_key, current_level + 1, max_inline_level, root_level, cartoon_author_id))
     elif current_level == max_inline_level:
         has_deeper_replies = comment.replies.exists()
 
     is_own = request.user.is_authenticated and comment.author_id == request.user.id
+    can_pin = request.user.is_authenticated and cartoon_author_id is not None and request.user.id == cartoon_author_id
 
     return {
         'id': comment.id,
@@ -304,7 +305,9 @@ def _serialize_comment(comment, request, session_key, current_level=0, max_inlin
         'avatar_url': _get_user_avatar_url(comment.author),
         'text': comment.text,
         'is_edited': comment.is_edited,
+        'is_pinned': comment.is_pinned,
         'is_own': is_own,
+        'can_pin': can_pin,
         'created_at': comment.created_at.strftime('%d.%m.%Y %H:%M'),
         'likes_count': likes_count,
         'user_liked': user_liked,
@@ -333,21 +336,22 @@ def get_comments(request, pk):
             is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
         )
         if sort == 'newest':
-            qs = qs.order_by('is_mine', '-created_at')
+            qs = qs.order_by('is_mine', '-is_pinned', '-created_at')
         else:
-            qs = qs.order_by('is_mine', '-likes_count', '-created_at')
+            qs = qs.order_by('is_mine', '-is_pinned', '-likes_count', '-created_at')
     else:
         if sort == 'newest':
-            qs = qs.order_by('-created_at')
+            qs = qs.order_by('-is_pinned', '-created_at')
         else:
-            qs = qs.order_by('-likes_count', '-created_at')
+            qs = qs.order_by('-is_pinned', '-likes_count', '-created_at')
 
     total = qs.count()
     start = (page - 1) * per_page
     end = start + per_page
     comments = list(qs[start:end])
 
-    data = [_serialize_comment(c, request, session_key) for c in comments]
+    cartoon_author_id = cartoon.author_id
+    data = [_serialize_comment(c, request, session_key, cartoon_author_id=cartoon_author_id) for c in comments]
 
     return JsonResponse({
         'comments': data,
@@ -358,7 +362,7 @@ def get_comments(request, pk):
 
 @require_GET
 def get_replies(request, comment_pk):
-    parent = get_object_or_404(Comment, pk=comment_pk)
+    parent = get_object_or_404(Comment.objects.select_related('cartoon'), pk=comment_pk)
     session_key = _ensure_session(request)
 
     try:
@@ -379,9 +383,9 @@ def get_replies(request, comment_pk):
     if request.user.is_authenticated:
         qs = qs.annotate(
             is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
-        ).order_by('is_mine', '-likes_count', 'created_at')
+        ).order_by('is_mine', '-is_pinned', '-likes_count', 'created_at')
     else:
-        qs = qs.order_by('-likes_count', 'created_at')
+        qs = qs.order_by('-is_pinned', '-likes_count', 'created_at')
 
     total = qs.count()
     start = offset
@@ -390,7 +394,8 @@ def get_replies(request, comment_pk):
 
     child_level = parent.level + 1
     max_inline = 2 if child_level <= 1 else child_level
-    data = [_serialize_comment(r, request, session_key, current_level=child_level, max_inline_level=max_inline) for r in replies]
+    cartoon_author_id = parent.cartoon.author_id
+    data = [_serialize_comment(r, request, session_key, current_level=child_level, max_inline_level=max_inline, cartoon_author_id=cartoon_author_id) for r in replies]
 
     return JsonResponse({'comments': data, 'has_next': end < total})
 
@@ -398,7 +403,7 @@ def get_replies(request, comment_pk):
 @require_GET
 def get_thread(request, comment_pk):
     """Returns thread for modal: the root comment + paginated direct replies deeply nested."""
-    root = get_object_or_404(Comment, pk=comment_pk)
+    root = get_object_or_404(Comment.objects.select_related('cartoon'), pk=comment_pk)
     session_key = _ensure_session(request)
     page = max(1, int(request.GET.get('page', 1)))
     per_page = 10
@@ -409,9 +414,9 @@ def get_thread(request, comment_pk):
     if request.user.is_authenticated:
         qs = qs.annotate(
             is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
-        ).order_by('is_mine', '-likes_count', 'created_at')
+        ).order_by('is_mine', '-is_pinned', '-likes_count', 'created_at')
     else:
-        qs = qs.order_by('-likes_count', 'created_at')
+        qs = qs.order_by('-is_pinned', '-likes_count', 'created_at')
 
     per_page = 3
     total = qs.count()
@@ -419,11 +424,12 @@ def get_thread(request, comment_pk):
     end = start + per_page
     replies = list(qs[start:end])
 
+    cartoon_author_id = root.cartoon.author_id
     max_inline = root.level + 3
     child_level = root.level + 1
-    replies_data = [_serialize_comment(r, request, session_key, current_level=child_level, max_inline_level=max_inline, root_level=child_level) for r in replies]
+    replies_data = [_serialize_comment(r, request, session_key, current_level=child_level, max_inline_level=max_inline, root_level=child_level, cartoon_author_id=cartoon_author_id) for r in replies]
 
-    root_data = _serialize_comment(root, request, session_key, current_level=root.level, max_inline_level=root.level - 1, root_level=root.level)
+    root_data = _serialize_comment(root, request, session_key, current_level=root.level, max_inline_level=root.level - 1, root_level=root.level, cartoon_author_id=cartoon_author_id)
     root_data['replies'] = replies_data
     root_data['has_more_replies'] = end < total
     root_data['per_used'] = per_page
@@ -474,8 +480,20 @@ def add_comment(request, pk):
     comment.likes_count = 0
 
     session_key = _ensure_session(request)
-    data = _serialize_comment(comment, request, session_key, current_level=level, max_inline_level=level - 1)
+    data = _serialize_comment(comment, request, session_key, current_level=level, max_inline_level=level - 1, cartoon_author_id=cartoon.author_id)
     return JsonResponse(data, status=201)
+
+@require_POST
+def pin_comment(request, comment_pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+    comment = get_object_or_404(Comment.objects.select_related('cartoon'), pk=comment_pk)
+    if comment.cartoon.author != request.user:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    comment.is_pinned = not comment.is_pinned
+    comment.save(update_fields=['is_pinned'])
+    return JsonResponse({'pinned': comment.is_pinned})
+
 
 @require_POST
 def edit_comment(request, comment_pk):
