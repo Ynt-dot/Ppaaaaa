@@ -342,7 +342,7 @@
     }
 
     function buildCommentEl(c, baseLevel = 0) {
-        const likedClass = c.user_liked ? 'btn-danger' : 'btn-outline-danger';
+        const likeColorClass = c.user_liked ? 'text-danger' : 'text-secondary';
         const authorHTML = c.author_url
             ? `<a href="${escapeHtml(c.author_url)}" class="username-link">${escapeHtml(c.author)}</a>`
             : escapeHtml(c.author);
@@ -353,15 +353,17 @@
 
         const editedMark   = c.is_edited ? `<small class="text-muted edited-mark ms-1" style="font-size:0.72rem;">изм.</small>` : '';
         const pinnedBadge  = `<i class="bi bi-pin-fill pin-badge ms-1" style="font-size:0.72rem;${c.is_pinned ? '' : 'display:none;'}"></i>`;
-        const pinBtnHTML   = c.can_pin
-            ? `<button class="pin-btn btn btn-link btn-sm p-0 ms-auto" style="font-size:0.82rem;" data-comment-id="${c.id}" title="${c.is_pinned ? 'Открепить' : 'Закрепить'}"><i class="bi ${c.is_pinned ? 'bi-pin-fill' : 'bi-pin'}"></i></button>`
-            : '';
         const replyBtnHTML = IS_AUTH
             ? `<button class="reply-btn btn btn-link btn-sm p-0" style="font-size:0.72rem;" data-comment-id="${c.id}">Ответить</button>`
             : '';
-        const editBtnHTML  = c.is_own
-            ? `<button class="edit-btn btn btn-link btn-sm p-0" style="font-size:0.72rem;" data-comment-id="${c.id}">Редактировать</button>`
-            : '';
+        const dropdownHTML = (c.is_own || c.can_pin) ? `
+            <div class="dropdown ms-2 flex-shrink-0">
+                <button class="btn btn-link btn-sm p-0 text-secondary" data-bs-toggle="dropdown" aria-expanded="false" style="font-size:1.1rem; line-height:1; text-decoration:none;">⋮</button>
+                <ul class="dropdown-menu dropdown-menu-end py-1">
+                    ${c.is_own ? `<li><button class="dropdown-item edit-btn py-1" data-comment-id="${c.id}" style="font-size:0.88rem;">Редактировать</button></li>` : ''}
+                    ${c.can_pin ? `<li><button class="dropdown-item pin-btn py-1" data-comment-id="${c.id}" style="font-size:0.88rem;">${c.is_pinned ? 'Открепить' : 'Закрепить'}</button></li>` : ''}
+                </ul>
+            </div>` : '';
         const replyFormHTML = IS_AUTH ? `
             <div class="reply-form mt-2" data-form-id="${c.id}" style="display:none;">
                 <div class="d-flex gap-2">
@@ -402,21 +404,18 @@
                         <div class="d-flex justify-content-between align-items-start">
                             <div><span class="fw-bold" style="font-size:0.9rem;">${authorHTML}</span>
                             <small class="text-muted ms-2 comment-date">${escapeHtml(c.created_at)}</small>${editedMark}${pinnedBadge}</div>
-                            <span class="d-flex align-items-center gap-1 ms-2 flex-shrink-0">
-                                <button class="btn btn-sm ${likedClass} comment-like-btn" data-comment-id="${c.id}">
-                                    ❤ <span class="comment-likes-count">${c.likes_count}</span>
-                                </button>
-                            </span>
+                            ${dropdownHTML}
                         </div>
-                        <p class="mb-0 desc-clamp comment-text-clamp" style="white-space:pre-wrap;margin-top:-3px;">${escapeHtml(c.text)}</p>
-                        <div class="d-flex align-items-center gap-1 comment-meta-row">
-                            <button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.78rem;">ещё</button>
+                        <div class="comment-text-wrap">
+                            <p class="mb-0 desc-clamp comment-text-clamp" style="white-space:pre-wrap;margin-top:-3px;">${escapeHtml(c.text)}</p>
+                        </div>
+                        ${editFormHTML}
+                        <div class="d-flex align-items-center gap-2 comment-meta-row">
+                            <button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.72rem;">ещё</button>
+                            <button class="btn btn-link btn-sm p-0 ${likeColorClass} comment-like-btn" data-comment-id="${c.id}" style="font-size:0.72rem;">❤ <span class="comment-likes-count">${c.likes_count}</span></button>
                             ${replyBtnHTML}
-                            ${editBtnHTML}
-                            ${pinBtnHTML}
                         </div>
                         ${replyFormHTML}
-                        ${editFormHTML}
                     </div>
                 </div>
             </div>
@@ -506,16 +505,36 @@
         const editBtn = e.target.closest('.edit-btn');
         if (editBtn) {
             const id = editBtn.dataset.commentId;
-            const editForm = root.querySelector(`.edit-form[data-edit-form-id="${id}"]`);
-            if (editForm) editForm.style.display = editForm.style.display === 'none' ? 'block' : 'none';
+            const commentEl = root.querySelector(`.comment-item[data-comment-id="${id}"]`);
+            const editForm = commentEl ? commentEl.querySelector(`.edit-form[data-edit-form-id="${id}"]`) : null;
+            if (editForm) {
+                const opening = editForm.style.display === 'none' || editForm.style.display === '';
+                editForm.style.display = opening ? 'block' : 'none';
+                if (commentEl) {
+                    commentEl.querySelector('.comment-text-wrap').style.display = opening ? 'none' : '';
+                    commentEl.querySelector('.comment-meta-row').style.display  = opening ? 'none' : '';
+                }
+                if (opening) editForm.querySelector('.edit-textarea').focus();
+            }
             return;
         }
 
         // Отмена редактирования
         const cancelEditBtn = e.target.closest('.cancel-edit-btn');
         if (cancelEditBtn) {
-            const editForm = root.querySelector(`.edit-form[data-edit-form-id="${cancelEditBtn.dataset.editFormId}"]`);
-            if (editForm) { editForm.style.display = 'none'; editForm.querySelector('.edit-error').style.display = 'none'; }
+            const id = cancelEditBtn.dataset.editFormId;
+            const editForm = root.querySelector(`.edit-form[data-edit-form-id="${id}"]`);
+            if (editForm) {
+                editForm.style.display = 'none';
+                editForm.querySelector('.edit-error').style.display = 'none';
+                const commentEl = root.querySelector(`.comment-item[data-comment-id="${id}"]`);
+                if (commentEl) {
+                    const textEl = commentEl.querySelector('.comment-text-clamp');
+                    editForm.querySelector('.edit-textarea').value = textEl ? textEl.textContent : '';
+                    commentEl.querySelector('.comment-text-wrap').style.display = '';
+                    commentEl.querySelector('.comment-meta-row').style.display  = '';
+                }
+            }
             return;
         }
 
@@ -539,8 +558,8 @@
             if (resp.ok) {
                 const d = await resp.json();
                 btn.querySelector('.comment-likes-count').textContent = d.count;
-                btn.classList.replace(d.liked ? 'btn-outline-danger' : 'btn-danger',
-                                      d.liked ? 'btn-danger' : 'btn-outline-danger');
+                btn.classList.replace(d.liked ? 'text-secondary' : 'text-danger',
+                                      d.liked ? 'text-danger' : 'text-secondary');
             }
         } finally { delete btn.dataset.loading; }
     }
@@ -600,9 +619,7 @@
                     const commentSelf = commentEl.querySelector('.comment-self');
                     if (commentSelf) commentSelf.classList.toggle('pinned-comment', d.pinned);
                     commentEl.querySelector('.pin-badge').style.display = d.pinned ? '' : 'none';
-                    const icon = pinBtn.querySelector('i');
-                    icon.className = d.pinned ? 'bi bi-pin-fill' : 'bi bi-pin';
-                    pinBtn.title = d.pinned ? 'Открепить' : 'Закрепить';
+                    pinBtn.textContent = d.pinned ? 'Открепить' : 'Закрепить';
                 }
             }
         } finally { delete pinBtn.dataset.loading; }
@@ -629,6 +646,8 @@
                     const textEl = cBody.querySelector('.comment-text-clamp');
                     if (textEl) { textEl.textContent = d.text; textEl.classList.remove('expanded'); }
                     textarea.value = d.text;
+                    cBody.querySelector('.comment-text-wrap').style.display = '';
+                    cBody.querySelector('.comment-meta-row').style.display  = '';
                     const dateEl = cBody.querySelector('.comment-date');
                     if (dateEl && !cBody.querySelector('.edited-mark')) {
                         const mark = document.createElement('small');
