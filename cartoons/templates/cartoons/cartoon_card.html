@@ -10,7 +10,7 @@
             </div>
             {% endif %}
             <div class="card-body">
-                <h5 class="card-title">{{ cartoon.title }}</h5>
+                <h5 class="card-title title-clamp" title="{{ cartoon.title }}">{{ cartoon.title }}</h5>
                 {% if show_author %}
                 <p class="card-text small mb-1">
                     {% if cartoon.author %}

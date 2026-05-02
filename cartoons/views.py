@@ -568,7 +568,7 @@ def editor(request, pk=None):
         cartoon = None
 
     if request.method == 'POST':
-        title = request.POST.get('title', '')[:15]
+        title = request.POST.get('title', '')[:100]
         fps_str = request.POST.get('fps', '10')
         frames_json = request.POST.get('frames')
         tags_json = request.POST.get('tags', '[]')

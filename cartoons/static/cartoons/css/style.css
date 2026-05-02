@@ -188,6 +188,11 @@ input[type="password"]::-ms-clear {
 .card-stats span {
     white-space: nowrap;
 }
+.title-clamp {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 /* === Views tooltip === */
 .views-tooltip {

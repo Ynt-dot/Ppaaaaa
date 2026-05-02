@@ -7,7 +7,7 @@ from django.db.models import Count
 
 
 class Cartoon(models.Model):
-    title = models.CharField(max_length=15, verbose_name="Название")
+    title = models.CharField(max_length=100, verbose_name="Название")
     author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
                                blank=True, related_name='cartoons')
     created_at = models.DateTimeField(auto_now_add=True)
