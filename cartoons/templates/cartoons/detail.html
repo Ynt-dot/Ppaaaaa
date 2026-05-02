@@ -659,10 +659,25 @@
                 }
             } finally { submitCommentBtn.disabled = false; }
         });
-        commentText.addEventListener('keydown', e => { if (e.key === 'Enter' && e.ctrlKey) submitCommentBtn.click(); });
+        commentText.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitCommentBtn.click(); }
+        });
     }
 
     loadComments(true);
+
+    // ── Enter для textarea ответов и редактирования ───────────────────────
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' || e.shiftKey) return;
+        const ta = e.target;
+        if (ta.classList.contains('reply-textarea')) {
+            e.preventDefault();
+            ta.closest('.reply-form').querySelector('.submit-reply-btn').click();
+        } else if (ta.classList.contains('edit-textarea')) {
+            e.preventDefault();
+            ta.closest('.edit-form').querySelector('.submit-edit-btn').click();
+        }
+    });
 
     // ── Модал: ветка комментариев ─────────────────────────────────────────
     const threadModalEl  = document.getElementById('threadModal');
