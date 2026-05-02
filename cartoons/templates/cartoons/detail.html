@@ -331,7 +331,7 @@
     let commentsLoading = false;
 
     function initCommentClamp(el) {
-        const cBody = el.querySelector(':scope > .c-indent > .d-flex > .c-body');
+        const cBody = el.querySelector(':scope > .c-indent > .comment-self > .d-flex > .c-body');
         if (!cBody) return;
         const textEl    = cBody.querySelector('.comment-text-clamp');
         const toggleBtn = cBody.querySelector('.comment-expand-btn');
@@ -341,25 +341,26 @@
         });
     }
 
-    function buildCommentEl(c) {
+    function buildCommentEl(c, baseLevel = 0) {
         const likedClass = c.user_liked ? 'btn-danger' : 'btn-outline-danger';
         const authorHTML = c.author_url
             ? `<a href="${escapeHtml(c.author_url)}" class="username-link">${escapeHtml(c.author)}</a>`
             : escapeHtml(c.author);
         const avatarImg  = `<img src="${escapeHtml(c.avatar_url)}" class="user-avatar-sm" alt="">`;
         const avatarLink = c.author_url ? `<a href="${escapeHtml(c.author_url)}">${avatarImg}</a>` : avatarImg;
-        const indent     = Math.min(c.level, 6) * 20;
+        const relLevel   = Math.max(0, c.level - baseLevel);
+        const indent     = relLevel > 0 ? 32 : 0;
 
-        const editedMark   = c.is_edited ? `<small class="text-muted edited-mark" style="font-size:0.72rem;">изм.</small>` : '';
+        const editedMark   = c.is_edited ? `<small class="text-muted edited-mark ms-1" style="font-size:0.72rem;">изм.</small>` : '';
         const pinnedBadge  = `<i class="bi bi-pin-fill pin-badge ms-1" style="font-size:0.72rem;${c.is_pinned ? '' : 'display:none;'}"></i>`;
         const pinBtnHTML   = c.can_pin
             ? `<button class="pin-btn btn btn-link btn-sm p-0 ms-auto" style="font-size:0.82rem;" data-comment-id="${c.id}" title="${c.is_pinned ? 'Открепить' : 'Закрепить'}"><i class="bi ${c.is_pinned ? 'bi-pin-fill' : 'bi-pin'}"></i></button>`
             : '';
         const replyBtnHTML = IS_AUTH
-            ? `<button class="reply-btn btn btn-link btn-sm p-0" style="font-size:0.78rem;" data-comment-id="${c.id}">Ответить</button>`
+            ? `<button class="reply-btn btn btn-link btn-sm p-0" style="font-size:0.72rem;" data-comment-id="${c.id}">Ответить</button>`
             : '';
         const editBtnHTML  = c.is_own
-            ? `<button class="edit-btn btn btn-link btn-sm p-0" style="font-size:0.78rem;" data-comment-id="${c.id}">Редактировать</button>`
+            ? `<button class="edit-btn btn btn-link btn-sm p-0" style="font-size:0.72rem;" data-comment-id="${c.id}">Редактировать</button>`
             : '';
         const replyFormHTML = IS_AUTH ? `
             <div class="reply-form mt-2" data-form-id="${c.id}" style="display:none;">
@@ -389,39 +390,42 @@
         if (c.has_deeper_replies) bottomHTML += `<button class="view-thread-btn btn btn-outline-secondary btn-sm" data-comment-id="${c.id}">Посмотреть ветку</button>`;
 
         const div = document.createElement('div');
-        div.className = 'comment-item py-2 border-bottom' + (c.is_pinned ? ' pinned-comment' : '');
+        div.className = 'comment-item py-2';
         div.dataset.commentId = c.id;
         div.dataset.level = c.level;
+        div.dataset.relLevel = relLevel;
         div.innerHTML = `<div class="c-indent" style="margin-left:${indent}px">
-            <div class="d-flex gap-2 align-items-start">
-                <div class="flex-shrink-0">${avatarLink}</div>
-                <div class="flex-grow-1 min-w-0 c-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div><small class="fw-bold">${authorHTML}</small>
-                        <small class="text-muted ms-2">${escapeHtml(c.created_at)}${pinnedBadge}</small></div>
-                        <span class="d-flex align-items-center gap-1 ms-2 flex-shrink-0">
-                            <button class="btn btn-sm ${likedClass} comment-like-btn" data-comment-id="${c.id}">
-                                ❤ <span class="comment-likes-count">${c.likes_count}</span>
-                            </button>
-                        </span>
+            <div class="comment-self${c.is_pinned ? ' pinned-comment' : ''}">
+                <div class="d-flex gap-2 align-items-start">
+                    <div class="flex-shrink-0">${avatarLink}</div>
+                    <div class="flex-grow-1 min-w-0 c-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div><span class="fw-bold" style="font-size:0.9rem;">${authorHTML}</span>
+                            <small class="text-muted ms-2 comment-date">${escapeHtml(c.created_at)}</small>${editedMark}${pinnedBadge}</div>
+                            <span class="d-flex align-items-center gap-1 ms-2 flex-shrink-0">
+                                <button class="btn btn-sm ${likedClass} comment-like-btn" data-comment-id="${c.id}">
+                                    ❤ <span class="comment-likes-count">${c.likes_count}</span>
+                                </button>
+                            </span>
+                        </div>
+                        <p class="mb-0 desc-clamp comment-text-clamp" style="white-space:pre-wrap;margin-top:-3px;">${escapeHtml(c.text)}</p>
+                        <div class="d-flex align-items-center gap-1 comment-meta-row">
+                            <button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.78rem;">ещё</button>
+                            ${replyBtnHTML}
+                            ${editBtnHTML}
+                            ${pinBtnHTML}
+                        </div>
+                        ${replyFormHTML}
+                        ${editFormHTML}
                     </div>
-                    <p class="mb-0 mt-1 desc-clamp comment-text-clamp" style="white-space:pre-wrap;">${escapeHtml(c.text)}</p>
-                    <div class="d-flex align-items-center comment-meta-row">
-                        <button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.78rem;">ещё</button>
-                        ${editedMark}
-                        ${pinBtnHTML}
-                    </div>
-                    <div class="mt-1 d-flex gap-2 flex-wrap">${replyBtnHTML}${editBtnHTML}</div>
-                    ${replyFormHTML}
-                    ${editFormHTML}
-                    <div class="replies-container" data-parent-id="${c.id}"></div>
-                    ${bottomHTML ? `<div class="mt-1">${bottomHTML}</div>` : ''}
                 </div>
             </div>
+            <div class="replies-container" data-parent-id="${c.id}"></div>
+            ${bottomHTML ? `<div class="mt-1 bottom-btns">${bottomHTML}</div>` : ''}
         </div>`;
 
         const repliesContainer = div.querySelector('.replies-container');
-        if (c.replies) c.replies.forEach(r => repliesContainer.appendChild(buildCommentEl(r)));
+        if (c.replies) c.replies.forEach(r => repliesContainer.appendChild(buildCommentEl(r, baseLevel)));
 
         initCommentClamp(div);
         return div;
@@ -560,24 +564,24 @@
                 if (level >= 2) {
                     const commentEl = root.querySelector(`.comment-item[data-comment-id="${commentId}"]`);
                     if (commentEl && !commentEl.querySelector('.view-thread-btn')) {
-                        const cBody = commentEl.querySelector('.c-body');
-                        let bottomDiv = cBody.querySelector('.mt-1:last-child');
+                        const cIndent = commentEl.querySelector('.c-indent');
+                        let bottomDiv = cIndent.querySelector('.bottom-btns');
                         const btn = document.createElement('button');
                         btn.className = 'view-thread-btn btn btn-outline-secondary btn-sm';
                         btn.dataset.commentId = commentId;
                         btn.textContent = 'Посмотреть ветку';
-                        if (bottomDiv && bottomDiv.querySelector('.load-replies-btn, .view-thread-btn')) {
+                        if (bottomDiv) {
                             bottomDiv.appendChild(btn);
                         } else {
                             bottomDiv = document.createElement('div');
-                            bottomDiv.className = 'mt-1';
+                            bottomDiv.className = 'mt-1 bottom-btns';
                             bottomDiv.appendChild(btn);
-                            cBody.appendChild(bottomDiv);
+                            cIndent.appendChild(bottomDiv);
                         }
                     }
                 } else {
                     const repliesContainer = root.querySelector(`.replies-container[data-parent-id="${commentId}"]`);
-                    if (repliesContainer) repliesContainer.insertBefore(buildCommentEl(d), repliesContainer.firstChild);
+                    if (repliesContainer) repliesContainer.insertBefore(buildCommentEl(d, root === threadModalBody ? threadBaseLevel : 0), repliesContainer.firstChild);
                 }
             }
         } finally { submitBtn.disabled = false; }
@@ -593,7 +597,8 @@
                 const d = await resp.json();
                 const commentEl = root.querySelector(`.comment-item[data-comment-id="${commentId}"]`);
                 if (commentEl) {
-                    commentEl.classList.toggle('pinned-comment', d.pinned);
+                    const commentSelf = commentEl.querySelector('.comment-self');
+                    if (commentSelf) commentSelf.classList.toggle('pinned-comment', d.pinned);
                     commentEl.querySelector('.pin-badge').style.display = d.pinned ? '' : 'none';
                     const icon = pinBtn.querySelector('i');
                     icon.className = d.pinned ? 'bi bi-pin-fill' : 'bi bi-pin';
@@ -624,13 +629,13 @@
                     const textEl = cBody.querySelector('.comment-text-clamp');
                     if (textEl) { textEl.textContent = d.text; textEl.classList.remove('expanded'); }
                     textarea.value = d.text;
-                    const metaRow = cBody.querySelector('.comment-meta-row');
-                    if (metaRow && !metaRow.querySelector('.edited-mark')) {
+                    const dateEl = cBody.querySelector('.comment-date');
+                    if (dateEl && !cBody.querySelector('.edited-mark')) {
                         const mark = document.createElement('small');
-                        mark.className = 'text-muted edited-mark';
+                        mark.className = 'text-muted edited-mark ms-1';
                         mark.style.fontSize = '0.72rem';
                         mark.textContent = 'изм.';
-                        metaRow.appendChild(mark);
+                        dateEl.insertAdjacentElement('afterend', mark);
                     }
                 }
             }
@@ -642,11 +647,12 @@
         const offset    = parseInt(loadBtn.dataset.offset) || 0;
         const per       = parseInt(loadBtn.dataset.per) || 3;
         loadBtn.disabled = true;
+        const baseLevel = root === threadModalBody ? threadBaseLevel : 0;
         try {
             const resp = await fetch(`/comment/${commentId}/replies/?offset=${offset}&per_page=${per}`);
             const data = await resp.json();
             const repliesContainer = root.querySelector(`.replies-container[data-parent-id="${commentId}"]`);
-            if (repliesContainer) data.comments.forEach(c => repliesContainer.appendChild(buildCommentEl(c)));
+            if (repliesContainer) data.comments.forEach(c => repliesContainer.appendChild(buildCommentEl(c, baseLevel)));
             if (data.has_next) { loadBtn.dataset.offset = offset + per; loadBtn.disabled = false; }
             else loadBtn.remove();
         } catch { loadBtn.disabled = false; }
@@ -716,12 +722,14 @@
     let threadPage   = 1;
     let threadModalInstance = null;
     let threadHistory = [];
+    let threadBaseLevel = 0;
 
     threadModalBody.addEventListener('click', e => handleCommentClick(e, threadModalBody));
 
     threadModalEl.addEventListener('hidden.bs.modal', () => {
         threadHistory = [];
         threadBackBtn.classList.add('d-none');
+        threadBaseLevel = 0;
     });
 
     threadBackBtn.addEventListener('click', () => {
@@ -730,6 +738,7 @@
         threadRootId = prev.rootId;
         threadPage   = prev.page;
         threadModalBody.innerHTML = prev.bodyHTML;
+        threadBaseLevel = prev.baseLevel;
         if (!threadHistory.length) threadBackBtn.classList.add('d-none');
     });
 
@@ -739,6 +748,7 @@
                 rootId: threadRootId,
                 page: threadPage,
                 bodyHTML: threadModalBody.innerHTML,
+                baseLevel: threadBaseLevel,
             });
             threadBackBtn.classList.remove('d-none');
         } else {
@@ -760,7 +770,8 @@
             const resp = await fetch(`/comment/${threadRootId}/thread/?page=1`);
             const data = await resp.json();
             threadModalBody.innerHTML = '';
-            threadModalBody.appendChild(buildCommentEl(data.root));
+            threadBaseLevel = data.root.level;
+            threadModalBody.appendChild(buildCommentEl(data.root, threadBaseLevel));
         } catch {
             threadModalBody.innerHTML = '<p class="text-muted text-center">Ошибка загрузки</p>';
         }
