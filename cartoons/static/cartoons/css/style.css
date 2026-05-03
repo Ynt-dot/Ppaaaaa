@@ -309,8 +309,8 @@ input[type="password"]::-ms-clear {
     flex-shrink: 0;
 }
 .user-avatar-sm {
-    width: 32px;
-    height: 32px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     object-fit: cover;
     border: 1px solid #dee2e6;
