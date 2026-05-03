@@ -397,9 +397,7 @@ colorBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         colorBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        if (currentTool === 'pencil') {
-            currentColor = btn.dataset.color;
-        }
+        currentColor = btn.dataset.color;
     });
 });
 
