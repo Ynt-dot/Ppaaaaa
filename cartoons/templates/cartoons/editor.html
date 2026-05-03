@@ -25,9 +25,11 @@
             <div class="editor-left">
                 <!-- Canvas -->
                 <div class="canvas-container">
-                    <canvas id="background-canvas" width="600" height="400"></canvas>
-                    <canvas id="draw-canvas" width="600" height="400"></canvas>
-                    <canvas id="cursor-canvas" width="600" height="400"></canvas>
+                    <div class="canvas-wrapper">
+                        <canvas id="background-canvas" width="600" height="400"></canvas>
+                        <canvas id="draw-canvas" width="600" height="400"></canvas>
+                        <canvas id="cursor-canvas" width="600" height="400"></canvas>
+                    </div>
                 </div>
 
                 <!-- Панель инструментов -->
@@ -102,6 +104,7 @@
                     <hr>
                 {% endif %}
                 <p><strong>Горячие клавиши</strong><br>
+                    F - переключение в полноэкранный режим<br>
                     C - копировать кадр<br>
                     V - вставить кадр<br>
                     Z - отмена предыдущего действия<br>

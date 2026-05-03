@@ -14,10 +14,13 @@ canvas {
     height: auto;
 }
 .canvas-container {
-    position: relative;
     width: fit-content;
     margin: 0 auto;
     cursor: none;
+}
+.canvas-wrapper {
+    position: relative;
+    width: fit-content;
 }
 .toolbar {
     background: #f8f9fa;
@@ -206,3 +209,51 @@ canvas {
 .size-btn[data-size="5"] .brush-dot  { width: 10px; height: 10px; }
 .size-btn[data-size="9"] .brush-dot  { width: 14px; height: 14px; }
 .size-btn[data-size="17"] .brush-dot { width: 22px; height: 22px; }
+
+/* === Fullscreen mode === */
+body.editor-fullscreen nav.navbar { display: none !important; }
+body.editor-fullscreen .col { display: none !important; }
+body.editor-fullscreen .col-auto {
+    position: fixed;
+    inset: 0;
+    z-index: 1040;
+    background: #fff;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 10px;
+    box-sizing: border-box;
+}
+body.editor-fullscreen .editor-left {
+    width: 100% !important;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+}
+body.editor-fullscreen .canvas-container {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    min-height: 0;
+}
+body.editor-fullscreen .canvas-wrapper {
+    height: 100%;
+}
+body.editor-fullscreen canvas {
+    height: 100%;
+    width: auto;
+    max-width: calc(100vw - 20px);
+    max-height: none;
+}
+body.editor-fullscreen .toolbar {
+    max-width: 100%;
+    width: 100%;
+    margin-top: 8px;
+}
+body.editor-fullscreen .frames-strip {
+    max-width: 100%;
+    width: 100%;
+}

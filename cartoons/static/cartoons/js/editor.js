@@ -444,6 +444,7 @@ confirmSave.addEventListener('click', () => {
     document.getElementById('description-input').value = description;
     document.getElementById('frames-input').value = JSON.stringify(frames);
     formChanged = false;
+    exitFullscreen();
     document.getElementById('editor-form').submit();
 });
 
@@ -461,8 +462,45 @@ function pushState() {
     }
 }
 
+// ========== Fullscreen ==========
+
+let isFullscreen = false;
+
+function enterFullscreen() {
+    isFullscreen = true;
+    document.body.classList.add('editor-fullscreen');
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+    }
+}
+
+function exitFullscreen() {
+    isFullscreen = false;
+    document.body.classList.remove('editor-fullscreen');
+    if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+    }
+}
+
+function toggleFullscreen() {
+    if (isFullscreen) exitFullscreen(); else enterFullscreen();
+}
+
+document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && isFullscreen) {
+        isFullscreen = false;
+        document.body.classList.remove('editor-fullscreen');
+    }
+});
+
 document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    // Клавиша F (полноэкранный режим)
+    if (e.code === 'KeyF' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        toggleFullscreen();
+    }
 
     // Клавиша Z (отмена)
     if (e.code === 'KeyZ' && !e.ctrlKey && !e.metaKey) {
