@@ -28,6 +28,8 @@ def create_gif_from_frames(frames_data, fps=12, max_frames=None):
     if max_frames is not None:
         frames_data = frames_data[:max_frames]
 
+    GIF_SIZE = (600, 400)
+
     images = []
     for data_url in frames_data:
         format, imgstr = data_url.split(';base64,')
@@ -35,6 +37,8 @@ def create_gif_from_frames(frames_data, fps=12, max_frames=None):
         img = Image.open(BytesIO(image_data)).convert('RGBA')
         white_bg = Image.new('RGB', img.size, (255, 255, 255))
         white_bg.paste(img, (0, 0), img)
+        if white_bg.size != GIF_SIZE:
+            white_bg = white_bg.resize(GIF_SIZE, Image.LANCZOS)
         images.append(white_bg)
 
     if not images:

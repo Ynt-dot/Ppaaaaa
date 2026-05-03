@@ -204,11 +204,11 @@ canvas {
     background: currentColor;
     margin: 2px;
 }
-.size-btn[data-size="2"] .brush-dot  { width: 6px;  height: 6px;  }
-.size-btn[data-size="4"] .brush-dot  { width: 8px;  height: 8px;  }
-.size-btn[data-size="5"] .brush-dot  { width: 10px; height: 10px; }
-.size-btn[data-size="9"] .brush-dot  { width: 14px; height: 14px; }
-.size-btn[data-size="17"] .brush-dot { width: 22px; height: 22px; }
+.size-btn[data-size="10"] .brush-dot { width: 6px;  height: 6px;  }
+.size-btn[data-size="20"] .brush-dot { width: 8px;  height: 8px;  }
+.size-btn[data-size="25"] .brush-dot { width: 10px; height: 10px; }
+.size-btn[data-size="45"] .brush-dot { width: 14px; height: 14px; }
+.size-btn[data-size="85"] .brush-dot { width: 22px; height: 22px; }
 
 /* === Fullscreen mode === */
 body.editor-fullscreen nav.navbar { display: none !important; }

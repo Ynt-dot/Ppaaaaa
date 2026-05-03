@@ -13,7 +13,7 @@ let history = []; // история предыдущих кадров (макс.
 
 let currentTool = 'pencil';
 let currentColor = '#000000';
-let brushSize = 4; // начальный размер кисти
+let brushSize = 20; // начальный размер кисти
 let playing = false;
 let playInterval = null;
 const fps = 10;
@@ -636,18 +636,18 @@ function drawCursor(x, y) {
     if (x === undefined || y === undefined) return;
 
     const radius = brushSize / 2;
-    
-    cursorCtx.beginPath();
-    cursorCtx.arc(x, y, radius, 0, 2 * Math.PI);
-    
-    if (brushSize <= 5) {
-        // Маленький размер — полностью залитый круг
-        cursorCtx.fillStyle = '#e0e0e0';  // ещё чуть темнее
+
+    if (brushSize <= 62) {
+        cursorCtx.beginPath();
+        cursorCtx.arc(x, y, radius, 0, 2 * Math.PI);
+        cursorCtx.fillStyle = '#e0e0e0';
         cursorCtx.fill();
     } else {
-        // Большой размер — только контур
-        cursorCtx.strokeStyle = '#e0e0e0'; // тот же цвет
-        cursorCtx.lineWidth = 1.5;         // потоньше
+        const strokeWidth = 4;
+        cursorCtx.beginPath();
+        cursorCtx.arc(x, y, radius - strokeWidth / 2, 0, 2 * Math.PI);
+        cursorCtx.strokeStyle = '#e0e0e0';
+        cursorCtx.lineWidth = strokeWidth;
         cursorCtx.stroke();
     }
 }
