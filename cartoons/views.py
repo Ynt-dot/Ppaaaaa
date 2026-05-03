@@ -49,10 +49,21 @@ SORT_LABELS = {
 
 
 def index(request):
-    default_sort = 'trending' if request.user.is_authenticated else 'popular'
-    sort = request.GET.get('sort', default_sort)
-    if sort not in SORT_LABELS:
-        sort = default_sort
+    if request.user.is_authenticated:
+        pref, _ = UserPreference.objects.get_or_create(user=request.user)
+        if 'sort' in request.GET:
+            sort = request.GET['sort']
+            if sort not in SORT_LABELS:
+                sort = pref.index_sort
+            elif sort != pref.index_sort:
+                pref.index_sort = sort
+                pref.save(update_fields=['index_sort'])
+        else:
+            sort = pref.index_sort
+    else:
+        sort = request.GET.get('sort', 'popular')
+        if sort not in SORT_LABELS:
+            sort = 'popular'
 
     if sort == 'popular':
         cartoon_list = Cartoon.objects.annotate(

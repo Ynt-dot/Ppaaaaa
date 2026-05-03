@@ -138,6 +138,7 @@ class UserPreference(models.Model):
     )
     rec_sort = models.CharField(max_length=20, default='trending')
     rec_author_filter = models.BooleanField(default=False)
+    index_sort = models.CharField(max_length=20, default='trending')
 
 
 class UserNote(models.Model):
