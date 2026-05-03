@@ -291,9 +291,6 @@ input[type="password"]::-ms-clear {
 }
 
 /* === Detail / Player === */
-.frame-display-img {
-    max-height: 500px;
-}
 
 /* === Avatars === */
 .user-avatar {
