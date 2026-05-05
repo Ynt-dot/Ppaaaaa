@@ -136,6 +136,7 @@ class UserPreference(models.Model):
         'Cartoon', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='used_as_avatar'
     )
+    avatar_gif = models.ImageField(upload_to='avatars/', null=True, blank=True)
     rec_sort = models.CharField(max_length=20, default='trending')
     rec_author_filter = models.BooleanField(default=False)
     index_sort = models.CharField(max_length=20, default='trending')

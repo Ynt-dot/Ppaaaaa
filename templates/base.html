@@ -62,7 +62,168 @@
         {% endblock %}
     </main>
 
+    <!-- Модал обрезки аватара (глобальный) -->
+    <div class="modal fade" id="avatarCropModal" tabindex="-1" aria-labelledby="avatarCropModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width:344px;">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h5 class="modal-title fs-6" id="avatarCropModalLabel">Область аватара</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body crop-modal-body">
+                    <div class="crop-zoom-bar">
+                        <span class="crop-zoom-label">+</span>
+                        <div class="crop-zoom-slider-track">
+                            <input type="range" id="avatarZoomSlider" class="crop-zoom-slider" min="0" max="100" value="0">
+                        </div>
+                        <span class="crop-zoom-label">−</span>
+                    </div>
+                    <div class="crop-stage" id="avatarCropStage">
+                        <img id="avatarCropImg" src="" alt="" draggable="false">
+                        <div class="crop-overlay"></div>
+                        <div class="crop-circle-ring"></div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="avatarCropConfirm">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="{% static 'cartoons/js/bootstrap.bundle.min.js' %}"></script>
+    <script>
+    // ── Утилита кропа аватара ────────────────────────────────────────────────
+    const avatarCropUI = (() => {
+        const STAGE = 300, R = 100;
+        const CX = STAGE / 2, CY = STAGE / 2;
+
+        let stageEl, imgEl, zoomSlider, confirmBtn, bsModal;
+        let NW, NH, minScale, maxScale, scale;
+        let cx = CX, cy = CY;
+        let isDragging = false;
+        let dragStartMouseX, dragStartMouseY, dragStartCX, dragStartCY;
+        let onConfirm = null;
+
+        function computeLimits() {
+            minScale = Math.max(2 * R / NW, 2 * R / NH);
+            maxScale = minScale * 5;
+        }
+
+        function clampCXY() {
+            const hw = NW * scale / 2, hh = NH * scale / 2;
+            cx = Math.min(CX - R + hw, Math.max(CX + R - hw, cx));
+            cy = Math.min(CY - R + hh, Math.max(CY + R - hh, cy));
+        }
+
+        function applyTransform() {
+            const RW = NW * scale, RH = NH * scale;
+            imgEl.style.left   = (cx - RW / 2) + 'px';
+            imgEl.style.top    = (cy - RH / 2) + 'px';
+            imgEl.style.width  = RW + 'px';
+            imgEl.style.height = RH + 'px';
+        }
+
+        // Возвращает нормализованные координаты (0–1) прямоугольника вырезки
+        function getCropBox() {
+            const RW = NW * scale, RH = NH * scale;
+            const imgLeft = cx - RW / 2;
+            const imgTop  = cy - RH / 2;
+            return {
+                left:   Math.max(0, Math.min(1, (CX - R - imgLeft) / RW)),
+                top:    Math.max(0, Math.min(1, (CY - R - imgTop ) / RH)),
+                right:  Math.max(0, Math.min(1, (CX + R - imgLeft) / RW)),
+                bottom: Math.max(0, Math.min(1, (CY + R - imgTop ) / RH)),
+            };
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const modalEl = document.getElementById('avatarCropModal');
+            if (!modalEl) return;
+            bsModal    = new bootstrap.Modal(modalEl);
+            stageEl    = document.getElementById('avatarCropStage');
+            imgEl      = document.getElementById('avatarCropImg');
+            zoomSlider = document.getElementById('avatarZoomSlider');
+            confirmBtn = document.getElementById('avatarCropConfirm');
+
+            stageEl.addEventListener('mousedown', e => {
+                isDragging = true;
+                dragStartMouseX = e.clientX; dragStartMouseY = e.clientY;
+                dragStartCX = cx; dragStartCY = cy;
+                e.preventDefault();
+            });
+            document.addEventListener('mousemove', e => {
+                if (!isDragging) return;
+                cx = dragStartCX + (e.clientX - dragStartMouseX);
+                cy = dragStartCY + (e.clientY - dragStartMouseY);
+                clampCXY();
+                applyTransform();
+            });
+            document.addEventListener('mouseup', () => { isDragging = false; });
+
+            stageEl.addEventListener('touchstart', e => {
+                if (e.touches.length !== 1) return;
+                isDragging = true;
+                dragStartMouseX = e.touches[0].clientX; dragStartMouseY = e.touches[0].clientY;
+                dragStartCX = cx; dragStartCY = cy;
+                e.preventDefault();
+            }, { passive: false });
+            document.addEventListener('touchmove', e => {
+                if (!isDragging || e.touches.length !== 1) return;
+                cx = dragStartCX + (e.touches[0].clientX - dragStartMouseX);
+                cy = dragStartCY + (e.touches[0].clientY - dragStartMouseY);
+                clampCXY();
+                applyTransform();
+                e.preventDefault();
+            }, { passive: false });
+            document.addEventListener('touchend', () => { isDragging = false; });
+
+            zoomSlider.addEventListener('input', () => {
+                const RW = NW * scale, RH = NH * scale;
+                const nx = (CX - (cx - RW / 2)) / RW;
+                const ny = (CY - (cy - RH / 2)) / RH;
+                const t = zoomSlider.value / 100;
+                scale = minScale * Math.pow(maxScale / minScale, t);
+                const nRW = NW * scale, nRH = NH * scale;
+                cx = CX + nRW / 2 - nx * nRW;
+                cy = CY + nRH / 2 - ny * nRH;
+                clampCXY();
+                applyTransform();
+            });
+
+            confirmBtn.addEventListener('click', () => {
+                const crop = getCropBox();
+                if (onConfirm) onConfirm(crop.left, crop.top, crop.right, crop.bottom);
+                bsModal.hide();
+            });
+        });
+
+        return {
+            open(previewUrl, callback) {
+                onConfirm = callback;
+                zoomSlider.value = 0;
+                const setup = () => {
+                    NW = imgEl.naturalWidth;
+                    NH = imgEl.naturalHeight;
+                    computeLimits();
+                    scale = minScale;
+                    cx = CX;
+                    cy = CY;
+                    clampCXY();
+                    applyTransform();
+                };
+                if (imgEl.src === previewUrl && imgEl.naturalWidth > 0) {
+                    setup();
+                } else {
+                    imgEl.onload = setup;
+                    imgEl.src = previewUrl;
+                }
+                bsModal.show();
+            }
+        };
+    })();
+    </script>
     <script>
         // Добавляем класс form-control ко всем текстовым полям в формах
         document.querySelectorAll('form input[type=text], form input[type=password], form input[type=number]').forEach(input => {

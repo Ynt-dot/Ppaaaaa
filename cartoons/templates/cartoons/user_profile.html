@@ -559,7 +559,7 @@
         function buildAvatarCard(c) {
             const previewSrc = c.preview_url ? escapeHtml(c.preview_url) : '';
             return '<div class="col">' +
-                '<div class="card avatar-selector-item border" data-cartoon-id="' + c.id + '">' +
+                '<div class="card avatar-selector-item border" data-cartoon-id="' + c.id + '" data-preview-url="' + previewSrc + '">' +
                 (previewSrc ? '<img src="' + previewSrc + '" class="card-img-top" style="aspect-ratio:3/2;object-fit:contain;background:#f8f9fa">' : '') +
                 '<div class="card-body p-1 text-center"><small>' + escapeHtml(c.title) + '</small></div>' +
                 '</div></div>';
@@ -624,27 +624,33 @@
             }
         });
 
-        grid.addEventListener('click', async (e) => {
+        grid.addEventListener('click', (e) => {
             const item = e.target.closest('.avatar-selector-item');
             if (!item || item.dataset.loading) return;
-            item.dataset.loading = '1';
+            const cartoonId  = item.dataset.cartoonId;
+            const previewUrl = item.dataset.previewUrl;
+            if (!previewUrl) return;
 
-            const cartoonId = item.dataset.cartoonId;
-            try {
-                const resp = await postJson(SET_AVATAR_BASE + cartoonId + '/set-as-avatar/', {});
-                if (resp.ok) {
-                    const d = await resp.json();
-                    if (avatarImg && d.avatar_url) avatarImg.src = d.avatar_url;
-                    grid.querySelectorAll('.avatar-selector-item').forEach(el => el.classList.remove('selected'));
-                    item.classList.add('selected');
-                    bootstrap.Modal.getInstance(avatarModal).hide();
-                } else {
-                    const d = await resp.json();
-                    alert(d.error || 'Ошибка');
+            avatarCropUI.open(previewUrl, async (left, top, right, bottom) => {
+                item.dataset.loading = '1';
+                try {
+                    const resp = await postJson(SET_AVATAR_BASE + cartoonId + '/set-as-avatar/', { left, top, right, bottom });
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        if (avatarImg && d.avatar_url) {
+                            avatarImg.src = d.avatar_url + '?t=' + Date.now();
+                        }
+                        grid.querySelectorAll('.avatar-selector-item').forEach(el => el.classList.remove('selected'));
+                        item.classList.add('selected');
+                        bootstrap.Modal.getInstance(avatarModal).hide();
+                    } else {
+                        const d = await resp.json();
+                        alert(d.error || 'Ошибка');
+                    }
+                } finally {
+                    delete item.dataset.loading;
                 }
-            } finally {
-                delete item.dataset.loading;
-            }
+            });
         });
     }
     {% endif %}

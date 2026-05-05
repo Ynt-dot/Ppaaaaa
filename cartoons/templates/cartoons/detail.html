@@ -271,13 +271,17 @@
     // ── Установить аватар ────────────────────────────────────────────────────
     const setAvatarBtn = document.getElementById('set-avatar-btn');
     if (setAvatarBtn) {
-        setAvatarBtn.addEventListener('click', async () => {
-            setAvatarBtn.disabled = true;
-            try {
-                const resp = await postJson(setAvatarBtn.dataset.url, {});
-                if (resp.ok) { setAvatarBtn.textContent = '✓ Аватар установлен'; setAvatarBtn.classList.add('text-success'); }
-                else { const d = await resp.json(); alert(d.error || 'Ошибка'); setAvatarBtn.disabled = false; }
-            } catch { setAvatarBtn.disabled = false; }
+        setAvatarBtn.addEventListener('click', () => {
+            {% if cartoon.preview %}
+            avatarCropUI.open('{{ cartoon.preview.url|escapejs }}', async (left, top, right, bottom) => {
+                setAvatarBtn.disabled = true;
+                try {
+                    const resp = await postJson(setAvatarBtn.dataset.url, { left, top, right, bottom });
+                    if (resp.ok) { setAvatarBtn.textContent = '✓ Аватар установлен'; setAvatarBtn.classList.add('text-success'); }
+                    else { const d = await resp.json(); alert(d.error || 'Ошибка'); setAvatarBtn.disabled = false; }
+                } catch { setAvatarBtn.disabled = false; }
+            });
+            {% endif %}
         });
     }
 

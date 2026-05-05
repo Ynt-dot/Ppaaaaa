@@ -2,6 +2,7 @@ import base64
 from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
+import os
 from django.core.mail import send_mail
 from django.core.mail.utils import DNS_NAME
 from django.urls import reverse
@@ -57,6 +58,47 @@ def create_gif_from_frames(frames_data, fps=12, max_frames=None):
     )
     gif_buffer.seek(0)
     return ContentFile(gif_buffer.read(), name='animation.gif')
+
+
+def create_avatar_gif(source_path, left_n, top_n, right_n, bottom_n, size=200):
+    """
+    Crop each frame of source GIF to the specified normalized rectangle and
+    return a square ContentFile GIF of `size x size` pixels.
+
+    left_n, top_n, right_n, bottom_n are in [0, 1] relative to image dimensions.
+    """
+    images = []
+    durations = []
+    with Image.open(source_path) as src:
+        try:
+            n_frames = src.n_frames
+        except Exception:
+            n_frames = 1
+        for i in range(n_frames):
+            src.seek(i)
+            frame = src.copy().convert('RGBA')
+            bg = Image.new('RGB', frame.size, (255, 255, 255))
+            bg.paste(frame, mask=frame.split()[3])
+            w, h = bg.size
+            left   = max(0, int(round(left_n   * w)))
+            top    = max(0, int(round(top_n    * h)))
+            right  = min(w, int(round(right_n  * w)))
+            bottom = min(h, int(round(bottom_n * h)))
+            cropped = bg.crop((left, top, right, bottom))
+            resized = cropped.resize((size, size), Image.LANCZOS)
+            images.append(resized)
+            durations.append(src.info.get('duration', 100))
+    buf = BytesIO()
+    if len(images) == 1:
+        images[0].save(buf, format='GIF')
+    else:
+        images[0].save(
+            buf, format='GIF',
+            save_all=True, append_images=images[1:],
+            duration=durations, loop=0, optimize=False,
+        )
+    buf.seek(0)
+    return ContentFile(buf.read(), name='avatar.gif')
 
 
 def send_verification_email(user):

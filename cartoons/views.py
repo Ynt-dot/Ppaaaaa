@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Cartoon, CartoonLike, Comment, CommentLike, UserPreference, UserNote, Favorite, CartoonView
 import json
-from .utils import create_gif_from_frames
+from .utils import create_gif_from_frames, create_avatar_gif
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from .utils import send_verification_email
@@ -23,13 +23,12 @@ from django.templatetags.static import static
 
 
 def _get_user_avatar_url(user):
-    """Return avatar preview URL for user, or default avatar static URL."""
+    """Return avatar GIF URL for user, or default avatar static URL."""
     if user is not None:
         pref = getattr(user, 'preference', None)
-        if pref and pref.avatar_id:
+        if pref and pref.avatar_gif:
             try:
-                if pref.avatar.preview:
-                    return pref.avatar.preview.url
+                return pref.avatar_gif.url
             except Exception:
                 pass
     return static('cartoons/images/default_avatar.png')
@@ -695,23 +694,13 @@ def user_profile(request, username):
 
     is_own_profile = request.user == profile_user
 
-    # Аватар профиля
-    pref = getattr(profile_user, 'preference', None)
-    if pref and pref.avatar_id:
-        try:
-            profile_avatar_url = pref.avatar.preview.url
-        except Exception:
-            profile_avatar_url = static('cartoons/images/default_avatar.png')
-    else:
-        profile_avatar_url = static('cartoons/images/default_avatar.png')
-
     context = {
         'profile_user': profile_user,
         'active_tab': tab,
         'user_note': user_note,
         'is_own_profile': is_own_profile,
         'total_cartoons': total_cartoons,
-        'profile_avatar_url': profile_avatar_url,
+        'profile_avatar_url': _get_user_avatar_url(profile_user),
     }
 
     if tab == 'album':
@@ -900,13 +889,39 @@ def set_as_avatar(request, pk):
             {'error': 'Мульт должен иметь от 1 до 10 кадров'}, status=400
         )
 
+    if not cartoon.preview:
+        return JsonResponse({'error': 'У мульта нет превью'}, status=400)
+
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        body = {}
+
+    def _clamp(v):
+        return max(0.0, min(1.0, float(v)))
+
+    left_n   = _clamp(body.get('left',   0))
+    top_n    = _clamp(body.get('top',    0))
+    right_n  = _clamp(body.get('right',  1))
+    bottom_n = _clamp(body.get('bottom', 1))
+
+    try:
+        avatar_content = create_avatar_gif(
+            cartoon.preview.path, left_n, top_n, right_n, bottom_n
+        )
+    except Exception as e:
+        return JsonResponse({'error': f'Ошибка создания аватара: {e}'}, status=500)
+
     pref, _ = UserPreference.objects.get_or_create(user=request.user)
+    if pref.avatar_gif:
+        pref.avatar_gif.delete(save=False)
     pref.avatar = cartoon
+    pref.avatar_gif.save(f'avatar_{request.user.id}.gif', avatar_content, save=False)
     pref.save()
 
     return JsonResponse({
         'ok': True,
-        'avatar_url': cartoon.preview.url if cartoon.preview else static('cartoons/images/default_avatar.png'),
+        'avatar_url': pref.avatar_gif.url,
     })
 
 
@@ -916,6 +931,8 @@ def delete_avatar(request):
         return JsonResponse({'error': 'login_required'}, status=401)
 
     pref, _ = UserPreference.objects.get_or_create(user=request.user)
+    if pref.avatar_gif:
+        pref.avatar_gif.delete(save=False)
     pref.avatar = None
     pref.save()
 
