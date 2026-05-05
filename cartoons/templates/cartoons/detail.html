@@ -38,7 +38,7 @@
                     <div class="d-flex align-items-center gap-2">
                         {% if cartoon.author %}
                         <a href="{% url 'user_profile' username=cartoon.author.username %}">
-                            <img src="{{ author_avatar_url }}" class="user-avatar-md" alt="{{ cartoon.author.username }}">
+                            <img id="author-avatar-img" src="{{ author_avatar_url }}" class="user-avatar-md" alt="{{ cartoon.author.username }}">
                         </a>
                         <div>
                             <a href="{% url 'user_profile' username=cartoon.author.username %}" class="username-link fs-5 d-block lh-1">{{ cartoon.author.username }}</a>
@@ -202,6 +202,8 @@
     const SET_SORT_URL    = "{% url 'set_comment_sort' %}";
     const REC_URL         = "{% url 'get_recommendations' cartoon.pk %}";
     const IS_AUTH         = {{ user.is_authenticated|yesno:'true,false' }};
+    const MY_PROFILE_URL  = "{% if user.is_authenticated %}{% url 'user_profile' username=request.user.username %}{% endif %}";
+    let myCurrentAvatarSrc = null;
 
     function getCsrf() {
         for (const c of document.cookie.split(';')) {
@@ -277,9 +279,18 @@
                 setAvatarBtn.disabled = true;
                 try {
                     const resp = await postJson(setAvatarBtn.dataset.url, { left, top, right, bottom });
-                    if (resp.ok) { setAvatarBtn.textContent = '✓ Аватар установлен'; setAvatarBtn.classList.add('text-success'); }
-                    else { const d = await resp.json(); alert(d.error || 'Ошибка'); setAvatarBtn.disabled = false; }
-                } catch { setAvatarBtn.disabled = false; }
+                    if (resp.ok) {
+                        const d = await resp.json();
+                        if (d.avatar_url) {
+                            myCurrentAvatarSrc = d.avatar_url + '?t=' + Date.now();
+                            const authorAvatarImg = document.getElementById('author-avatar-img');
+                            if (authorAvatarImg) authorAvatarImg.src = myCurrentAvatarSrc;
+                            if (MY_PROFILE_URL) document.querySelectorAll(`[data-author-url="${MY_PROFILE_URL}"]`).forEach(img => { img.src = myCurrentAvatarSrc; });
+                        }
+                    }
+                    else { const d = await resp.json(); alert(d.error || 'Ошибка'); }
+                } catch {}
+                setAvatarBtn.disabled = false;
             });
             {% endif %}
         });
@@ -348,7 +359,7 @@
         const authorHTML = c.author_url
             ? `<a href="${escapeHtml(c.author_url)}" class="username-link">${escapeHtml(c.author)}</a>`
             : escapeHtml(c.author);
-        const avatarImg  = `<img src="${escapeHtml(c.avatar_url)}" class="user-avatar-sm" alt="">`;
+        const avatarImg  = `<img src="${escapeHtml(c.avatar_url)}" class="user-avatar-sm" alt="" data-author-url="${escapeHtml(c.author_url || '')}">`;
         const avatarLink = c.author_url ? `<a href="${escapeHtml(c.author_url)}">${avatarImg}</a>` : avatarImg;
         const relLevel   = Math.max(0, c.level - baseLevel);
         const indent     = relLevel > 0 ? 32 : 0;
@@ -429,6 +440,8 @@
         if (c.replies) c.replies.forEach(r => repliesContainer.appendChild(buildCommentEl(r, baseLevel)));
 
         initCommentClamp(div);
+        if (myCurrentAvatarSrc && MY_PROFILE_URL)
+            div.querySelectorAll(`[data-author-url="${MY_PROFILE_URL}"]`).forEach(img => { img.src = myCurrentAvatarSrc; });
         return div;
     }
 
