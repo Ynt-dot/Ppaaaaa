@@ -102,6 +102,16 @@ h1, h2, h3, h4, .btn {
     border-color: #FF0000;
     color: #fff !important;
 }
+.btn-twitch {
+    background-color: #fff;
+    border: 1px solid #9146FF;
+    color: #9146FF !important;
+}
+.btn-twitch:hover {
+    background-color: #9146FF;
+    border-color: #9146FF;
+    color: #fff !important;
+}
 .btn-discord {
     background-color: #FF0000;
     border-color: #FF0000;
