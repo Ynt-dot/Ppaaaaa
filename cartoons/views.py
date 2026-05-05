@@ -176,7 +176,7 @@ def detail(request, pk):
         'user_favorited': user_favorited,
         'comment_sort': comment_sort,
         'author_avatar_url': _get_user_avatar_url(cartoon.author),
-        'can_set_as_avatar': can_set_as_avatar and not is_used_as_avatar,
+        'can_set_as_avatar': can_set_as_avatar,
         'is_used_as_avatar': is_used_as_avatar,
         'rec_sort': rec_sort,
         'rec_author_filter': rec_author_filter,
