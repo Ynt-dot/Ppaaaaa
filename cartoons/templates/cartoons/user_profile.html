@@ -558,10 +558,11 @@
 
         function buildAvatarCard(c) {
             const previewSrc = c.preview_url ? escapeHtml(c.preview_url) : '';
+            const title = escapeHtml(c.title);
             return '<div class="col">' +
                 '<div class="card avatar-selector-item border" data-cartoon-id="' + c.id + '" data-preview-url="' + previewSrc + '">' +
                 (previewSrc ? '<img src="' + previewSrc + '" class="card-img-top" style="aspect-ratio:3/2;object-fit:contain;background:#f8f9fa">' : '') +
-                '<div class="card-body p-1 text-center"><small>' + escapeHtml(c.title) + '</small></div>' +
+                '<div class="card-body p-1 text-center"><small class="title-clamp d-block" title="' + title + '">' + title + '</small></div>' +
                 '</div></div>';
         }
 
