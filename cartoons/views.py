@@ -276,10 +276,7 @@ def _serialize_comment(comment, request, session_key, current_level=0, max_inlin
 
     author_url = reverse('user_profile', args=[comment.author.username]) if comment.author else None
 
-    try:
-        likes_count = comment.likes_count
-    except AttributeError:
-        likes_count = comment.likes.count()
+    likes_count = comment.likes_count
 
     replies_data = []
     has_more_replies = False
@@ -290,9 +287,7 @@ def _serialize_comment(comment, request, session_key, current_level=0, max_inlin
         rel = current_level - root_level
         per_used = 2 if rel == 0 else 1
         per_load = 3
-        qs = comment.replies.annotate(
-            likes_count=Count('likes', distinct=True)
-        ).select_related('author', 'author__preference', 'author__preference__avatar')
+        qs = comment.replies.select_related('author', 'author__preference', 'author__preference__avatar')
         if request.user.is_authenticated:
             qs = qs.annotate(
                 is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
@@ -339,9 +334,9 @@ def get_comments(request, pk):
     sort = request.GET.get('sort', 'popular')
     per_page = 3
 
-    qs = Comment.objects.filter(cartoon=cartoon, parent=None).annotate(
-        likes_count=Count('likes', distinct=True)
-    ).select_related('author', 'author__preference', 'author__preference__avatar')
+    qs = Comment.objects.filter(cartoon=cartoon, parent=None).select_related(
+        'author', 'author__preference', 'author__preference__avatar'
+    )
     if request.user.is_authenticated:
         qs = qs.annotate(
             is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
@@ -388,9 +383,7 @@ def get_replies(request, comment_pk):
     except (ValueError, TypeError):
         offset = 0
 
-    qs = parent.replies.annotate(
-        likes_count=Count('likes', distinct=True)
-    ).select_related('author', 'author__preference', 'author__preference__avatar')
+    qs = parent.replies.select_related('author', 'author__preference', 'author__preference__avatar')
     if request.user.is_authenticated:
         qs = qs.annotate(
             is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
@@ -419,9 +412,7 @@ def get_thread(request, comment_pk):
     page = max(1, int(request.GET.get('page', 1)))
     per_page = 10
 
-    qs = root.replies.annotate(
-        likes_count=Count('likes', distinct=True)
-    ).select_related('author', 'author__preference', 'author__preference__avatar')
+    qs = root.replies.select_related('author', 'author__preference', 'author__preference__avatar')
     if request.user.is_authenticated:
         qs = qs.annotate(
             is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
@@ -488,7 +479,6 @@ def add_comment(request, pk):
         level=level,
         text=text,
     )
-    comment.likes_count = 0
 
     if request.user == cartoon.author:
         Cartoon.objects.filter(pk=pk).update(author_last_seen_comments=timezone.now())
@@ -544,10 +534,13 @@ def toggle_comment_like(request, comment_pk):
     if not created:
         like.delete()
         liked = False
+        Comment.objects.filter(pk=comment_pk).update(likes_count=F('likes_count') - 1)
     else:
         liked = True
+        Comment.objects.filter(pk=comment_pk).update(likes_count=F('likes_count') + 1)
 
-    return JsonResponse({'liked': liked, 'count': comment.likes.count()})
+    comment.refresh_from_db(fields=['likes_count'])
+    return JsonResponse({'liked': liked, 'count': comment.likes_count})
 
 
 @require_POST
@@ -827,40 +820,58 @@ def get_user_profile_comments(request, username):
     per_page = 10
 
     if comment_type == 'cartoon':
-        qs = Comment.objects.filter(cartoon__author=profile_user)
+        base_filter = Comment.objects.filter(cartoon__author=profile_user)
+        related = ('author', 'author__preference', 'cartoon')
     else:
-        qs = Comment.objects.filter(author=profile_user)
+        base_filter = Comment.objects.filter(author=profile_user)
+        related = ('cartoon',)
 
-    qs = qs.select_related(
-        'author', 'author__preference', 'author__preference__avatar', 'cartoon'
-    ).annotate(likes_count=Count('likes'))
-
-    if sort == 'popular':
-        qs = qs.order_by('-likes_count', '-created_at')
-    else:
-        qs = qs.order_by('-created_at')
-
-    total = qs.count()
+    total = base_filter.count()
     start = (page - 1) * per_page
     end = start + per_page
-    page_qs = qs[start:end]
+
+    if sort == 'popular':
+        page_qs = list(
+            base_filter.select_related(*related)
+            .order_by('-likes_count', '-created_at')[start:end]
+        )
+    else:
+        ids = list(base_filter.order_by('-created_at').values_list('id', flat=True)[start:end])
+        page_qs = list(
+            Comment.objects.filter(id__in=ids)
+            .select_related(*related)
+            .order_by('-created_at')
+        )
+
+    comment_ids = [c.id for c in page_qs]
+    if request.user.is_authenticated:
+        liked_ids = set(
+            CommentLike.objects.filter(comment_id__in=comment_ids, user=request.user)
+            .values_list('comment_id', flat=True)
+        )
+    else:
+        liked_ids = set(
+            CommentLike.objects.filter(comment_id__in=comment_ids, session_key=session_key)
+            .values_list('comment_id', flat=True)
+        )
+
+    if comment_type == 'user':
+        author_url = reverse('user_profile', args=[profile_user.username])
+        avatar_url = _get_user_avatar_url(profile_user)
 
     data = []
     for c in page_qs:
-        if request.user.is_authenticated:
-            user_liked = c.likes.filter(user=request.user).exists()
-        else:
-            user_liked = c.likes.filter(session_key=session_key).exists()
+        user_liked = c.id in liked_ids
 
-        author_url = None
-        if c.author:
-            author_url = reverse('user_profile', args=[c.author.username])
+        if comment_type == 'cartoon':
+            author_url = reverse('user_profile', args=[c.author.username]) if c.author else None
+            avatar_url = _get_user_avatar_url(c.author)
 
         data.append({
             'id': c.id,
             'author': c.display_author(),
             'author_url': author_url,
-            'avatar_url': _get_user_avatar_url(c.author),
+            'avatar_url': avatar_url,
             'text': c.text,
             'created_at': c.created_at.strftime('%d.%m.%Y %H:%M'),
             'likes_count': c.likes_count,

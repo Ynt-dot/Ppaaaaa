@@ -88,9 +88,14 @@ class Comment(models.Model):
     is_edited = models.BooleanField(default=False)
     is_pinned = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    likes_count = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['author', '-likes_count', '-created_at'], name='comment_author_popular_idx'),
+            models.Index(fields=['cartoon', '-likes_count', '-created_at'], name='comment_cartoon_popular_idx'),
+        ]
 
     def __str__(self):
         return f"Комментарий к «{self.cartoon}»"
