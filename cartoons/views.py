@@ -490,6 +490,9 @@ def add_comment(request, pk):
     )
     comment.likes_count = 0
 
+    if request.user == cartoon.author:
+        Cartoon.objects.filter(pk=pk).update(author_last_seen_comments=timezone.now())
+
     session_key = _ensure_session(request)
     data = _serialize_comment(comment, request, session_key, current_level=level, max_inline_level=level - 1, cartoon_author_id=cartoon.author_id)
     return JsonResponse(data, status=201)
