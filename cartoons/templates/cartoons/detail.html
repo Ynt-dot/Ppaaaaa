@@ -424,7 +424,7 @@
                         </div>
                         ${editFormHTML}
                         <div class="d-flex align-items-center gap-2 comment-meta-row">
-                            <button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.72rem;">ещё</button>
+                            <button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.72rem;">развернуть</button>
                             <button class="btn btn-link btn-sm p-0 ${likeColorClass} comment-like-btn" data-comment-id="${c.id}" style="font-size:0.72rem;">❤ <span class="comment-likes-count">${c.likes_count}</span></button>
                             ${replyBtnHTML}
                         </div>
@@ -479,7 +479,7 @@
         if (expandBtn) {
             const cBody = expandBtn.closest('.c-body');
             const textEl = cBody ? cBody.querySelector('.comment-text-clamp') : null;
-            if (textEl) { const exp = textEl.classList.toggle('expanded'); expandBtn.textContent = exp ? 'свернуть' : 'ещё'; }
+            if (textEl) { const exp = textEl.classList.toggle('expanded'); expandBtn.textContent = exp ? 'свернуть' : 'развернуть'; }
             return;
         }
 

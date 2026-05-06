@@ -454,7 +454,10 @@
             '<small class="text-muted ms-2">→ ' + cartoonLink + '</small></div>' +
             likeHTML +
             '</div>' +
-            '<p class="mb-0" style="white-space:pre-wrap;margin-top:-6px;">' + escapeHtml(c.text) + '</p>' +
+            '<p class="mb-0 desc-clamp comment-text-clamp" style="white-space:pre-wrap;margin-top:-6px;padding-right:4rem;">' + escapeHtml(c.text) + '</p>' +
+            '<div class="d-flex align-items-center gap-2 mt-1">' +
+            '<button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.72rem;">развернуть</button>' +
+            '</div>' +
             '</div>' +
             '</div>' +
             '</div>';
@@ -478,7 +481,15 @@
             const resp = await fetch(url);
             const data = await resp.json();
 
-            data.comments.forEach(c => commentsList.insertAdjacentHTML('beforeend', buildCommentHTML(c)));
+            data.comments.forEach(c => {
+                commentsList.insertAdjacentHTML('beforeend', buildCommentHTML(c));
+                const item = commentsList.lastElementChild;
+                requestAnimationFrame(() => {
+                    const textEl = item.querySelector('.comment-text-clamp');
+                    const btn = item.querySelector('.comment-expand-btn');
+                    if (textEl && btn && textEl.scrollHeight > textEl.clientHeight + 2) btn.classList.remove('d-none');
+                });
+            });
 
             loadMoreContainer.style.display = data.has_next ? 'block' : 'none';
             if (currentPage === 1 && data.total === 0) {
@@ -520,6 +531,13 @@
     loadMoreBtn.addEventListener('click', () => loadComments(false));
 
     commentsList.addEventListener('click', async (e) => {
+
+        const expandBtn = e.target.closest('.comment-expand-btn');
+        if (expandBtn) {
+            const textEl = expandBtn.closest('.flex-grow-1')?.querySelector('.comment-text-clamp');
+            if (textEl) { const exp = textEl.classList.toggle('expanded'); expandBtn.textContent = exp ? 'свернуть' : 'развернуть'; }
+            return;
+        }
 
         const btn = e.target.closest('.comment-like-btn');
         if (!btn || btn.dataset.loading) return;
