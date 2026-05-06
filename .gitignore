@@ -23,6 +23,7 @@ __pycache__/
 .idea/
 *.swp
 *.swo
+.claude/
 
 # Статика
 /static/
