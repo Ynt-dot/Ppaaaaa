@@ -437,21 +437,26 @@
             : escapeHtml(c.author);
         const likedClass = c.user_liked ? 'btn-danger' : 'btn-outline-danger';
         const cartoonLink = '<a href="' + escapeHtml(c.cartoon_url) + '" class="text-muted">' + escapeHtml(c.cartoon_title) + '</a>';
-        const avatarImg = '<img src="' + escapeHtml(c.avatar_url) + '" class="user-avatar-sm me-2" alt="">';
+        const avatarImg = '<img src="' + escapeHtml(c.avatar_url) + '" class="user-avatar-sm" alt="">';
         const avatarLink = c.author_url
             ? '<a href="' + escapeHtml(c.author_url) + '">' + avatarImg + '</a>'
             : avatarImg;
+        const likeHTML = IS_AUTHENTICATED
+            ? '<button class="btn btn-sm ' + likedClass + ' comment-like-btn" data-comment-id="' + c.id + '">❤ <span class="comment-likes-count">' + c.likes_count + '</span></button>'
+            : '<span class="text-muted small">❤ ' + c.likes_count + '</span>';
         return '<div class="comment-item border-bottom py-2" data-comment-id="' + c.id + '">' +
+            '<div class="d-flex gap-2 align-items-start">' +
+            '<div class="flex-shrink-0">' + avatarLink + '</div>' +
+            '<div class="flex-grow-1 min-w-0">' +
             '<div class="d-flex justify-content-between align-items-start">' +
-            '<div class="d-flex align-items-center">' + avatarLink +
             '<div><small class="fw-bold">' + authorHTML + '</small>' +
             '<small class="text-muted ms-2">' + escapeHtml(c.created_at) + '</small>' +
-            '<small class="text-muted ms-2">→ ' + cartoonLink + '</small></div></div>' +
-            (IS_AUTHENTICATED
-                ? '<button class="btn btn-sm ' + likedClass + ' comment-like-btn" data-comment-id="' + c.id + '">❤ <span class="comment-likes-count">' + c.likes_count + '</span></button>'
-                : '<span class="text-muted small">❤ ' + c.likes_count + '</span>') +
+            '<small class="text-muted ms-2">→ ' + cartoonLink + '</small></div>' +
+            likeHTML +
             '</div>' +
-            '<p class="mb-1 mt-1 ps-5" style="white-space:pre-wrap;">' + escapeHtml(c.text) + '</p>' +
+            '<p class="mb-0" style="white-space:pre-wrap;margin-top:-6px;">' + escapeHtml(c.text) + '</p>' +
+            '</div>' +
+            '</div>' +
             '</div>';
     }
 
