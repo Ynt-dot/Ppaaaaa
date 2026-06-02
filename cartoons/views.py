@@ -323,6 +323,7 @@ def _serialize_comment(comment, request, session_key, current_level=0, max_inlin
         'replies': replies_data,
         'has_more_replies': has_more_replies,
         'has_deeper_replies': has_deeper_replies,
+        'replies_count': comment.replies.count(),
     }
 
 
@@ -332,7 +333,7 @@ def get_comments(request, pk):
     session_key = _ensure_session(request)
     page = max(1, int(request.GET.get('page', 1)))
     sort = request.GET.get('sort', 'popular')
-    per_page = 3
+    per_page = 10
 
     qs = Comment.objects.filter(cartoon=cartoon, parent=None).select_related(
         'author', 'author__preference', 'author__preference__avatar'
@@ -357,7 +358,7 @@ def get_comments(request, pk):
     comments = list(qs[start:end])
 
     cartoon_author_id = cartoon.author_id
-    data = [_serialize_comment(c, request, session_key, cartoon_author_id=cartoon_author_id) for c in comments]
+    data = [_serialize_comment(c, request, session_key, max_inline_level=0, cartoon_author_id=cartoon_author_id) for c in comments]
 
     return JsonResponse({
         'comments': data,
@@ -376,7 +377,7 @@ def get_replies(request, comment_pk):
         if per_page < 1 or per_page > 50:
             raise ValueError
     except (ValueError, TypeError):
-        per_page = 3
+        per_page = 10
 
     try:
         offset = max(0, int(request.GET.get('offset', 0)))
@@ -397,9 +398,8 @@ def get_replies(request, comment_pk):
     replies = list(qs[start:end])
 
     child_level = parent.level + 1
-    max_inline = 2 if child_level <= 1 else child_level
     cartoon_author_id = parent.cartoon.author_id
-    data = [_serialize_comment(r, request, session_key, current_level=child_level, max_inline_level=max_inline, cartoon_author_id=cartoon_author_id) for r in replies]
+    data = [_serialize_comment(r, request, session_key, current_level=child_level, max_inline_level=0, cartoon_author_id=cartoon_author_id) for r in replies]
 
     return JsonResponse({'comments': data, 'has_next': end < total})
 

@@ -333,116 +333,151 @@
     // ══════════════════════════════════════════════════════════════════════════
     // КОММЕНТАРИИ
     // ══════════════════════════════════════════════════════════════════════════
-    const commentsList     = document.getElementById('comments-list');
+    const commentsList      = document.getElementById('comments-list');
     const loadMoreContainer = document.getElementById('load-more-container');
-    const noCommentsMsg    = document.getElementById('no-comments-msg');
-    const loadingSpinner   = document.getElementById('comments-loading');
-    const loadMoreBtn      = document.getElementById('load-more-btn');
+    const noCommentsMsg     = document.getElementById('no-comments-msg');
+    const loadingSpinner    = document.getElementById('comments-loading');
+    const loadMoreBtn       = document.getElementById('load-more-btn');
 
-    let currentPage = 1;
-    let currentSort = '{{ comment_sort }}';
+    let currentPage     = 1;
+    let currentSort     = '{{ comment_sort }}';
     let commentsLoading = false;
 
-    function initCommentClamp(el) {
-        const cBody = el.querySelector(':scope > .c-indent > .comment-self > .d-flex > .c-body');
-        if (!cBody) return;
-        const textEl    = cBody.querySelector('.comment-text-clamp');
-        const toggleBtn = cBody.querySelector('.comment-expand-btn');
+    // Рисованые полоски — цвета по уровню вложенности
+    const REPLY_BAR_COLORS = [
+        '#cc4444','#dd6622','#c09a15','#339944',
+        '#2277bb','#6644bb','#bb3388','#229988','#885533','#777777'
+    ];
+
+    function makeBarSvg(color) {
+        return '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="20">' +
+            '<path d="M7,0 C5.5,3 8.5,7 6.5,10 C5.5,13 8.5,17 7,20" ' +
+            'stroke="' + color + '" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
+            '</svg>';
+    }
+    function makeBarDataUrl(color) {
+        // base64 надёжнее encodeURIComponent для SVG в background-image
+        return 'url("data:image/svg+xml;base64,' + btoa(makeBarSvg(color)) + '")';
+    }
+
+    function pluralReplies(n) {
+        const m10 = n % 10, m100 = n % 100;
+        if (m100 >= 11 && m100 <= 14) return n + ' ответов';
+        if (m10 === 1) return n + ' ответ';
+        if (m10 >= 2 && m10 <= 4) return n + ' ответа';
+        return n + ' ответов';
+    }
+
+    function initCommentClamp(commentDiv) {
+        const textEl    = commentDiv.querySelector('.comment-text-clamp');
+        const toggleBtn = commentDiv.querySelector('.comment-expand-btn');
         if (!textEl || !toggleBtn) return;
-        requestAnimationFrame(() => {
+        requestAnimationFrame(function() {
             if (textEl.scrollHeight > textEl.clientHeight + 2) toggleBtn.classList.remove('d-none');
         });
     }
 
-    function buildCommentEl(c, baseLevel = 0) {
+    // maxRelLevel: максимальный относительный уровень для инлайн-показа;
+    // при relLevel >= maxRelLevel кнопка ответов открывает модал
+    function buildCommentEl(c, baseLevel, maxRelLevel) {
+        if (baseLevel === undefined) baseLevel = 0;
+        if (maxRelLevel === undefined) maxRelLevel = 9;
+        const relLevel       = Math.max(0, c.level - baseLevel);
         const likeColorClass = c.user_liked ? 'text-danger' : 'text-secondary';
-        const authorHTML = c.author_url
-            ? `<a href="${escapeHtml(c.author_url)}" class="username-link">${escapeHtml(c.author)}</a>`
+        const authorHTML     = c.author_url
+            ? '<a href="' + escapeHtml(c.author_url) + '" class="username-link">' + escapeHtml(c.author) + '</a>'
             : escapeHtml(c.author);
-        const avatarImg  = `<img src="${escapeHtml(c.avatar_url)}" class="user-avatar-sm" alt="" data-author-url="${escapeHtml(c.author_url || '')}">`;
-        const avatarLink = c.author_url ? `<a href="${escapeHtml(c.author_url)}">${avatarImg}</a>` : avatarImg;
-        const relLevel   = Math.max(0, c.level - baseLevel);
-        const indent     = relLevel > 0 ? 32 : 0;
+        const avatarImgHTML  = '<img src="' + escapeHtml(c.avatar_url) + '" class="user-avatar-sm" alt="" data-author-url="' + escapeHtml(c.author_url || '') + '">';
+        const avatarLink     = c.author_url ? '<a href="' + escapeHtml(c.author_url) + '">' + avatarImgHTML + '</a>' : avatarImgHTML;
 
-        const editedMark   = c.is_edited ? `<small class="text-muted edited-mark ms-1" style="font-size:0.72rem;">изм.</small>` : '';
-        const pinnedBadge  = `<i class="bi bi-pin-fill pin-badge ms-1" style="font-size:0.72rem;${c.is_pinned ? '' : 'display:none;'}"></i>`;
+        const editedMark  = c.is_edited ? '<small class="text-muted edited-mark ms-1" style="font-size:0.72rem;">изм.</small>' : '';
+        const pinnedBadge = '<i class="bi bi-pin-fill pin-badge ms-1" style="font-size:0.72rem;' + (c.is_pinned ? '' : 'display:none;') + '"></i>';
         const replyBtnHTML = IS_AUTH
-            ? `<button class="reply-btn btn btn-link btn-sm p-0" style="font-size:0.72rem;" data-comment-id="${c.id}">Ответить</button>`
+            ? '<button class="reply-btn btn btn-link btn-sm p-0" style="font-size:0.72rem;" data-comment-id="' + c.id + '">Ответить</button>'
             : '';
-        const dropdownHTML = (c.is_own || c.can_pin) ? `
-            <div class="dropdown ms-2 flex-shrink-0">
-                <button class="btn btn-link btn-sm p-0 text-secondary" data-bs-toggle="dropdown" aria-expanded="false" style="font-size:1.1rem; line-height:1; text-decoration:none;">⋮</button>
-                <ul class="dropdown-menu dropdown-menu-end py-1">
-                    ${c.is_own ? `<li><button class="dropdown-item edit-btn py-1" data-comment-id="${c.id}" style="font-size:0.88rem;">Редактировать</button></li>` : ''}
-                    ${c.can_pin ? `<li><button class="dropdown-item pin-btn py-1" data-comment-id="${c.id}" style="font-size:0.88rem;">${c.is_pinned ? 'Открепить' : 'Закрепить'}</button></li>` : ''}
-                </ul>
-            </div>` : '';
-        const replyFormHTML = IS_AUTH ? `
-            <div class="reply-form mt-2" data-form-id="${c.id}" style="display:none;">
-                <div class="d-flex gap-2">
-                    <textarea class="form-control form-control-sm reply-textarea" rows="2" maxlength="2000" placeholder="Написать ответ..."></textarea>
-                    <div class="d-flex flex-column gap-1">
-                        <button class="btn btn-sm btn-github submit-reply-btn" data-comment-id="${c.id}" data-level="${c.level}">Отправить</button>
-                        <button class="btn btn-sm btn-outline-secondary cancel-reply-btn" data-form-id="${c.id}">Отмена</button>
-                    </div>
-                </div>
-                <div class="reply-error text-danger small mt-1" style="display:none;"></div>
-            </div>` : '';
-        const editFormHTML = c.is_own ? `
-            <div class="edit-form mt-2" data-edit-form-id="${c.id}" style="display:none;">
-                <div class="d-flex gap-2">
-                    <textarea class="form-control form-control-sm edit-textarea" rows="2" maxlength="2000">${escapeHtml(c.text)}</textarea>
-                    <div class="d-flex flex-column gap-1">
-                        <button class="btn btn-sm btn-github submit-edit-btn" data-comment-id="${c.id}">Сохранить</button>
-                        <button class="btn btn-sm btn-outline-secondary cancel-edit-btn" data-edit-form-id="${c.id}">Отмена</button>
-                    </div>
-                </div>
-                <div class="edit-error text-danger small mt-1" style="display:none;"></div>
-            </div>` : '';
+        const dropdownHTML = (c.is_own || c.can_pin)
+            ? '<div class="dropdown ms-2 flex-shrink-0">' +
+              '<button class="btn btn-link btn-sm p-0 text-secondary" data-bs-toggle="dropdown" aria-expanded="false" style="font-size:1.1rem;line-height:1;text-decoration:none;">⋮</button>' +
+              '<ul class="dropdown-menu dropdown-menu-end py-1">' +
+              (c.is_own ? '<li><button class="dropdown-item edit-btn py-1" data-comment-id="' + c.id + '" style="font-size:0.88rem;">Редактировать</button></li>' : '') +
+              (c.can_pin ? '<li><button class="dropdown-item pin-btn py-1" data-comment-id="' + c.id + '" style="font-size:0.88rem;">' + (c.is_pinned ? 'Открепить' : 'Закрепить') + '</button></li>' : '') +
+              '</ul></div>'
+            : '';
+        const replyFormHTML = IS_AUTH
+            ? '<div class="reply-form mt-2" data-form-id="' + c.id + '" style="display:none;">' +
+              '<div class="d-flex gap-2">' +
+              '<textarea class="form-control form-control-sm reply-textarea" rows="2" maxlength="2000" placeholder="Написать ответ..."></textarea>' +
+              '<div class="d-flex flex-column gap-1">' +
+              '<button class="btn btn-sm btn-github submit-reply-btn" data-comment-id="' + c.id + '" data-level="' + c.level + '">Отправить</button>' +
+              '<button class="btn btn-sm btn-outline-secondary cancel-reply-btn" data-form-id="' + c.id + '">Отмена</button>' +
+              '</div></div>' +
+              '<div class="reply-error text-danger small mt-1" style="display:none;"></div>' +
+              '</div>'
+            : '';
+        const editFormHTML = c.is_own
+            ? '<div class="edit-form mt-2" data-edit-form-id="' + c.id + '" style="display:none;">' +
+              '<div class="d-flex gap-2">' +
+              '<textarea class="form-control form-control-sm edit-textarea" rows="2" maxlength="2000">' + escapeHtml(c.text) + '</textarea>' +
+              '<div class="d-flex flex-column gap-1">' +
+              '<button class="btn btn-sm btn-github submit-edit-btn" data-comment-id="' + c.id + '">Сохранить</button>' +
+              '<button class="btn btn-sm btn-outline-secondary cancel-edit-btn" data-edit-form-id="' + c.id + '">Отмена</button>' +
+              '</div></div>' +
+              '<div class="edit-error text-danger small mt-1" style="display:none;"></div>' +
+              '</div>'
+            : '';
 
-        let bottomHTML = '';
-        if (c.has_more_replies)  bottomHTML += `<button class="load-replies-btn btn btn-outline-secondary btn-sm" data-comment-id="${c.id}" data-offset="${c.per_used || 0}" data-per="${c.per_load || 3}">Загрузить ещё ответы</button> `;
-        if (c.has_deeper_replies) bottomHTML += `<button class="view-thread-btn btn btn-outline-secondary btn-sm" data-comment-id="${c.id}">Посмотреть ветку</button>`;
+        let showRepliesHTML = '';
+        if (c.replies_count > 0) {
+            if (relLevel >= maxRelLevel) {
+                // Слишком глубоко — открыть в модале
+                showRepliesHTML = '<button class="view-thread-btn btn btn-link btn-sm p-0" data-comment-id="' + c.id + '" style="font-size:0.8rem;color:#888;text-decoration:none;">↳ ' + pluralReplies(c.replies_count) + ' →</button>';
+            } else {
+                showRepliesHTML = '<button class="show-replies-btn btn btn-link btn-sm p-0" data-comment-id="' + c.id + '" style="font-size:0.8rem;color:#888;text-decoration:none;">↳ ' + pluralReplies(c.replies_count) + '</button>';
+            }
+        }
 
-        const div = document.createElement('div');
-        div.className = 'comment-item py-2';
-        div.dataset.commentId = c.id;
-        div.dataset.level = c.level;
-        div.dataset.relLevel = relLevel;
-        div.innerHTML = `<div class="c-indent" style="margin-left:${indent}px">
-            <div class="comment-self${c.is_pinned ? ' pinned-comment' : ''}">
-                <div class="d-flex gap-2 align-items-start">
-                    <div class="flex-shrink-0">${avatarLink}</div>
-                    <div class="flex-grow-1 min-w-0 c-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div><span class="fw-bold" style="font-size:0.9rem;">${authorHTML}</span>
-                            <small class="text-muted ms-2 comment-date">${escapeHtml(c.created_at)}</small>${editedMark}${pinnedBadge}</div>
-                            ${dropdownHTML}
-                        </div>
-                        <div class="comment-text-wrap">
-                            <p class="mb-0 desc-clamp comment-text-clamp" style="white-space:pre-wrap;margin-top:-3px;">${escapeHtml(c.text)}</p>
-                        </div>
-                        ${editFormHTML}
-                        <div class="d-flex align-items-center gap-2 comment-meta-row">
-                            <button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.72rem;">развернуть</button>
-                            <button class="btn btn-link btn-sm p-0 ${likeColorClass} comment-like-btn" data-comment-id="${c.id}" style="font-size:0.72rem;">❤ <span class="comment-likes-count">${c.likes_count}</span></button>
-                            ${replyBtnHTML}
-                        </div>
-                        ${replyFormHTML}
-                    </div>
-                </div>
-            </div>
-            <div class="replies-container" data-parent-id="${c.id}"></div>
-            ${bottomHTML ? `<div class="mt-1 bottom-btns">${bottomHTML}</div>` : ''}
-        </div>`;
+        const commentDiv = document.createElement('div');
+        commentDiv.className = 'comment-item';
+        commentDiv.dataset.commentId = c.id;
+        commentDiv.dataset.level = c.level;
+        commentDiv.innerHTML =
+            '<div class="comment-self' + (c.is_pinned ? ' pinned-comment' : '') + '">' +
+            '<div class="d-flex gap-2 align-items-start">' +
+            '<div class="flex-shrink-0">' + avatarLink + '</div>' +
+            '<div class="flex-grow-1 min-w-0 c-body">' +
+            '<div class="d-flex justify-content-between align-items-start">' +
+            '<div><span class="fw-bold" style="font-size:0.9rem;">' + authorHTML + '</span>' +
+            '<small class="text-muted ms-2 comment-date">' + escapeHtml(c.created_at) + '</small>' + editedMark + pinnedBadge + '</div>' +
+            dropdownHTML + '</div>' +
+            '<div class="comment-text-wrap">' +
+            '<p class="mb-0 desc-clamp comment-text-clamp" style="white-space:pre-wrap;margin-top:-3px;">' + escapeHtml(c.text) + '</p>' +
+            '</div>' + editFormHTML +
+            '<div class="d-flex align-items-center gap-2 comment-meta-row">' +
+            '<button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.72rem;">развернуть</button>' +
+            '<button class="btn btn-link btn-sm p-0 ' + likeColorClass + ' comment-like-btn" data-comment-id="' + c.id + '" style="font-size:0.72rem;">❤ <span class="comment-likes-count">' + c.likes_count + '</span></button>' +
+            replyBtnHTML + '</div>' + replyFormHTML +
+            '</div></div></div>' +
+            '<div class="replies-container mt-1" data-parent-id="' + c.id + '"></div>' +
+            (showRepliesHTML ? '<div class="mt-1 bottom-btns" data-for-id="' + c.id + '">' + showRepliesHTML + '</div>' : '');
 
-        const repliesContainer = div.querySelector('.replies-container');
-        if (c.replies) c.replies.forEach(r => repliesContainer.appendChild(buildCommentEl(r, baseLevel)));
-
-        initCommentClamp(div);
+        initCommentClamp(commentDiv);
         if (myCurrentAvatarSrc && MY_PROFILE_URL)
-            div.querySelectorAll(`[data-author-url="${MY_PROFILE_URL}"]`).forEach(img => { img.src = myCurrentAvatarSrc; });
-        return div;
+            commentDiv.querySelectorAll('[data-author-url="' + MY_PROFILE_URL + '"]').forEach(function(img) { img.src = myCurrentAvatarSrc; });
+
+        // Полоска — единый элемент на весь replies-container этого комментария
+        const childRelLevel = relLevel + 1;
+        if (childRelLevel >= 1 && childRelLevel <= maxRelLevel) {
+            const color = REPLY_BAR_COLORS[(childRelLevel - 1) % REPLY_BAR_COLORS.length];
+            const repliesContainer = commentDiv.querySelector('.replies-container');
+            repliesContainer.style.position = 'relative';
+            repliesContainer.style.paddingLeft = '20px';
+            const barEl = document.createElement('div');
+            barEl.className = 'replies-bar';
+            barEl.dataset.barLevel = childRelLevel;
+            barEl.style.backgroundImage = makeBarDataUrl(color);
+            repliesContainer.appendChild(barEl);
+        }
+        return commentDiv;
     }
 
     // ── Загрузка верхнеуровневых комментариев ─────────────────────────────
@@ -459,14 +494,68 @@
         try {
             const resp = await fetch(COMMENTS_URL + '?page=' + currentPage + '&sort=' + currentSort);
             const data = await resp.json();
-            data.comments.forEach(c => commentsList.appendChild(buildCommentEl(c)));
+            data.comments.forEach(function(c) { commentsList.appendChild(buildCommentEl(c)); });
             loadMoreContainer.style.display = data.has_next ? 'block' : 'none';
             if (currentPage === 1 && data.total === 0) noCommentsMsg.style.display = 'block';
             currentPage++;
         } finally { loadingSpinner.style.display = 'none'; commentsLoading = false; }
     }
 
-    loadMoreBtn.addEventListener('click', () => loadComments(false));
+    loadMoreBtn.addEventListener('click', function() { loadComments(false); });
+
+    // ── Показать ответы (первый клик) ──────────────────────────────────────
+    async function handleShowReplies(showBtn, root) {
+        const inModal     = (root === threadModalBody);
+        const baseLevel   = inModal ? threadBaseLevel : 0;
+        const maxRelLevel = 9;
+        const commentId   = showBtn.dataset.commentId;
+        showBtn.disabled  = true;
+        showBtn.textContent = '...';
+        try {
+            const resp = await fetch('/comment/' + commentId + '/replies/?offset=0&per_page=10');
+            const data = await resp.json();
+            const container = root.querySelector('.replies-container[data-parent-id="' + commentId + '"]');
+            if (container) data.comments.forEach(function(c) { container.appendChild(buildCommentEl(c, baseLevel, maxRelLevel)); });
+            if (data.has_next) {
+                showBtn.className = 'load-replies-btn btn btn-link btn-sm p-0';
+                showBtn.style.cssText = 'font-size:0.8rem;color:#888;text-decoration:none;';
+                showBtn.dataset.offset = 10;
+                showBtn.dataset.per = 10;
+                showBtn.textContent = '↳ ещё ответы';
+                showBtn.disabled = false;
+            } else {
+                const bottomDiv = showBtn.closest('.bottom-btns');
+                showBtn.remove();
+                if (bottomDiv && !bottomDiv.children.length) bottomDiv.remove();
+            }
+        } catch {
+            showBtn.disabled = false;
+            showBtn.textContent = '↳ ошибка, попробуйте снова';
+        }
+    }
+
+    // ── Загрузить ещё ответы ───────────────────────────────────────────────
+    async function handleLoadReplies(loadBtn, root) {
+        const inModal     = (root === threadModalBody);
+        const baseLevel   = inModal ? threadBaseLevel : 0;
+        const maxRelLevel = 9;
+        const commentId   = loadBtn.dataset.commentId;
+        const offset      = parseInt(loadBtn.dataset.offset) || 0;
+        const per         = parseInt(loadBtn.dataset.per) || 10;
+        loadBtn.disabled  = true;
+        try {
+            const resp = await fetch('/comment/' + commentId + '/replies/?offset=' + offset + '&per_page=' + per);
+            const data = await resp.json();
+            const container = root.querySelector('.replies-container[data-parent-id="' + commentId + '"]');
+            if (container) data.comments.forEach(function(c) { container.appendChild(buildCommentEl(c, baseLevel, maxRelLevel)); });
+            if (data.has_next) { loadBtn.dataset.offset = offset + per; loadBtn.disabled = false; }
+            else {
+                const bottomDiv = loadBtn.closest('.bottom-btns');
+                loadBtn.remove();
+                if (bottomDiv && !bottomDiv.children.length) bottomDiv.remove();
+            }
+        } catch { loadBtn.disabled = false; }
+    }
 
     // ── Универсальный обработчик кликов по комментариям ───────────────────
     function handleCommentClick(e, root) {
@@ -477,7 +566,7 @@
         // Развернуть/свернуть текст
         const expandBtn = e.target.closest('.comment-expand-btn');
         if (expandBtn) {
-            const cBody = expandBtn.closest('.c-body');
+            const cBody  = expandBtn.closest('.c-body');
             const textEl = cBody ? cBody.querySelector('.comment-text-clamp') : null;
             if (textEl) { const exp = textEl.classList.toggle('expanded'); expandBtn.textContent = exp ? 'свернуть' : 'развернуть'; }
             return;
@@ -486,8 +575,8 @@
         // Кнопка «Ответить»
         const replyBtn = e.target.closest('.reply-btn');
         if (replyBtn) {
-            const id = replyBtn.dataset.commentId;
-            const form = root.querySelector(`.reply-form[data-form-id="${id}"]`);
+            const id   = replyBtn.dataset.commentId;
+            const form = root.querySelector('.reply-form[data-form-id="' + id + '"]');
             if (form) {
                 const visible = form.style.display !== 'none';
                 form.style.display = visible ? 'none' : 'block';
@@ -499,29 +588,33 @@
         // Отмена ответа
         const cancelBtn = e.target.closest('.cancel-reply-btn');
         if (cancelBtn) {
-            const form = root.querySelector(`.reply-form[data-form-id="${cancelBtn.dataset.formId}"]`);
+            const form = root.querySelector('.reply-form[data-form-id="' + cancelBtn.dataset.formId + '"]');
             if (form) { form.style.display = 'none'; form.querySelector('textarea').value = ''; form.querySelector('.reply-error').style.display = 'none'; }
             return;
         }
 
         // Отправить ответ
-        const submitBtn = e.target.closest('.submit-reply-btn');
-        if (submitBtn) { handleSubmitReply(submitBtn, root); return; }
+        const submitReplyBtn = e.target.closest('.submit-reply-btn');
+        if (submitReplyBtn) { handleSubmitReply(submitReplyBtn, root); return; }
+
+        // Показать ответы (инлайн)
+        const showRepliesBtn = e.target.closest('.show-replies-btn');
+        if (showRepliesBtn) { handleShowReplies(showRepliesBtn, root); return; }
 
         // Загрузить ещё ответы
         const loadRepliesBtn = e.target.closest('.load-replies-btn');
         if (loadRepliesBtn) { handleLoadReplies(loadRepliesBtn, root); return; }
 
-        // Посмотреть ветку
+        // Посмотреть ветку (уровень >= 10 или из модала)
         const viewThreadBtn = e.target.closest('.view-thread-btn');
         if (viewThreadBtn) { openThreadModal(viewThreadBtn.dataset.commentId, root === threadModalBody); return; }
 
         // Редактировать
         const editBtn = e.target.closest('.edit-btn');
         if (editBtn) {
-            const id = editBtn.dataset.commentId;
-            const commentEl = root.querySelector(`.comment-item[data-comment-id="${id}"]`);
-            const editForm = commentEl ? commentEl.querySelector(`.edit-form[data-edit-form-id="${id}"]`) : null;
+            const id        = editBtn.dataset.commentId;
+            const commentEl = root.querySelector('.comment-item[data-comment-id="' + id + '"]');
+            const editForm  = commentEl ? commentEl.querySelector('.edit-form[data-edit-form-id="' + id + '"]') : null;
             if (editForm) {
                 const opening = editForm.style.display === 'none' || editForm.style.display === '';
                 editForm.style.display = opening ? 'block' : 'none';
@@ -537,12 +630,12 @@
         // Отмена редактирования
         const cancelEditBtn = e.target.closest('.cancel-edit-btn');
         if (cancelEditBtn) {
-            const id = cancelEditBtn.dataset.editFormId;
-            const editForm = root.querySelector(`.edit-form[data-edit-form-id="${id}"]`);
+            const id       = cancelEditBtn.dataset.editFormId;
+            const editForm = root.querySelector('.edit-form[data-edit-form-id="' + id + '"]');
             if (editForm) {
                 editForm.style.display = 'none';
                 editForm.querySelector('.edit-error').style.display = 'none';
-                const commentEl = root.querySelector(`.comment-item[data-comment-id="${id}"]`);
+                const commentEl = root.querySelector('.comment-item[data-comment-id="' + id + '"]');
                 if (commentEl) {
                     const textEl = commentEl.querySelector('.comment-text-clamp');
                     editForm.querySelector('.edit-textarea').value = textEl ? textEl.textContent : '';
@@ -562,13 +655,34 @@
         if (pinBtn) { handlePinComment(pinBtn, root); return; }
     }
 
-    commentsList.addEventListener('click', e => handleCommentClick(e, commentsList));
+    commentsList.addEventListener('click', function(e) { handleCommentClick(e, commentsList); });
+
+    // При наведении на полоску подсвечиваются все полоски того же уровня
+    function setupBarHoverHighlight(root) {
+        root.addEventListener('mouseover', function(e) {
+            const bar = e.target.closest('.replies-bar');
+            if (!bar) return;
+            const level = bar.dataset.barLevel;
+            root.querySelectorAll('.replies-bar[data-bar-level="' + level + '"]').forEach(function(b) {
+                b.classList.add('bar-highlighted');
+            });
+        });
+        root.addEventListener('mouseout', function(e) {
+            const bar = e.target.closest('.replies-bar');
+            if (!bar) return;
+            const level = bar.dataset.barLevel;
+            root.querySelectorAll('.replies-bar[data-bar-level="' + level + '"]').forEach(function(b) {
+                b.classList.remove('bar-highlighted');
+            });
+        });
+    }
+    setupBarHoverHighlight(commentsList);
 
     async function handleCommentLike(btn) {
         if (btn.dataset.loading) return;
         btn.dataset.loading = '1';
         try {
-            const resp = await postJson(`/comment/${btn.dataset.commentId}/like/`, {});
+            const resp = await postJson('/comment/' + btn.dataset.commentId + '/like/', {});
             if (resp.status === 401) { showLoginHint(btn); return; }
             if (resp.ok) {
                 const d = await resp.json();
@@ -580,43 +694,25 @@
     }
 
     async function handleSubmitReply(submitBtn, root) {
-        const commentId = submitBtn.dataset.commentId;
-        const level     = parseInt(submitBtn.dataset.level);
-        const form      = root.querySelector(`.reply-form[data-form-id="${commentId}"]`);
-        const textarea  = form.querySelector('textarea');
-        const errorEl   = form.querySelector('.reply-error');
-        const text      = textarea.value.trim();
+        const inModal     = (root === threadModalBody);
+        const baseLevel   = inModal ? threadBaseLevel : 0;
+        const maxRelLevel = 9;
+        const commentId   = submitBtn.dataset.commentId;
+        const form        = root.querySelector('.reply-form[data-form-id="' + commentId + '"]');
+        const textarea    = form.querySelector('textarea');
+        const errorEl     = form.querySelector('.reply-error');
+        const text        = textarea.value.trim();
         if (!text) { errorEl.textContent = 'Напишите что-нибудь!'; errorEl.style.display = 'block'; return; }
         errorEl.style.display = 'none';
         submitBtn.disabled = true;
         try {
-            const resp = await postJson(ADD_COMMENT_URL, {text, parent_id: parseInt(commentId)});
-            const d = await resp.json();
+            const resp = await postJson(ADD_COMMENT_URL, {text: text, parent_id: parseInt(commentId)});
+            const d    = await resp.json();
             if (!resp.ok) { errorEl.textContent = d.error || 'Ошибка'; errorEl.style.display = 'block'; }
             else {
                 form.style.display = 'none'; textarea.value = '';
-                if (level >= 2) {
-                    const commentEl = root.querySelector(`.comment-item[data-comment-id="${commentId}"]`);
-                    if (commentEl && !commentEl.querySelector('.view-thread-btn')) {
-                        const cIndent = commentEl.querySelector('.c-indent');
-                        let bottomDiv = cIndent.querySelector('.bottom-btns');
-                        const btn = document.createElement('button');
-                        btn.className = 'view-thread-btn btn btn-outline-secondary btn-sm';
-                        btn.dataset.commentId = commentId;
-                        btn.textContent = 'Посмотреть ветку';
-                        if (bottomDiv) {
-                            bottomDiv.appendChild(btn);
-                        } else {
-                            bottomDiv = document.createElement('div');
-                            bottomDiv.className = 'mt-1 bottom-btns';
-                            bottomDiv.appendChild(btn);
-                            cIndent.appendChild(bottomDiv);
-                        }
-                    }
-                } else {
-                    const repliesContainer = root.querySelector(`.replies-container[data-parent-id="${commentId}"]`);
-                    if (repliesContainer) repliesContainer.insertBefore(buildCommentEl(d, root === threadModalBody ? threadBaseLevel : 0), repliesContainer.firstChild);
-                }
+                const container = root.querySelector('.replies-container[data-parent-id="' + commentId + '"]');
+                if (container) container.insertBefore(buildCommentEl(d, baseLevel, maxRelLevel), container.firstChild);
             }
         } finally { submitBtn.disabled = false; }
     }
@@ -626,14 +722,15 @@
         pinBtn.dataset.loading = '1';
         try {
             const commentId = pinBtn.dataset.commentId;
-            const resp = await postJson(`/comment/${commentId}/pin/`, {});
+            const resp      = await postJson('/comment/' + commentId + '/pin/', {});
             if (resp.ok) {
-                const d = await resp.json();
-                const commentEl = root.querySelector(`.comment-item[data-comment-id="${commentId}"]`);
+                const d         = await resp.json();
+                const commentEl = root.querySelector('.comment-item[data-comment-id="' + commentId + '"]');
                 if (commentEl) {
                     const commentSelf = commentEl.querySelector('.comment-self');
                     if (commentSelf) commentSelf.classList.toggle('pinned-comment', d.pinned);
-                    commentEl.querySelector('.pin-badge').style.display = d.pinned ? '' : 'none';
+                    const badge = commentEl.querySelector('.pin-badge');
+                    if (badge) badge.style.display = d.pinned ? '' : 'none';
                     pinBtn.textContent = d.pinned ? 'Открепить' : 'Закрепить';
                 }
             }
@@ -642,7 +739,7 @@
 
     async function handleSubmitEdit(submitBtn, root) {
         const commentId = submitBtn.dataset.commentId;
-        const editForm  = root.querySelector(`.edit-form[data-edit-form-id="${commentId}"]`);
+        const editForm  = root.querySelector('.edit-form[data-edit-form-id="' + commentId + '"]');
         const textarea  = editForm.querySelector('.edit-textarea');
         const errorEl   = editForm.querySelector('.edit-error');
         const text      = textarea.value.trim();
@@ -650,12 +747,12 @@
         errorEl.style.display = 'none';
         submitBtn.disabled = true;
         try {
-            const resp = await postJson(`/comment/${commentId}/edit/`, {text});
+            const resp = await postJson('/comment/' + commentId + '/edit/', {text: text});
             const d    = await resp.json();
             if (!resp.ok) { errorEl.textContent = d.error || 'Ошибка'; errorEl.style.display = 'block'; }
             else {
                 editForm.style.display = 'none';
-                const commentEl = root.querySelector(`.comment-item[data-comment-id="${commentId}"]`);
+                const commentEl = root.querySelector('.comment-item[data-comment-id="' + commentId + '"]');
                 if (commentEl) {
                     const cBody  = commentEl.querySelector('.c-body');
                     const textEl = cBody.querySelector('.comment-text-clamp');
@@ -676,31 +773,15 @@
         } finally { submitBtn.disabled = false; }
     }
 
-    async function handleLoadReplies(loadBtn, root) {
-        const commentId = loadBtn.dataset.commentId;
-        const offset    = parseInt(loadBtn.dataset.offset) || 0;
-        const per       = parseInt(loadBtn.dataset.per) || 3;
-        loadBtn.disabled = true;
-        const baseLevel = root === threadModalBody ? threadBaseLevel : 0;
-        try {
-            const resp = await fetch(`/comment/${commentId}/replies/?offset=${offset}&per_page=${per}`);
-            const data = await resp.json();
-            const repliesContainer = root.querySelector(`.replies-container[data-parent-id="${commentId}"]`);
-            if (repliesContainer) data.comments.forEach(c => repliesContainer.appendChild(buildCommentEl(c, baseLevel)));
-            if (data.has_next) { loadBtn.dataset.offset = offset + per; loadBtn.disabled = false; }
-            else loadBtn.remove();
-        } catch { loadBtn.disabled = false; }
-    }
-
-    // ── Сортировка комментариев ───────────────────────────────────────────
-    document.querySelectorAll('.sort-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+    // ── Сортировка ────────────────────────────────────────────────────────
+    document.querySelectorAll('.sort-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
             const sort = btn.dataset.sort;
             if (sort === currentSort) return;
             currentSort = sort;
-            document.querySelectorAll('.sort-btn').forEach(b => { b.classList.remove('btn-dark'); b.classList.add('btn-outline-dark'); });
+            document.querySelectorAll('.sort-btn').forEach(function(b) { b.classList.remove('btn-dark'); b.classList.add('btn-outline-dark'); });
             btn.classList.replace('btn-outline-dark', 'btn-dark');
-            postJson(SET_SORT_URL, {sort});
+            postJson(SET_SORT_URL, {sort: sort});
             loadComments(true);
         });
     });
@@ -711,14 +792,14 @@
     const commentError     = document.getElementById('comment-error');
 
     if (submitCommentBtn && commentText) {
-        submitCommentBtn.addEventListener('click', async () => {
+        submitCommentBtn.addEventListener('click', async function() {
             const text = commentText.value.trim();
             if (!text) { commentError.textContent = 'Напишите что-нибудь!'; commentError.style.display = 'block'; return; }
             commentError.style.display = 'none';
             submitCommentBtn.disabled = true;
             try {
-                const resp = await postJson(ADD_COMMENT_URL, {text});
-                const d = await resp.json();
+                const resp = await postJson(ADD_COMMENT_URL, {text: text});
+                const d    = await resp.json();
                 if (!resp.ok) { commentError.textContent = d.error || 'Ошибка'; commentError.style.display = 'block'; }
                 else {
                     commentText.value = '';
@@ -728,15 +809,15 @@
                 }
             } finally { submitCommentBtn.disabled = false; }
         });
-        commentText.addEventListener('keydown', e => {
+        commentText.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitCommentBtn.click(); }
         });
     }
 
     loadComments(true);
 
-    // ── Enter для textarea ответов и редактирования ───────────────────────
-    document.addEventListener('keydown', e => {
+    // ── Enter в textarea ответов/редактирования ───────────────────────────
+    document.addEventListener('keydown', function(e) {
         if (e.key !== 'Enter' || e.shiftKey) return;
         const ta = e.target;
         if (ta.classList.contains('reply-textarea')) {
@@ -748,49 +829,48 @@
         }
     });
 
-    // ── Модал: ветка комментариев ─────────────────────────────────────────
-    const threadModalEl  = document.getElementById('threadModal');
+    // ── Модал: ветка комментариев (уровень >= 10) ─────────────────────────
+    const threadModalEl   = document.getElementById('threadModal');
     const threadModalBody = document.getElementById('thread-modal-body');
-    const threadBackBtn  = document.getElementById('thread-back-btn');
-    let threadRootId = null;
-    let threadPage   = 1;
+    const threadBackBtn   = document.getElementById('thread-back-btn');
+    let threadRootId        = null;
     let threadModalInstance = null;
-    let threadHistory = [];
-    let threadBaseLevel = 0;
+    let threadHistory       = [];
+    let threadBaseLevel     = 0;
 
-    threadModalBody.addEventListener('click', e => handleCommentClick(e, threadModalBody));
+    threadModalBody.addEventListener('click', function(e) { handleCommentClick(e, threadModalBody); });
+    setupBarHoverHighlight(threadModalBody);
 
-    threadModalEl.addEventListener('hidden.bs.modal', () => {
+    threadModalEl.addEventListener('hide.bs.modal', function() {
+        if (document.activeElement && threadModalEl.contains(document.activeElement)) {
+            document.activeElement.blur();
+        }
+    });
+
+    threadModalEl.addEventListener('hidden.bs.modal', function() {
         threadHistory = [];
         threadBackBtn.classList.add('d-none');
         threadBaseLevel = 0;
     });
 
-    threadBackBtn.addEventListener('click', () => {
+    threadBackBtn.addEventListener('click', function() {
         if (!threadHistory.length) return;
-        const prev = threadHistory.pop();
-        threadRootId = prev.rootId;
-        threadPage   = prev.page;
-        threadModalBody.innerHTML = prev.bodyHTML;
+        const prev      = threadHistory.pop();
+        threadRootId    = prev.rootId;
         threadBaseLevel = prev.baseLevel;
+        threadModalBody.innerHTML = prev.bodyHTML;
         if (!threadHistory.length) threadBackBtn.classList.add('d-none');
     });
 
     async function openThreadModal(commentId, fromWithinModal) {
         if (fromWithinModal) {
-            threadHistory.push({
-                rootId: threadRootId,
-                page: threadPage,
-                bodyHTML: threadModalBody.innerHTML,
-                baseLevel: threadBaseLevel,
-            });
+            threadHistory.push({ rootId: threadRootId, baseLevel: threadBaseLevel, bodyHTML: threadModalBody.innerHTML });
             threadBackBtn.classList.remove('d-none');
         } else {
             threadHistory = [];
             threadBackBtn.classList.add('d-none');
         }
         threadRootId = commentId;
-        threadPage   = 1;
         threadModalBody.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-secondary"></div></div>';
         if (!threadModalEl.classList.contains('show')) {
             if (!threadModalInstance) threadModalInstance = new bootstrap.Modal(threadModalEl);
@@ -801,11 +881,11 @@
 
     async function loadThread() {
         try {
-            const resp = await fetch(`/comment/${threadRootId}/thread/?page=1`);
+            const resp = await fetch('/comment/' + threadRootId + '/thread/?page=1');
             const data = await resp.json();
             threadModalBody.innerHTML = '';
             threadBaseLevel = data.root.level;
-            threadModalBody.appendChild(buildCommentEl(data.root, threadBaseLevel));
+            threadModalBody.appendChild(buildCommentEl(data.root, threadBaseLevel, 9));
         } catch {
             threadModalBody.innerHTML = '<p class="text-muted text-center">Ошибка загрузки</p>';
         }

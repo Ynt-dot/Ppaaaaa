@@ -270,15 +270,34 @@ input[type="password"]::-ms-clear {
     height: 1px;
     background-color: #dee2e6;
 }
-.comment-item:not([data-rel-level="0"]):not(:last-child)::after {
-    left: 32px;
-}
 .comment-self {
     padding: 4px 6px;
 }
 .comment-self.pinned-comment {
     outline: 2px solid #212529;
     border-radius: 4px;
+}
+
+/* === Ветки комментариев (рисованые полоски) === */
+/* Убираем нижний отступ у последнего ответа — полоска заканчивается вровень с ним */
+.replies-container > .comment-item:last-child {
+    margin-bottom: 0;
+}
+.replies-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 14px;
+    background-repeat: repeat-y;
+    background-position: center top;
+    cursor: default;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+    border-radius: 3px;
+}
+.replies-bar.bar-highlighted {
+    opacity: 1;
 }
 
 .desc-clamp {
