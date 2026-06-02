@@ -381,6 +381,9 @@
         return d.innerHTML;
     }
 
+    const PROFILE_USER_URL = "{% url 'user_profile' profile_user.username %}";
+    let currentAvatarSrc = null;
+
     // === Заметка ===
     const noteField = document.getElementById('user-note-field');
     if (noteField) {
@@ -437,7 +440,8 @@
             : escapeHtml(c.author);
         const likedClass = c.user_liked ? 'btn-danger' : 'btn-outline-danger';
         const cartoonLink = '<a href="' + escapeHtml(c.cartoon_url) + '" class="text-muted">' + escapeHtml(c.cartoon_title) + '</a>';
-        const avatarImg = '<img src="' + escapeHtml(c.avatar_url) + '" class="user-avatar-sm" alt="">';
+        const isProfileUser = c.author_url === PROFILE_USER_URL;
+        const avatarImg = '<img src="' + escapeHtml(c.avatar_url) + '" class="user-avatar-sm' + (isProfileUser ? ' profile-user-avatar' : '') + '" alt="">';
         const avatarLink = c.author_url
             ? '<a href="' + escapeHtml(c.author_url) + '">' + avatarImg + '</a>'
             : avatarImg;
@@ -484,6 +488,9 @@
             data.comments.forEach(c => {
                 commentsList.insertAdjacentHTML('beforeend', buildCommentHTML(c));
                 const item = commentsList.lastElementChild;
+                if (currentAvatarSrc) {
+                    item.querySelectorAll('img.profile-user-avatar').forEach(img => { img.src = currentAvatarSrc; });
+                }
                 requestAnimationFrame(() => {
                     const textEl = item.querySelector('.comment-text-clamp');
                     const btn = item.querySelector('.comment-expand-btn');
@@ -635,7 +642,11 @@
                 const resp = await postJson(DELETE_AVATAR_URL, {});
                 if (resp.ok) {
                     const d = await resp.json();
-                    if (avatarImg && d.avatar_url) avatarImg.src = d.avatar_url;
+                    if (avatarImg && d.avatar_url) {
+                        avatarImg.src = d.avatar_url;
+                        currentAvatarSrc = d.avatar_url;
+                        document.querySelectorAll('img.profile-user-avatar').forEach(img => { img.src = d.avatar_url; });
+                    }
                     grid.querySelectorAll('.avatar-selector-item').forEach(el => el.classList.remove('selected'));
                     bootstrap.Modal.getInstance(avatarModal).hide();
                 } else {
@@ -662,7 +673,10 @@
                     if (resp.ok) {
                         const d = await resp.json();
                         if (avatarImg && d.avatar_url) {
-                            avatarImg.src = d.avatar_url + '?t=' + Date.now();
+                            const newSrc = d.avatar_url + '?t=' + Date.now();
+                            avatarImg.src = newSrc;
+                            currentAvatarSrc = newSrc;
+                            document.querySelectorAll('img.profile-user-avatar').forEach(img => { img.src = newSrc; });
                         }
                         grid.querySelectorAll('.avatar-selector-item').forEach(el => el.classList.remove('selected'));
                         item.classList.add('selected');
