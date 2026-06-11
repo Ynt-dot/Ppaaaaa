@@ -292,12 +292,9 @@ input[type="password"]::-ms-clear {
     background-repeat: repeat-y;
     background-position: center top;
     cursor: default;
-    opacity: 0.6;
-    transition: opacity 0.15s;
-    border-radius: 3px;
-}
-.replies-bar.bar-highlighted {
-    opacity: 1;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 8px, black calc(100% - 8px), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, black 8px, black calc(100% - 8px), transparent 100%);
+    transition: background-image 0s;
 }
 
 .desc-clamp {

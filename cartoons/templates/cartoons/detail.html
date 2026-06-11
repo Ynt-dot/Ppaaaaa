@@ -343,11 +343,9 @@
     let currentSort     = '{{ comment_sort }}';
     let commentsLoading = false;
 
-    // Рисованые полоски — цвета по уровню вложенности
-    const REPLY_BAR_COLORS = [
-        '#cc4444','#dd6622','#c09a15','#339944',
-        '#2277bb','#6644bb','#bb3388','#229988','#885533','#777777'
-    ];
+    // Рисованые полоски
+    const REPLY_BAR_COLOR  = '#aaaaaa';
+    const REPLY_BAR_ACTIVE = '#222222';
 
     function makeBarSvg(color) {
         return '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="20">' +
@@ -430,7 +428,7 @@
         if (c.replies_count > 0) {
             if (relLevel >= maxRelLevel) {
                 // Слишком глубоко — открыть в модале
-                showRepliesHTML = '<button class="view-thread-btn btn btn-link btn-sm p-0" data-comment-id="' + c.id + '" style="font-size:0.8rem;color:#888;text-decoration:none;">↳ ' + pluralReplies(c.replies_count) + ' →</button>';
+                showRepliesHTML = '<button class="view-thread-btn btn btn-link btn-sm p-0" data-comment-id="' + c.id + '" data-replies-count="' + c.replies_count + '" style="font-size:0.8rem;color:#888;text-decoration:none;">↳ ' + pluralReplies(c.replies_count) + ' →</button>';
             } else {
                 showRepliesHTML = '<button class="show-replies-btn btn btn-link btn-sm p-0" data-comment-id="' + c.id + '" style="font-size:0.8rem;color:#888;text-decoration:none;">↳ ' + pluralReplies(c.replies_count) + '</button>';
             }
@@ -467,7 +465,7 @@
         // Полоска — единый элемент на весь replies-container этого комментария
         const childRelLevel = relLevel + 1;
         if (childRelLevel >= 1 && childRelLevel <= maxRelLevel) {
-            const color = REPLY_BAR_COLORS[(childRelLevel - 1) % REPLY_BAR_COLORS.length];
+            const color = REPLY_BAR_COLOR;
             const repliesContainer = commentDiv.querySelector('.replies-container');
             repliesContainer.style.position = 'relative';
             repliesContainer.style.paddingLeft = '20px';
@@ -657,14 +655,14 @@
 
     commentsList.addEventListener('click', function(e) { handleCommentClick(e, commentsList); });
 
-    // При наведении на полоску подсвечиваются все полоски того же уровня
+    // При наведении на полоску — все полоски того же уровня темнеют
     function setupBarHoverHighlight(root) {
         root.addEventListener('mouseover', function(e) {
             const bar = e.target.closest('.replies-bar');
             if (!bar) return;
             const level = bar.dataset.barLevel;
             root.querySelectorAll('.replies-bar[data-bar-level="' + level + '"]').forEach(function(b) {
-                b.classList.add('bar-highlighted');
+                b.style.backgroundImage = makeBarDataUrl(REPLY_BAR_ACTIVE);
             });
         });
         root.addEventListener('mouseout', function(e) {
@@ -672,7 +670,7 @@
             if (!bar) return;
             const level = bar.dataset.barLevel;
             root.querySelectorAll('.replies-bar[data-bar-level="' + level + '"]').forEach(function(b) {
-                b.classList.remove('bar-highlighted');
+                b.style.backgroundImage = makeBarDataUrl(REPLY_BAR_COLOR);
             });
         });
     }
@@ -711,8 +709,37 @@
             if (!resp.ok) { errorEl.textContent = d.error || 'Ошибка'; errorEl.style.display = 'block'; }
             else {
                 form.style.display = 'none'; textarea.value = '';
-                const container = root.querySelector('.replies-container[data-parent-id="' + commentId + '"]');
-                if (container) container.insertBefore(buildCommentEl(d, baseLevel, maxRelLevel), container.firstChild);
+                const newRelLevel = Math.max(0, d.level - baseLevel);
+                if (newRelLevel > maxRelLevel) {
+                    // Ответ глубже maxRelLevel — не показывать инлайн, обновить кнопку счётчика
+                    const parentEl = root.querySelector('.comment-item[data-comment-id="' + commentId + '"]');
+                    if (parentEl) {
+                        let bottomDiv = parentEl.querySelector(':scope > .bottom-btns');
+                        const existingBtn = bottomDiv ? bottomDiv.querySelector('.view-thread-btn') : null;
+                        if (existingBtn) {
+                            const newCount = (parseInt(existingBtn.dataset.repliesCount) || 0) + 1;
+                            existingBtn.dataset.repliesCount = newCount;
+                            existingBtn.textContent = '↳ ' + pluralReplies(newCount) + ' →';
+                        } else {
+                            if (!bottomDiv) {
+                                bottomDiv = document.createElement('div');
+                                bottomDiv.className = 'mt-1 bottom-btns';
+                                bottomDiv.dataset.forId = commentId;
+                                parentEl.appendChild(bottomDiv);
+                            }
+                            const btn = document.createElement('button');
+                            btn.className = 'view-thread-btn btn btn-link btn-sm p-0';
+                            btn.dataset.commentId = commentId;
+                            btn.dataset.repliesCount = '1';
+                            btn.style.cssText = 'font-size:0.8rem;color:#888;text-decoration:none;';
+                            btn.textContent = '↳ ' + pluralReplies(1) + ' →';
+                            bottomDiv.appendChild(btn);
+                        }
+                    }
+                } else {
+                    const container = root.querySelector('.replies-container[data-parent-id="' + commentId + '"]');
+                    if (container) container.insertBefore(buildCommentEl(d, baseLevel, maxRelLevel), container.firstChild);
+                }
             }
         } finally { submitBtn.disabled = false; }
     }
@@ -885,7 +912,11 @@
             const data = await resp.json();
             threadModalBody.innerHTML = '';
             threadBaseLevel = data.root.level;
-            threadModalBody.appendChild(buildCommentEl(data.root, threadBaseLevel, 9));
+            const rootEl = buildCommentEl(data.root, threadBaseLevel, 9);
+            threadModalBody.appendChild(rootEl);
+            // Автоматически разворачиваем первый уровень ответов
+            const showBtn = rootEl.querySelector(':scope > .bottom-btns > .show-replies-btn');
+            if (showBtn) handleShowReplies(showBtn, threadModalBody);
         } catch {
             threadModalBody.innerHTML = '<p class="text-muted text-center">Ошибка загрузки</p>';
         }
