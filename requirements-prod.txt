@@ -9,3 +9,4 @@ mysqlclient==2.2.4
 requests==2.31.0
 django-debug-toolbar
 django-axes
+django-bootstrap4==23.4
