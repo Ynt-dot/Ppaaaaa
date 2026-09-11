@@ -2,32 +2,50 @@ import base64
 from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
+import os
 from django.core.mail import send_mail
+from django.core.mail.utils import DNS_NAME
 from django.urls import reverse
 from django.conf import settings
 from .models import EmailVerificationToken
 from django.utils import timezone
 
+# На некоторых Windows-машинах socket.getfqdn() возвращает имя хоста
+# с точкой в конце (например "FLTP-5i5-8512."), что ломает IDNA-кодек
+# при установке SMTP-соединения. Проверяем и подменяем на 'localhost'.
+try:
+    DNS_NAME.get_fqdn()
+except UnicodeEncodeError:
+    DNS_NAME._fqdn = 'localhost'
 
-def create_gif_from_frames(frames_data, fps=12):
+
+def create_gif_from_frames(frames_data, fps=12, max_frames=None):
     """
     frames_data: список строк dataURL (base64)
+    fps: кадров в секунду
+    max_frames: максимальное количество кадров для GIF (None = все)
     возвращает ContentFile с GIF
     """
+    if max_frames is not None:
+        frames_data = frames_data[:max_frames]
+
+    GIF_SIZE = (600, 400)
+
     images = []
     for data_url in frames_data:
-        # data_url вида "data:image/png;base64,...."
         format, imgstr = data_url.split(';base64,')
         image_data = base64.b64decode(imgstr)
-        img = Image.open(BytesIO(image_data))
-        # Конвертируем в RGB (GIF не поддерживает альфа-канал)
-        if img.mode != 'RGB':
-            img = img.convert('RGB')
-        images.append(img)
+        img = Image.open(BytesIO(image_data)).convert('RGBA')
+        white_bg = Image.new('RGB', img.size, (255, 255, 255))
+        white_bg.paste(img, (0, 0), img)
+        if white_bg.size != GIF_SIZE:
+            white_bg = white_bg.resize(GIF_SIZE, Image.LANCZOS)
+        images.append(white_bg)
 
-    # Создаём GIF в памяти
+    if not images:
+        return None
+
     gif_buffer = BytesIO()
-    # duration в миллисекундах = 1000 / fps
     duration = int(1000 / fps)
     images[0].save(
         gif_buffer,
@@ -40,6 +58,47 @@ def create_gif_from_frames(frames_data, fps=12):
     )
     gif_buffer.seek(0)
     return ContentFile(gif_buffer.read(), name='animation.gif')
+
+
+def create_avatar_gif(source_path, left_n, top_n, right_n, bottom_n, size=200):
+    """
+    Crop each frame of source GIF to the specified normalized rectangle and
+    return a square ContentFile GIF of `size x size` pixels.
+
+    left_n, top_n, right_n, bottom_n are in [0, 1] relative to image dimensions.
+    """
+    images = []
+    durations = []
+    with Image.open(source_path) as src:
+        try:
+            n_frames = src.n_frames
+        except Exception:
+            n_frames = 1
+        for i in range(n_frames):
+            src.seek(i)
+            frame = src.copy().convert('RGBA')
+            bg = Image.new('RGB', frame.size, (255, 255, 255))
+            bg.paste(frame, mask=frame.split()[3])
+            w, h = bg.size
+            left   = max(0, int(round(left_n   * w)))
+            top    = max(0, int(round(top_n    * h)))
+            right  = min(w, int(round(right_n  * w)))
+            bottom = min(h, int(round(bottom_n * h)))
+            cropped = bg.crop((left, top, right, bottom))
+            resized = cropped.resize((size, size), Image.LANCZOS)
+            images.append(resized)
+            durations.append(src.info.get('duration', 100))
+    buf = BytesIO()
+    if len(images) == 1:
+        images[0].save(buf, format='GIF')
+    else:
+        images[0].save(
+            buf, format='GIF',
+            save_all=True, append_images=images[1:],
+            duration=durations, loop=0, optimize=False,
+        )
+    buf.seek(0)
+    return ContentFile(buf.read(), name='avatar.gif')
 
 
 def send_verification_email(user):

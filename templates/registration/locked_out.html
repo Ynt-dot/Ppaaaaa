@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Доступ заблокирован{% endblock %}
+
+{% block content %}
+<div class="container text-center mt-5">
+    <h1>Слишком много неудачных попыток входа</h1>
+    <p>Ваш IP-адрес временно заблокирован из-за подозрительной активности.</p>
+    <p>Попробуйте позже или свяжитесь с администратором.</p>
+    <a href="{% url 'index' %}" class="btn btn-primary">На главную</a>
+</div>
+{% endblock %}

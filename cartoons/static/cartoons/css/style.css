@@ -1,0 +1,446 @@
+/* === Fonts === */
+body {
+    font-family: 'Comic Neue', cursive;
+}
+h1, h2, h3, h4, .btn {
+    font-family: 'Fredoka One', cursive;
+}
+
+/* === Colour tokens === */
+:root {
+    --bs-primary: #FF0000;
+    --bs-primary-hover: #6c757d;
+    --bs-link-color: #28a745;
+    --bs-link-hover-color: #218838;
+    --bs-success: #28a745;
+    --bs-success-rgb: 40, 167, 69;
+}
+
+.bg-success {
+    background-color: #28a745 !important;
+}
+.btn-success {
+    --bs-btn-bg: #28a745;
+    --bs-btn-border-color: #28a745;
+    --bs-btn-hover-bg: #218838;
+    --bs-btn-hover-border-color: #1e7e34;
+    --bs-btn-active-bg: #1e7e34;
+    --bs-btn-active-border-color: #1c7430;
+}
+.btn-outline-success {
+    --bs-btn-color: #28a745;
+    --bs-btn-border-color: #28a745;
+    --bs-btn-hover-bg: #28a745;
+    --bs-btn-hover-border-color: #28a745;
+    --bs-btn-active-bg: #28a745;
+    --bs-btn-active-border-color: #28a745;
+}
+
+/* === Buttons === */
+.btn-primary {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: var(--bs-primary-hover);
+    border-color: var(--bs-primary-hover);
+}
+.btn-outline-primary {
+    color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+.btn-outline-primary:hover {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: white;
+}
+.btn-danger {
+    background-color: #FF0000 !important;
+    border-color: #FF0000 !important;
+}
+.btn-danger:hover,
+.btn-danger:focus {
+    background-color: #cc0000 !important;
+    border-color: #cc0000 !important;
+}
+.btn-outline-danger {
+    color: #FF0000 !important;
+    border-color: #FF0000 !important;
+}
+.btn-outline-danger:hover {
+    background-color: #FF0000 !important;
+    color: #fff !important;
+}
+.btn-github {
+    background-color: #fff;
+    border: 1px solid #212529;
+    color: #212529 !important;
+}
+.btn-github:hover {
+    background-color: #212529;
+    border-color: #212529;
+    color: #fff !important;
+}
+.btn-youtube {
+    background-color: #fff;
+    border: 1px solid #FF0000;
+    color: #FF0000 !important;
+}
+.btn-youtube:hover {
+    background-color: #FF0000;
+    border-color: #FF0000;
+    color: #fff !important;
+}
+.btn-red {
+    background-color: #fff;
+    border: 1px solid #FF0000;
+    color: #FF0000 !important;
+}
+.btn-red:hover {
+    background-color: #FF0000;
+    border-color: #FF0000;
+    color: #fff !important;
+}
+.btn-twitch {
+    background-color: #fff;
+    border: 1px solid #9146FF;
+    color: #9146FF !important;
+}
+.btn-twitch:hover {
+    background-color: #9146FF;
+    border-color: #9146FF;
+    color: #fff !important;
+}
+.btn-discord {
+    background-color: #FF0000;
+    border-color: #FF0000;
+    color: #fff;
+}
+.btn-discord:hover {
+    background-color: #cc0000;
+    border-color: #cc0000;
+    color: #fff;
+}
+
+/* === Links === */
+a:not(.navbar-brand):not(.dropdown-item):not(.btn):not(.text-green) {
+    color: #212529;
+    text-decoration: none;
+}
+a:not(.navbar-brand):not(.dropdown-item):not(.btn):not(.text-green):hover {
+    color: #6c757d;
+    text-decoration: underline;
+}
+a:not(.username-link):not(.navbar-brand) {
+    color: #212529;
+}
+.username-link,
+a.username-link {
+    color: #28a745 !important;
+    font-weight: bold;
+}
+.username-link:hover {
+    color: #218838 !important;
+}
+
+/* === Navbar === */
+.navbar-brand img {
+    width: auto;
+}
+@media (max-width: 768px) {
+    .navbar-brand img {
+        height: 50px !important;
+    }
+}
+
+/* === Navigation === */
+.nav-link.active {
+    color: var(--bs-primary) !important;
+}
+.dropdown-item:hover {
+    background-color: #e9ecef;
+    color: #212529;
+}
+.dropdown-item.active,
+.dropdown-item:active {
+    background-color: #212529 !important;
+    color: #fff !important;
+}
+
+/* === Pagination === */
+.page-link {
+    color: #212529;
+}
+.page-link:hover {
+    background-color: #e9ecef;
+    color: #212529;
+    border-color: #dee2e6;
+}
+.page-item.active .page-link {
+    background-color: #FF0000;
+    border-color: #FF0000;
+    color: #fff;
+}
+
+/* === Password inputs (hide browser chrome) === */
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-textfield-decoration-container,
+input[type="password"]::-webkit-caps-lock-indicator {
+    display: none !important;
+}
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none !important;
+}
+
+/* === Card previews === */
+.card-stats span {
+    white-space: nowrap;
+}
+.title-clamp {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* === Views tooltip === */
+.views-tooltip {
+    position: relative;
+    cursor: default;
+}
+.views-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #6c757d;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 200;
+}
+.views-tooltip:hover::after {
+    opacity: 1;
+}
+
+.card-preview-img {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    object-fit: contain;
+    background-color: #f8f9fa;
+}
+.card-preview-placeholder {
+    aspect-ratio: 3 / 2;
+}
+
+/* === Verification pages === */
+.emoji-icon {
+    font-size: 64px;
+}
+
+/* === Clamp (теги / описание) === */
+.tags-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.tags-clamp.expanded {
+    display: block;
+    overflow: visible;
+}
+.comment-item {
+    position: relative;
+    margin-bottom: 6px;
+}
+.comment-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #dee2e6;
+}
+.comment-self {
+    padding: 4px 6px;
+}
+.comment-self.pinned-comment {
+    outline: 2px solid #212529;
+    border-radius: 4px;
+}
+
+/* === Ветки комментариев (рисованые полоски) === */
+/* Убираем нижний отступ у последнего ответа — полоска заканчивается вровень с ним */
+.replies-container > .comment-item:last-child {
+    margin-bottom: 0;
+}
+.replies-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 14px;
+    background-repeat: repeat-y;
+    background-position: center top;
+    cursor: default;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 8px, black calc(100% - 8px), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, black 8px, black calc(100% - 8px), transparent 100%);
+    transition: background-image 0s;
+}
+
+.desc-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+.desc-clamp.expanded {
+    display: block;
+    overflow: visible;
+}
+
+/* === Discord widget === */
+.discord-icon {
+    font-size: 3rem;
+    color: #FF0000;
+}
+
+/* === Detail / Player === */
+
+/* === Avatars === */
+.user-avatar {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #dee2e6;
+}
+.user-avatar-md {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #dee2e6;
+    flex-shrink: 0;
+}
+.user-avatar-sm {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #dee2e6;
+    flex-shrink: 0;
+}
+.avatar-selector-item {
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+.avatar-selector-item:hover {
+    border-color: #28a745 !important;
+}
+.avatar-selector-item.selected {
+    border-color: #28a745 !important;
+    border-width: 2px !important;
+}
+
+/* === Avatar crop modal === */
+.crop-modal-body {
+    display: flex;
+    padding: 0;
+    overflow: hidden;
+}
+.crop-zoom-bar {
+    width: 44px;
+    background: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 0;
+    flex-shrink: 0;
+}
+.crop-zoom-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #6c757d;
+    line-height: 1;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.crop-zoom-slider-track {
+    position: relative;
+    width: 28px;
+    height: 150px;
+}
+.crop-zoom-slider {
+    position: absolute;
+    width: 150px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
+    accent-color: #0d6efd;
+}
+.crop-stage {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    cursor: grab;
+    background: #111;
+    overflow: hidden;
+    flex-shrink: 0;
+    touch-action: none;
+}
+.crop-stage:active { cursor: grabbing; }
+.crop-stage img {
+    position: absolute;
+    pointer-events: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.crop-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 150px 150px, transparent 97px, rgba(0,0,0,0.62) 103px);
+    pointer-events: none;
+}
+.crop-circle-ring {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.8);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
+    pointer-events: none;
+}
+
+/* === Fix: anchor btn-dark/btn-outline-dark text colour === */
+a.btn-dark,
+a.btn-dark:hover,
+a.btn-dark:focus {
+    color: #fff !important;
+}
+
+a.btn-outline-dark:hover,
+a.btn-outline-dark:focus {
+    background-color: #e9ecef !important;
+    color: #212529 !important;
+    border-color: #343a40 !important;
+}

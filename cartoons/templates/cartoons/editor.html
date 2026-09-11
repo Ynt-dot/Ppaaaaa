@@ -3,73 +3,145 @@
 
 {% block title %}{% if cartoon %}Редактировать "{{ cartoon.title }}"{% else %}Создать новый мульт{% endif %}{% endblock %}
 
+{% block extra_head %}
+<link href="{% static 'cartoons/css/editor.css' %}" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-12"> <!-- убрали ограничение col-lg-8, пусть занимает всю ширину -->
-        <h1 class="mb-4">{% if cartoon %}Редактировать "{{ cartoon.title }}"{% else %}Создать новый мульт{% endif %}</h1>
-
-        <form method="post" id="editor-form" class="bg-light p-4 rounded shadow-sm">
+<div class="container">
+    <div class="row">
+        <!-- Скрытая форма для отправки данных -->
+        <form method="post" id="editor-form" class="d-none">
             {% csrf_token %}
-            <div class="mb-3">
-                <label for="title" class="form-label">Название</label>
-                <input type="text" class="form-control" id="title" name="title" value="{{ cartoon.title|default:'' }}" required>
-            </div>
-            <div class="mb-3">
-                <label for="fps" class="form-label">FPS (кадров в секунду)</label>
-                <input type="number" class="form-control" id="fps" name="fps" value="{{ cartoon.fps|default:12 }}" min="1" max="30">
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Инструменты</label>
-                <div class="d-flex flex-wrap gap-2">
-                    <input type="color" id="color-picker" value="#000000" class="form-control form-control-color w-auto" title="Выбрать цвет">
-                    <input type="range" id="brush-size" min="1" max="20" value="2" class="form-range w-auto" style="width: 100px;">
-                    <button type="button" id="clear-canvas" class="btn btn-outline-secondary">Очистить</button>
-                    <button type="button" id="add-frame" class="btn btn-primary">➕ Добавить кадр</button>
-                    <button type="button" id="copy-frame" class="btn btn-outline-primary">📋 Копировать кадр</button>
-                    <button type="button" id="delete-frame" class="btn btn-outline-danger">❌ Удалить кадр</button>
-                    <button type="button" id="preview-btn" class="btn btn-info">👁️ Предпросмотр</button>
-                </div>
-            </div>
-
-            <!-- Увеличенный canvas с обёрткой -->
-            <div class="canvas-wrapper mb-3 text-center" style="max-width: 100%; overflow-x: auto;">
-                <canvas id="draw-canvas" width="800" height="600" style="border: 2px solid #ccc; border-radius: 5px; background: white; max-width: 100%; height: auto;"></canvas>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Кадры</label>
-                <div id="frames-list" class="d-flex flex-wrap gap-2 p-2 border rounded bg-white" style="min-height: 80px;"></div>
-            </div>
-
+            <input type="hidden" name="title" id="title-input">
+            <input type="hidden" name="fps" id="fps-input">
+            <input type="hidden" name="tags" id="tags-input">
+            <input type="hidden" name="description" id="description-input">
             <input type="hidden" name="frames" id="frames-input">
-            <button type="submit" class="btn btn-primary w-100">💾 Сохранить мульт</button>
         </form>
+
+        <!-- Левая колонка: редактор (фиксированная ширина) -->
+        <div class="col-auto">
+            <div class="editor-left">
+                <!-- Canvas -->
+                <div class="canvas-container">
+                    <div class="canvas-wrapper">
+                        <canvas id="background-canvas" width="3000" height="2000"></canvas>
+                        <canvas id="draw-canvas" width="3000" height="2000"></canvas>
+                        <canvas id="cursor-canvas" width="3000" height="2000"></canvas>
+                    </div>
+                </div>
+
+                <!-- Панель инструментов -->
+                <div class="toolbar">
+                    <!-- Добавить кадр -->
+                    <div class="tool-group">
+                        <button type="button" class="tool-btn" id="add-frame" title="Добавить кадр">
+                            <i class="bi bi-plus-square"></i>
+                        </button>
+                        <button type="button" class="tool-btn" id="delete-frame" title="Удалить кадр">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+
+                    <!-- Предпросмотр и сохранение -->
+                    <div class="tool-group">
+                        <button type="button" class="tool-btn" id="preview-btn" title="Предпросмотр">
+                            <i class="bi bi-play-fill"></i>
+                        </button>
+                        <button type="button" class="tool-btn" id="save-btn" title="Сохранить">
+                            <i class="bi bi-save"></i>
+                        </button>
+                    </div>
+
+                    <!-- Инструменты рисования -->
+                    <div class="tool-group">
+                        <button type="button" class="tool-btn" id="pencil-tool" title="Карандаш">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="button" class="tool-btn" id="eraser-tool" title="Ластик">
+                            <i class="bi bi-eraser"></i>
+                        </button>
+                    </div>
+
+                    <!-- Размер кисти -->
+                    <div class="tool-group">
+                        <button type="button" class="tool-btn size-btn" data-size="10" title="Размер 10px">
+                            <div class="brush-dot"></div>
+                        </button>
+                        <button type="button" class="tool-btn size-btn active" data-size="20" title="Размер 20px">
+                            <div class="brush-dot"></div>
+                        </button>
+                        <button type="button" class="tool-btn size-btn" data-size="25" title="Размер 25px">
+                            <div class="brush-dot"></div>
+                        </button>
+                        <button type="button" class="tool-btn size-btn" data-size="45" title="Размер 45px">
+                            <div class="brush-dot"></div>
+                        </button>
+                        <button type="button" class="tool-btn size-btn" data-size="85" title="Размер 85px">
+                            <div class="brush-dot"></div>
+                        </button>
+                    </div>
+
+                    <!-- Цвет -->
+                    <div class="tool-group">
+                        <button type="button" class="color-btn black active" data-color="#000000" title="Чёрный"></button>
+                        <button type="button" class="color-btn red" data-color="#ff0000" title="Красный"></button>
+                    </div>
+                </div>
+
+                <!-- Полоса кадров (миниатюры) -->
+                <div class="frames-strip" id="frames-strip"></div>
+            </div>
+        </div>
+
+        <!-- Правая колонка: информация -->
+        <div class="col">
+            <div class="info-panel">
+                {% if not user.is_authenticated %}
+                    <p>Рекомендуем <a href="{% url 'register' %}">зарегистрироваться</a>. Мульты незарегистрированных пользователей сохраняются как анонимные. Помимо этого зарегестрированные пользователи могут редактировать свои мульты.
+                    </p>
+                    <hr>
+                {% endif %}
+                <p><strong>Горячие клавиши</strong><br>
+                    C - копировать кадр<br>
+                    V - вставить кадр<br>
+                    Z - отмена предыдущего действия<br>
+                    Равно - увеличить размер карандаша<br>
+                    Минус - уменьшить размер карандаша<br>
+                    B - карандаш<br>
+                    E - ластик<br>
+                    F - переключение в полноэкранный режим
+                </p>
+            </div>
+        </div>
     </div>
 </div>
-<!-- Модальное окно предпросмотра -->
-<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="previewModalLabel">Предпросмотр анимации</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+<!-- Модальное окно сохранения (тёмная тема) -->
+<div class="modal fade" id="saveModal" tabindex="-1" aria-labelledby="saveModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-white" id="saveModalLabel">Сохранение мульта</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body text-center">
-                <img id="preview-frame" src="" alt="Кадр" class="img-fluid rounded" style="max-height: 400px;">
-                <div class="mt-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <span>Кадр</span>
-                        <input type="range" id="preview-slider" class="form-range" min="0" max="0" value="0">
-                        <span id="preview-counter">0 / 0</span>
-                    </div>
-                    <div class="d-flex gap-2 justify-content-center mt-2">
-                        <button id="preview-playpause" class="btn btn-primary">▶️ Воспроизвести</button>
-                    </div>
-                </div>
+            <div class="modal-body">
+                <label for="modal-title" class="form-label text-white-50">Название</label>
+                <input type="text" class="form-control bg-dark text-white border-secondary" id="modal-title" placeholder="Введите название" maxlength="100" autofocus>
+
+                <label for="modal-fps" class="form-label text-white-50 mt-2">FPS (кадров в секунду)</label>
+                <input type="number" class="form-control bg-dark text-white border-secondary" id="modal-fps" value="10" min="1" max="30">
+
+                <label for="modal-tags" class="form-label text-white-50 mt-2">Теги (ключевые слова, через запятую)</label>
+                <input type="text" class="form-control bg-dark text-white border-secondary" id="modal-tags" placeholder="например: смешной, котики">
+
+                <label for="modal-description" class="form-label text-white-50 mt-2">Описание</label>
+                <textarea class="form-control bg-dark text-white border-secondary" id="modal-description" rows="3" placeholder="Краткое описание мульта"></textarea>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="confirm-save">Сохранить</button>
             </div>
         </div>
     </div>
@@ -80,7 +152,19 @@
 {% if frames_json %}
 <script>
     var framesData = {{ frames_json|safe }};
+    var currentFps = {{ cartoon.fps|default:10 }};
 </script>
+{% endif %}
+{% if cartoon %}
+<script>
+    var currentCartoonTitle = "{{ cartoon.title|escapejs }}";
+    var currentCartoonFps = {{ cartoon.fps|default:10 }};
+    var currentCartoonTags = {{ cartoon.tags|safe }};
+    var currentCartoonDescription = "{{ cartoon.description|escapejs }}";
+</script>
+{% endif %}
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
 {% endif %}
 <script src="{% static 'cartoons/js/editor.js' %}"></script>
 {% endblock %}

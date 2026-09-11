@@ -1,88 +1,88 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static cartoon_tags %}
 
-{% block title %}Все мультики{% endblock %}
+{% block title %}Ппааааа{% endblock %}
 
 {% block content %}
 <div class="row">
-    <!-- Основная колонка с сеткой мультиков -->
+    <!-- Основная колонка с сеткой мультов -->
     <div class="col-md-9">
-        <!-- Пагинация -->
-        {% if cartoons.has_other_pages %}
-        <nav aria-label="Навигация по страницам" class="mt-2 mb-3">
-            <ul class="pagination justify-content-center">
-                {% if cartoons.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ cartoons.previous_page_number }}" aria-label="Предыдущая">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">&laquo;</span>
-                </li>
-                {% endif %}
+        <!-- Верхняя пагинация + сортировка -->
+        <div class="d-flex flex-column flex-md-row align-items-center mt-2 mb-3 gap-2">
+            <!-- Спейсер только на десктопе, чтобы пагинатор оставался по центру -->
+            <div class="d-none d-md-block flex-shrink-0" style="min-width: 140px"></div>
 
-                {% for num in cartoons.paginator.page_range %}
-                    {% if cartoons.number == num %}
-                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                    {% elif num > cartoons.number|add:'-3' and num < cartoons.number|add:'3' %}
-                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+            <nav aria-label="Навигация по страницам" class="flex-grow-1 w-100">
+                {% if cartoons.has_other_pages %}
+                <ul class="pagination justify-content-center mb-0 flex-wrap">
+                    {% if cartoons.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ cartoons.previous_page_number }}&sort={{ current_sort }}" aria-label="Предыдущая">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo;</span>
+                    </li>
                     {% endif %}
-                {% endfor %}
 
-                {% if cartoons.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ cartoons.next_page_number }}" aria-label="Следующая">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">&raquo;</span>
-                </li>
+                    {% for num in cartoons.paginator.page_range %}
+                        {% if cartoons.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > cartoons.number|add:'-3' and num < cartoons.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}&sort={{ current_sort }}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if cartoons.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ cartoons.next_page_number }}&sort={{ current_sort }}" aria-label="Следующая">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&raquo;</span>
+                    </li>
+                    {% endif %}
+                </ul>
                 {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
+            </nav>
+
+            <!-- Выпадающее меню сортировки -->
+            <div class="dropdown flex-shrink-0 align-self-end align-self-md-center" style="min-width: 140px">
+                <button class="btn btn-dark btn-sm dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    {{ sort_label }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item{% if current_sort == 'popular' %} active{% endif %}" href="?sort=popular">Популярное</a></li>
+                    <li><a class="dropdown-item{% if current_sort == 'new' %} active{% endif %}" href="?sort=new">Новое</a></li>
+                    <li><a class="dropdown-item{% if current_sort == 'trending' %} active{% endif %}" href="?sort=trending">Тренды</a></li>
+                    <li><a class="dropdown-item{% if current_sort == 'trending_24h' %} active{% endif %}" href="?sort=trending_24h">Тренды 24ч</a></li>
+                </ul>
+            </div>
+        </div>
 
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
             {% for cartoon in cartoons %}
-            <div class="col">
-                <div class="card h-100 shadow-sm">
-                    <a href="{% url 'detail' cartoon.pk %}" class="text-decoration-none text-dark">
-                        {% if cartoon.preview %}
-                        <img src="{{ cartoon.preview.url }}" class="card-img-top" alt="{{ cartoon.title }}" style="height: 180px; object-fit: cover;">
-                        {% else %}
-                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
-                            <span class="text-muted">Нет превью</span>
-                        </div>
-                        {% endif %}
-                        <div class="card-body">
-                            <h5 class="card-title">{{ cartoon.title }}</h5>
-                            <p class="card-text text-muted">
-                                Автор: <a href="{% url 'user_profile' username=cartoon.author.username %}" class="text-decoration-none">{{ cartoon.author.username }}</a>
-                            </p>
-                        </div>
-                    </a>
-                </div>
-            </div>
+            {% include 'cartoons/cartoon_card.html' with show_author=True %}
             {% empty %}
             <div class="col-12">
                 <div class="alert alert-info">
-                    Пока нет ни одного мультика. <a href="{% url 'editor_create' %}" class="alert-link">Создайте первый!</a>
+                    Пока нет ни одного мульта. <a href="{% url 'editor_create' %}" class="alert-link">Создайте первый!</a>
                 </div>
             </div>
             {% endfor %}
         </div>
 
-        <!-- Пагинация -->
+        <!-- Нижняя пагинация -->
         {% if cartoons.has_other_pages %}
         <nav aria-label="Навигация по страницам" class="mt-4">
             <ul class="pagination justify-content-center">
                 {% if cartoons.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ cartoons.previous_page_number }}" aria-label="Предыдущая">
+                    <a class="page-link" href="?page={{ cartoons.previous_page_number }}&sort={{ current_sort }}" aria-label="Предыдущая">
                         <span aria-hidden="true">&laquo;</span>
                     </a>
                 </li>
@@ -96,13 +96,13 @@
                     {% if cartoons.number == num %}
                     <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                     {% elif num > cartoons.number|add:'-3' and num < cartoons.number|add:'3' %}
-                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}&sort={{ current_sort }}">{{ num }}</a></li>
                     {% endif %}
                 {% endfor %}
 
                 {% if cartoons.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ cartoons.next_page_number }}" aria-label="Следующая">
+                    <a class="page-link" href="?page={{ cartoons.next_page_number }}&sort={{ current_sort }}" aria-label="Следующая">
                         <span aria-hidden="true">&raquo;</span>
                     </a>
                 </li>
@@ -120,15 +120,70 @@
     <div class="col-md-3">
         <div class="card shadow-sm">
             <div class="card-body">
-                <h5 class="card-title">О проекте</h5>
-                <p class="card-text">
-                    Ппааааа — это онлайн-рисовалка для создания анимации, где любой может нарисовать свой мульт даже не умея рисовать.
-                </p>
-                <p class="card-text">
-                    Просто создавай кадры, рисуй что хочешь, и смотри, как оживают твои идеи!
-                </p>
+                <!-- Блок новостей -->
+                <div class="mt-3">
+                    <h5 class="text-center">Новости</h5>
+                    <div class="small">
+                        {{ news_content|safe }}
+                    </div>
+                </div>
+
+                <!-- Виджет Discord — весь блок скрыт, показывается только если Discord доступен -->
+                <div id="discord-section" class="d-none mt-3">
+                    <hr>
+                    <h5 class="text-center">Наш Discord</h5>
+                    <iframe id="discord-iframe"
+                            width="100%"
+                            height="400"
+                            allowtransparency="true"
+                            frameborder="0"
+                            sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts">
+                    </iframe>
+                </div>
+
+                <hr>
+                <div class="mt-3">
+                    <h5 class="text-center">Ссылки</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-sm btn-red flex-fill text-center" href="https://boosty.to/ppaaaaa" target="_blank">
+                            <i class="bi bi-cup-straw"></i> Boosty
+                        </a>
+                        <a href="https://github.com/Ynt-dot/Ppaaaaa" class="btn btn-sm btn-github flex-fill text-center" target="_blank">
+                            <i class="bi bi-github"></i> GitHub
+                        </a>
+                        <a href="https://www.youtube.com/@Ppaaaaa-s7w" class="btn btn-sm btn-youtube flex-fill text-center" target="_blank">
+                            <i class="bi bi-youtube"></i> YouTube
+                        </a>
+                        <a href="https://www.twitch.tv/ppaaaaas7w" class="btn btn-sm btn-twitch flex-fill text-center" target="_blank">
+                            <i class="bi bi-twitch"></i> Twitch
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    const GUILD_ID = '1478337136846438503';
+    const TIMEOUT_MS = 3000;
+
+    const section = document.getElementById('discord-section');
+    const iframe = document.getElementById('discord-iframe');
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    fetch('https://discord.com/', { mode: 'no-cors', signal: controller.signal })
+        .then(function () {
+            clearTimeout(timer);
+            iframe.src = 'https://discord.com/widget?id=' + GUILD_ID + '&theme=light';
+            section.classList.remove('d-none');
+        })
+        .catch(function () {});
+})();
+</script>
 {% endblock %}
