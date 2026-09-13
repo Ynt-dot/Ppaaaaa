@@ -39,7 +39,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'cartoons',
     'bootstrap4',
-    'debug_toolbar',
     'axes',
 ]
 
@@ -53,8 +52,10 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
+
+# Безопасное значение по умолчанию, если local_settings.py его не переопределит
+DEBUG = False
 
 ROOT_URLCONF = 'Ppaaaaa.urls'
 
@@ -180,3 +181,9 @@ try:
     from .local_settings import * # type: ignore # noqa
 except ImportError:
     pass
+
+# django-debug-toolbar — только для локальной разработки, на проде
+# не устанавливается вообще (см. requirements-prod.txt)
+if DEBUG:
+    INSTALLED_APPS += ['debug_toolbar']
+    MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
