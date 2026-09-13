@@ -1112,13 +1112,17 @@ def set_as_avatar(request, pk):
     except (json.JSONDecodeError, ValueError):
         body = {}
 
-    def _clamp(v):
-        return max(0.0, min(1.0, float(v)))
+    def _clamp(v, default):
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            v = default
+        return max(0.0, min(1.0, v))
 
-    left_n = _clamp(body.get('left', 0))
-    top_n = _clamp(body.get('top', 0))
-    right_n = _clamp(body.get('right', 1))
-    bottom_n = _clamp(body.get('bottom', 1))
+    left_n = _clamp(body.get('left', 0), 0.0)
+    top_n = _clamp(body.get('top', 0), 0.0)
+    right_n = _clamp(body.get('right', 1), 1.0)
+    bottom_n = _clamp(body.get('bottom', 1), 1.0)
 
     try:
         avatar_content = create_avatar_gif(
