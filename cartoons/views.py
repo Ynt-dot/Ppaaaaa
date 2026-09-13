@@ -755,7 +755,7 @@ def editor(request, pk=None):
         fps_str = request.POST.get('fps', '10')
         frames_json = request.POST.get('frames')
         tags_json = request.POST.get('tags', '[]')
-        description = request.POST.get('description', '')
+        description = request.POST.get('description', '')[:1000]
 
         try:
             fps = int(fps_str)

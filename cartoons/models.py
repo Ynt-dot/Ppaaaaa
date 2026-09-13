@@ -16,7 +16,8 @@ class Cartoon(models.Model):
     frames_data = models.JSONField(default=dict, blank=True)
     # метаданные кадров
     fps = models.PositiveSmallIntegerField(default=12)
-    description = models.TextField(blank=True, verbose_name="Описание")
+    description = models.TextField(
+        max_length=1000, blank=True, verbose_name="Описание")
     tags = models.JSONField(default=list, blank=True, verbose_name="Теги")
     views_count = models.PositiveIntegerField(
         default=0, verbose_name="Просмотры")
