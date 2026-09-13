@@ -156,10 +156,12 @@
 </script>
 {% endif %}
 {% if cartoon %}
+{{ cartoon.tags|json_script:"cartoon-tags-data" }}
 <script>
     var currentCartoonTitle = "{{ cartoon.title|escapejs }}";
     var currentCartoonFps = {{ cartoon.fps|default:10 }};
-    var currentCartoonTags = {{ cartoon.tags|safe }};
+    var currentCartoonTags = JSON.parse(
+        document.getElementById('cartoon-tags-data').textContent);
     var currentCartoonDescription = "{{ cartoon.description|escapejs }}";
 </script>
 {% endif %}

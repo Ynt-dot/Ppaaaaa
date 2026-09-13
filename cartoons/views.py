@@ -42,6 +42,22 @@ def _frames_count(cartoon):
     return len(fd) if isinstance(fd, list) else 0
 
 
+def _clean_tags(tags):
+    """Validate and sanitize user-supplied tags: must end up as a list
+    of short plain strings, or parsing/validation fails silently to []
+    rather than storing arbitrary JSON that later gets rendered."""
+    if not isinstance(tags, list):
+        return []
+    cleaned = []
+    for tag in tags[:20]:
+        if not isinstance(tag, str):
+            continue
+        tag = tag.strip()[:30]
+        if tag:
+            cleaned.append(tag)
+    return cleaned
+
+
 SORT_LABELS = {
     'new': 'Новое',
     'popular': 'Популярное',
@@ -199,8 +215,9 @@ def detail(request, pk):
     }
     if cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)
-    if cartoon.tags:
-        context['sorted_tags'] = sorted(cartoon.tags)
+    if isinstance(cartoon.tags, list) and cartoon.tags:
+        context['sorted_tags'] = sorted(
+            t for t in cartoon.tags if isinstance(t, str))
     return render(request, 'cartoons/detail.html', context)
 
 
@@ -726,7 +743,7 @@ def set_comment_sort(request):
 def editor(request, pk=None):
     if pk:
         cartoon = get_object_or_404(Cartoon, pk=pk)
-        if cartoon.author and cartoon.author != request.user:
+        if cartoon.author != request.user:
             return redirect('index')
         if cartoon.used_as_avatar.exists():
             return redirect('detail', pk=pk)
@@ -750,11 +767,12 @@ def editor(request, pk=None):
                 'error': 'FPS должен быть целым числом от 1 до 30'
             })
 
-        # Преобразуем теги из JSON
+        # Преобразуем теги из JSON и валидируем содержимое
         try:
             tags = json.loads(tags_json)
         except json.JSONDecodeError:
             tags = []
+        tags = _clean_tags(tags)
 
         if not title or not frames_json:
             return render(request, 'cartoons/editor.html', {
