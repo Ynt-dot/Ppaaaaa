@@ -29,6 +29,10 @@ urlpatterns = [
         views.delete_comment,
         name='delete_comment'),
     path(
+        'comment/<int:comment_pk>/descendants-count/',
+        views.get_comment_descendants_count,
+        name='get_comment_descendants_count'),
+    path(
         'comment/<int:comment_pk>/pin/',
         views.pin_comment,
         name='pin_comment'),

@@ -800,11 +800,25 @@
 
     async function handleDeleteComment(deleteBtn, root) {
         if (deleteBtn.dataset.loading) return;
-        if (!confirm('Удалить этот комментарий?')) return;
         deleteBtn.dataset.loading = '1';
         try {
             const commentId = deleteBtn.dataset.commentId;
-            const resp      = await postJson('/comment/' + commentId + '/delete/', {});
+
+            let confirmMessage = 'Удалить этот комментарий?';
+            try {
+                const countResp = await fetch('/comment/' + commentId + '/descendants-count/');
+                if (countResp.ok) {
+                    const d = await countResp.json();
+                    if (d.count > 0) {
+                        confirmMessage = 'Удалить этот комментарий вместе с ' +
+                            pluralReplies(d.count) + ' на него?';
+                    }
+                }
+            } catch (e) { /* если не получилось узнать число ответов - покажем обычный вопрос */ }
+
+            if (!confirm(confirmMessage)) return;
+
+            const resp = await postJson('/comment/' + commentId + '/delete/', {});
             if (resp.ok) {
                 const commentEl = root.querySelector('.comment-item[data-comment-id="' + commentId + '"]');
                 if (commentEl) commentEl.remove();

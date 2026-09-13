@@ -42,6 +42,20 @@ def _frames_count(cartoon):
     return len(fd) if isinstance(fd, list) else 0
 
 
+def _count_descendant_comments(comment_id):
+    """Count all nested replies under a comment, at every depth level -
+    matches what the parent's CASCADE delete would remove."""
+    total = 0
+    current_ids = [comment_id]
+    while current_ids:
+        current_ids = list(
+            Comment.objects.filter(parent_id__in=current_ids)
+            .values_list('id', flat=True)
+        )
+        total += len(current_ids)
+    return total
+
+
 def _clean_tags(tags):
     """Validate and sanitize user-supplied tags: must end up as a list
     of short plain strings, or parsing/validation fails silently to []
@@ -638,6 +652,16 @@ def pin_comment(request, comment_pk):
     comment.is_pinned = not comment.is_pinned
     comment.save(update_fields=['is_pinned'])
     return JsonResponse({'pinned': comment.is_pinned})
+
+
+@require_GET
+def get_comment_descendants_count(request, comment_pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    get_object_or_404(Comment, pk=comment_pk)
+    return JsonResponse({'count': _count_descendant_comments(comment_pk)})
 
 
 @require_POST
