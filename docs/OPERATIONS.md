@@ -35,7 +35,7 @@ git). Актуальный список нужных ключей и их смы
 ### Удаление неподтверждённых аккаунтов
 
 Аккаунты, не подтвердившие email за 24 часа, сама себя не удаляет -
-нужна задача в **ISPmanager → Cron-задачи** (или Планировщик CRON):
+нужна задача в **ISPmanager -> Cron-задачи** (или Планировщик CRON):
 
 ```bash
 cd /var/www/<username>/data/www/<домен> && source /var/www/<username>/data/djangoenv/bin/activate && python manage.py delete_unverified_users >> /var/www/<username>/data/logs/cron.log 2>&1
@@ -92,7 +92,7 @@ python manage.py shell -c "from django.conf import settings; print(settings.DEBU
   указанный при создании задачи в ISPmanager).
 - Ошибки Passenger (500-е на сайте, не связанные с самим кодом
   представления) - смотрите логи приложения через ISPmanager
-  ("Сайты" → домен → "Логи") либо стандартный `passenger.log`, если
+  ("Сайты" -> домен -> "Логи") либо стандартный `passenger.log`, если
   доступен через SSH.
 - Диагностика конкретной 500-й ошибки Django - временно посмотреть
   `DEBUG=True` **только локально на копии базы**, не на проде (см.
