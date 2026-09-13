@@ -1,5 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Cartoon, CartoonLike, Comment, CommentLike, UserPreference, UserNote, Favorite, CartoonView
+from .models import (
+    Cartoon, CartoonLike, Comment, CommentLike, UserPreference, UserNote,
+    Favorite, CartoonView,
+)
 import json
 from .utils import create_gif_from_frames, create_avatar_gif
 from django.contrib.auth import login
@@ -72,13 +75,21 @@ def index(request):
     elif sort == 'trending':
         week_ago = timezone.now() - timedelta(days=7)
         cartoon_list = Cartoon.objects.annotate(
-            recent_likes=Count('likes', filter=Q(likes__created_at__gte=week_ago), distinct=True),
+            recent_likes=Count(
+                'likes',
+                filter=Q(
+                    likes__created_at__gte=week_ago),
+                distinct=True),
             unique_views_count=Count('unique_views', distinct=True),
         ).order_by('-recent_likes', '-created_at')
     elif sort == 'trending_24h':
         day_ago = timezone.now() - timedelta(hours=24)
         cartoon_list = Cartoon.objects.annotate(
-            recent_likes=Count('likes', filter=Q(likes__created_at__gte=day_ago), distinct=True),
+            recent_likes=Count(
+                'likes',
+                filter=Q(
+                    likes__created_at__gte=day_ago),
+                distinct=True),
             unique_views_count=Count('unique_views', distinct=True),
         ).order_by('-recent_likes', '-created_at')
     else:
@@ -130,7 +141,9 @@ def detail(request, pk):
     if request.user.is_authenticated:
         CartoonView.objects.get_or_create(cartoon=cartoon, user=request.user)
         if cartoon.author == request.user:
-            Cartoon.objects.filter(pk=pk).update(author_last_seen_comments=timezone.now())
+            Cartoon.objects.filter(
+                pk=pk).update(
+                author_last_seen_comments=timezone.now())
 
     likes_count = cartoon.likes.count()
     unique_views = cartoon.unique_views.count()
@@ -142,7 +155,8 @@ def detail(request, pk):
     comment_sort = _get_comment_sort(request)
 
     if request.user.is_authenticated:
-        user_favorited = cartoon.favorited_by.filter(user=request.user).exists()
+        user_favorited = cartoon.favorited_by.filter(
+            user=request.user).exists()
     else:
         user_favorited = False
 
@@ -180,12 +194,25 @@ def detail(request, pk):
         'is_used_as_avatar': is_used_as_avatar,
         'rec_sort': rec_sort,
         'rec_author_filter': rec_author_filter,
+        'can_delete_cartoon': (request.user.is_authenticated
+                                and request.user.is_staff),
     }
     if cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)
     if cartoon.tags:
         context['sorted_tags'] = sorted(cartoon.tags)
     return render(request, 'cartoons/detail.html', context)
+
+
+@require_POST
+def delete_cartoon(request, pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    cartoon = get_object_or_404(Cartoon, pk=pk)
+    cartoon.delete()
+    return JsonResponse({'ok': True, 'redirect_url': reverse('index')})
 
 
 @require_GET
@@ -210,11 +237,21 @@ def get_recommendations(request, pk):
     now = timezone.now()
     if sort == 'trending':
         week_ago = now - timedelta(days=7)
-        qs = qs.annotate(sort_val=Count('likes', filter=Q(likes__created_at__gte=week_ago), distinct=True))
+        qs = qs.annotate(
+            sort_val=Count(
+                'likes',
+                filter=Q(
+                    likes__created_at__gte=week_ago),
+                distinct=True))
         order = ['-sort_val', '-created_at']
     elif sort == 'trending_24h':
         day_ago = now - timedelta(hours=24)
-        qs = qs.annotate(sort_val=Count('likes', filter=Q(likes__created_at__gte=day_ago), distinct=True))
+        qs = qs.annotate(
+            sort_val=Count(
+                'likes',
+                filter=Q(
+                    likes__created_at__gte=day_ago),
+                distinct=True))
         order = ['-sort_val', '-created_at']
     elif sort == 'new':
         order = ['-created_at']
@@ -226,7 +263,9 @@ def get_recommendations(request, pk):
 
     if request.user.is_authenticated:
         viewed_ids = list(
-            CartoonView.objects.filter(user=request.user).values_list('cartoon_id', flat=True)
+            CartoonView.objects.filter(
+                user=request.user).values_list(
+                'cartoon_id', flat=True)
         )
         qs = qs.annotate(
             is_viewed=Case(
@@ -237,11 +276,20 @@ def get_recommendations(request, pk):
         )
         order = ['is_viewed'] + order
 
-    qs = qs.select_related('author', 'author__preference', 'author__preference__avatar').order_by(*order)[:10]
+    qs = qs.select_related(
+        'author',
+        'author__preference',
+        'author__preference__avatar').order_by(
+        *
+        order)[
+            :10]
 
     show_author = (author_filter != 'author')
     html = ''.join(
-        render_to_string('cartoons/cartoon_card.html', {'cartoon': c, 'show_author': show_author}, request=request)
+        render_to_string('cartoons/cartoon_card.html',
+                         {'cartoon': c,
+                          'show_author': show_author},
+                         request=request)
         for c in qs
     )
 
@@ -267,14 +315,18 @@ def toggle_cartoon_like(request, pk):
     return JsonResponse({'liked': liked, 'count': cartoon.likes.count()})
 
 
-def _serialize_comment(comment, request, session_key, current_level=0, max_inline_level=2, root_level=0, cartoon_author_id=None):
+def _serialize_comment(comment, request, session_key, current_level=0,
+                       max_inline_level=2, root_level=0,
+                       cartoon_author_id=None):
     """Serialize comment with nested replies up to max_inline_level."""
     if request.user.is_authenticated:
         user_liked = comment.likes.filter(user=request.user).exists()
     else:
         user_liked = comment.likes.filter(session_key=session_key).exists()
 
-    author_url = reverse('user_profile', args=[comment.author.username]) if comment.author else None
+    author_url = reverse(
+        'user_profile', args=[
+            comment.author.username]) if comment.author else None
 
     likes_count = comment.likes_count
 
@@ -287,22 +339,40 @@ def _serialize_comment(comment, request, session_key, current_level=0, max_inlin
         rel = current_level - root_level
         per_used = 2 if rel == 0 else 1
         per_load = 3
-        qs = comment.replies.select_related('author', 'author__preference', 'author__preference__avatar')
+        qs = comment.replies.select_related(
+            'author', 'author__preference', 'author__preference__avatar')
         if request.user.is_authenticated:
             qs = qs.annotate(
-                is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
+                is_mine=Case(
+                    When(
+                        author=request.user,
+                        then=Value(0)),
+                    default=Value(1),
+                    output_field=IntegerField())
             ).order_by('is_mine', '-is_pinned', '-likes_count', 'created_at')
         else:
             qs = qs.order_by('-is_pinned', '-likes_count', 'created_at')
         total_r = qs.count()
         has_more_replies = total_r > per_used
         for r in qs[:per_used]:
-            replies_data.append(_serialize_comment(r, request, session_key, current_level + 1, max_inline_level, root_level, cartoon_author_id))
+            replies_data.append(
+                _serialize_comment(
+                    r,
+                    request,
+                    session_key,
+                    current_level + 1,
+                    max_inline_level,
+                    root_level,
+                    cartoon_author_id))
     elif current_level == max_inline_level:
         has_deeper_replies = comment.replies.exists()
 
-    is_own = request.user.is_authenticated and comment.author_id == request.user.id
-    can_pin = request.user.is_authenticated and cartoon_author_id is not None and request.user.id == cartoon_author_id
+    is_own = (request.user.is_authenticated
+              and comment.author_id == request.user.id)
+    can_pin = (request.user.is_authenticated
+               and cartoon_author_id is not None
+               and request.user.id == cartoon_author_id)
+    can_delete = request.user.is_authenticated and request.user.is_staff
 
     return {
         'id': comment.id,
@@ -314,6 +384,7 @@ def _serialize_comment(comment, request, session_key, current_level=0, max_inlin
         'is_pinned': comment.is_pinned,
         'is_own': is_own,
         'can_pin': can_pin,
+        'can_delete': can_delete,
         'created_at': comment.created_at.strftime('%d.%m.%Y %H:%M'),
         'likes_count': likes_count,
         'user_liked': user_liked,
@@ -340,12 +411,21 @@ def get_comments(request, pk):
     )
     if request.user.is_authenticated:
         qs = qs.annotate(
-            is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
+            is_mine=Case(
+                When(
+                    author=request.user,
+                    then=Value(0)),
+                default=Value(1),
+                output_field=IntegerField())
         )
         if sort == 'newest':
             qs = qs.order_by('is_mine', '-is_pinned', '-created_at')
         else:
-            qs = qs.order_by('is_mine', '-is_pinned', '-likes_count', '-created_at')
+            qs = qs.order_by(
+                'is_mine',
+                '-is_pinned',
+                '-likes_count',
+                '-created_at')
     else:
         if sort == 'newest':
             qs = qs.order_by('-is_pinned', '-created_at')
@@ -358,7 +438,13 @@ def get_comments(request, pk):
     comments = list(qs[start:end])
 
     cartoon_author_id = cartoon.author_id
-    data = [_serialize_comment(c, request, session_key, max_inline_level=0, cartoon_author_id=cartoon_author_id) for c in comments]
+    data = [
+        _serialize_comment(
+            c,
+            request,
+            session_key,
+            max_inline_level=0,
+            cartoon_author_id=cartoon_author_id) for c in comments]
 
     return JsonResponse({
         'comments': data,
@@ -369,7 +455,9 @@ def get_comments(request, pk):
 
 @require_GET
 def get_replies(request, comment_pk):
-    parent = get_object_or_404(Comment.objects.select_related('cartoon'), pk=comment_pk)
+    parent = get_object_or_404(
+        Comment.objects.select_related('cartoon'),
+        pk=comment_pk)
     session_key = _ensure_session(request)
 
     try:
@@ -384,10 +472,18 @@ def get_replies(request, comment_pk):
     except (ValueError, TypeError):
         offset = 0
 
-    qs = parent.replies.select_related('author', 'author__preference', 'author__preference__avatar')
+    qs = parent.replies.select_related(
+        'author',
+        'author__preference',
+        'author__preference__avatar')
     if request.user.is_authenticated:
         qs = qs.annotate(
-            is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
+            is_mine=Case(
+                When(
+                    author=request.user,
+                    then=Value(0)),
+                default=Value(1),
+                output_field=IntegerField())
         ).order_by('is_mine', '-is_pinned', '-likes_count', 'created_at')
     else:
         qs = qs.order_by('-is_pinned', '-likes_count', 'created_at')
@@ -399,23 +495,41 @@ def get_replies(request, comment_pk):
 
     child_level = parent.level + 1
     cartoon_author_id = parent.cartoon.author_id
-    data = [_serialize_comment(r, request, session_key, current_level=child_level, max_inline_level=0, cartoon_author_id=cartoon_author_id) for r in replies]
+    data = [
+        _serialize_comment(
+            r,
+            request,
+            session_key,
+            current_level=child_level,
+            max_inline_level=0,
+            cartoon_author_id=cartoon_author_id) for r in replies]
 
     return JsonResponse({'comments': data, 'has_next': end < total})
 
 
 @require_GET
 def get_thread(request, comment_pk):
-    """Returns thread for modal: the root comment + paginated direct replies deeply nested."""
-    root = get_object_or_404(Comment.objects.select_related('cartoon'), pk=comment_pk)
+    """Returns thread for modal: the root comment + paginated direct
+    replies deeply nested."""
+    root = get_object_or_404(
+        Comment.objects.select_related('cartoon'),
+        pk=comment_pk)
     session_key = _ensure_session(request)
     page = max(1, int(request.GET.get('page', 1)))
     per_page = 10
 
-    qs = root.replies.select_related('author', 'author__preference', 'author__preference__avatar')
+    qs = root.replies.select_related(
+        'author',
+        'author__preference',
+        'author__preference__avatar')
     if request.user.is_authenticated:
         qs = qs.annotate(
-            is_mine=Case(When(author=request.user, then=Value(0)), default=Value(1), output_field=IntegerField())
+            is_mine=Case(
+                When(
+                    author=request.user,
+                    then=Value(0)),
+                default=Value(1),
+                output_field=IntegerField())
         ).order_by('is_mine', '-is_pinned', '-likes_count', 'created_at')
     else:
         qs = qs.order_by('-is_pinned', '-likes_count', 'created_at')
@@ -429,15 +543,31 @@ def get_thread(request, comment_pk):
     cartoon_author_id = root.cartoon.author_id
     max_inline = root.level + 3
     child_level = root.level + 1
-    replies_data = [_serialize_comment(r, request, session_key, current_level=child_level, max_inline_level=max_inline, root_level=child_level, cartoon_author_id=cartoon_author_id) for r in replies]
+    replies_data = [
+        _serialize_comment(
+            r,
+            request,
+            session_key,
+            current_level=child_level,
+            max_inline_level=max_inline,
+            root_level=child_level,
+            cartoon_author_id=cartoon_author_id) for r in replies]
 
-    root_data = _serialize_comment(root, request, session_key, current_level=root.level, max_inline_level=root.level - 1, root_level=root.level, cartoon_author_id=cartoon_author_id)
+    root_data = _serialize_comment(
+        root,
+        request,
+        session_key,
+        current_level=root.level,
+        max_inline_level=root.level - 1,
+        root_level=root.level,
+        cartoon_author_id=cartoon_author_id)
     root_data['replies'] = replies_data
     root_data['has_more_replies'] = end < total
     root_data['per_used'] = per_page
     root_data['per_load'] = per_page
 
-    return JsonResponse({'root': root_data, 'has_next': end < total, 'page': page})
+    return JsonResponse(
+        {'root': root_data, 'has_next': end < total, 'page': page})
 
 
 @require_POST
@@ -460,7 +590,8 @@ def add_comment(request, pk):
         )
 
     if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Войдите, чтобы оставить комментарий'}, status=403)
+        return JsonResponse(
+            {'error': 'Войдите, чтобы оставить комментарий'}, status=403)
 
     parent = None
     level = 0
@@ -481,22 +612,44 @@ def add_comment(request, pk):
     )
 
     if request.user == cartoon.author:
-        Cartoon.objects.filter(pk=pk).update(author_last_seen_comments=timezone.now())
+        Cartoon.objects.filter(
+            pk=pk).update(
+            author_last_seen_comments=timezone.now())
 
     session_key = _ensure_session(request)
-    data = _serialize_comment(comment, request, session_key, current_level=level, max_inline_level=level - 1, cartoon_author_id=cartoon.author_id)
+    data = _serialize_comment(
+        comment,
+        request,
+        session_key,
+        current_level=level,
+        max_inline_level=level - 1,
+        cartoon_author_id=cartoon.author_id)
     return JsonResponse(data, status=201)
+
 
 @require_POST
 def pin_comment(request, comment_pk):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'login_required'}, status=401)
-    comment = get_object_or_404(Comment.objects.select_related('cartoon'), pk=comment_pk)
+    comment = get_object_or_404(
+        Comment.objects.select_related('cartoon'),
+        pk=comment_pk)
     if comment.cartoon.author != request.user:
         return JsonResponse({'error': 'forbidden'}, status=403)
     comment.is_pinned = not comment.is_pinned
     comment.save(update_fields=['is_pinned'])
     return JsonResponse({'pinned': comment.is_pinned})
+
+
+@require_POST
+def delete_comment(request, comment_pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    comment = get_object_or_404(Comment, pk=comment_pk)
+    comment.delete()
+    return JsonResponse({'ok': True})
 
 
 @require_POST
@@ -512,9 +665,11 @@ def edit_comment(request, comment_pk):
         return JsonResponse({'error': 'Неверный формат данных'}, status=400)
     text = body.get('text', '').strip()
     if not text:
-        return JsonResponse({'error': 'Комментарий не может быть пустым'}, status=400)
+        return JsonResponse(
+            {'error': 'Комментарий не может быть пустым'}, status=400)
     if len(text) > 2000:
-        return JsonResponse({'error': 'Слишком длинный (макс. 2000 символов)'}, status=400)
+        return JsonResponse(
+            {'error': 'Слишком длинный (макс. 2000 символов)'}, status=400)
     comment.text = text
     comment.is_edited = True
     comment.save(update_fields=['text', 'is_edited'])
@@ -534,10 +689,14 @@ def toggle_comment_like(request, comment_pk):
     if not created:
         like.delete()
         liked = False
-        Comment.objects.filter(pk=comment_pk).update(likes_count=F('likes_count') - 1)
+        Comment.objects.filter(
+            pk=comment_pk).update(
+            likes_count=F('likes_count') - 1)
     else:
         liked = True
-        Comment.objects.filter(pk=comment_pk).update(likes_count=F('likes_count') + 1)
+        Comment.objects.filter(
+            pk=comment_pk).update(
+            likes_count=F('likes_count') + 1)
 
     comment.refresh_from_db(fields=['likes_count'])
     return JsonResponse({'liked': liked, 'count': comment.likes_count})
@@ -666,7 +825,10 @@ def register(request):
                 request.session['pending_user_id'] = user.id
                 return redirect('verification_sent')
             except Exception:
-                form.add_error(None, 'Не удалось отправить письмо подтверждения. Попробуйте позже.')
+                form.add_error(
+                    None,
+                    'Не удалось отправить письмо подтверждения. '
+                    'Попробуйте позже.')
     else:
         form = CustomUserCreationForm()
     return render(request, 'registration/register.html', {'form': form})
@@ -683,7 +845,8 @@ def user_profile(request, username):
     user_note = ''
     if request.user.is_authenticated and request.user != profile_user:
         try:
-            note_obj = UserNote.objects.get(author=request.user, about=profile_user)
+            note_obj = UserNote.objects.get(
+                author=request.user, about=profile_user)
             user_note = note_obj.text
         except UserNote.DoesNotExist:
             pass
@@ -705,24 +868,36 @@ def user_profile(request, username):
             sort = 'new'
 
         if sort == 'popular':
-            cartoon_list = Cartoon.objects.filter(author=profile_user).annotate(
+            cartoon_list = Cartoon.objects.filter(
+                author=profile_user).annotate(
                 like_count=Count('likes', distinct=True),
                 unique_views_count=Count('unique_views', distinct=True),
             ).order_by('-like_count', '-created_at')
         elif sort == 'trending':
             week_ago = timezone.now() - timedelta(days=7)
-            cartoon_list = Cartoon.objects.filter(author=profile_user).annotate(
-                recent_likes=Count('likes', filter=Q(likes__created_at__gte=week_ago), distinct=True),
+            cartoon_list = Cartoon.objects.filter(
+                author=profile_user).annotate(
+                recent_likes=Count(
+                    'likes',
+                    filter=Q(
+                        likes__created_at__gte=week_ago),
+                    distinct=True),
                 unique_views_count=Count('unique_views', distinct=True),
             ).order_by('-recent_likes', '-created_at')
         elif sort == 'trending_24h':
             day_ago = timezone.now() - timedelta(hours=24)
-            cartoon_list = Cartoon.objects.filter(author=profile_user).annotate(
-                recent_likes=Count('likes', filter=Q(likes__created_at__gte=day_ago), distinct=True),
+            cartoon_list = Cartoon.objects.filter(
+                author=profile_user).annotate(
+                recent_likes=Count(
+                    'likes',
+                    filter=Q(
+                        likes__created_at__gte=day_ago),
+                    distinct=True),
                 unique_views_count=Count('unique_views', distinct=True),
             ).order_by('-recent_likes', '-created_at')
         else:
-            cartoon_list = Cartoon.objects.filter(author=profile_user).annotate(
+            cartoon_list = Cartoon.objects.filter(
+                author=profile_user).annotate(
                 unique_views_count=Count('unique_views', distinct=True),
             ).order_by('-created_at')
 
@@ -731,7 +906,8 @@ def user_profile(request, username):
                 new_comments_count=Count(
                     'comments',
                     filter=(
-                        Q(comments__created_at__gt=F('author_last_seen_comments')) |
+                        Q(comments__created_at__gt=F(
+                            'author_last_seen_comments')) |
                         Q(author_last_seen_comments__isnull=True)
                     ),
                     distinct=True,
@@ -799,7 +975,8 @@ def toggle_favorite(request, pk):
         return JsonResponse({'error': 'login_required'}, status=401)
 
     cartoon = get_object_or_404(Cartoon, pk=pk)
-    fav, created = Favorite.objects.get_or_create(user=request.user, cartoon=cartoon)
+    fav, created = Favorite.objects.get_or_create(
+        user=request.user, cartoon=cartoon)
     if not created:
         fav.delete()
         favorited = False
@@ -836,7 +1013,8 @@ def get_user_profile_comments(request, username):
             .order_by('-likes_count', '-created_at')[start:end]
         )
     else:
-        ids = list(base_filter.order_by('-created_at').values_list('id', flat=True)[start:end])
+        ids = list(base_filter.order_by(
+            '-created_at').values_list('id', flat=True)[start:end])
         page_qs = list(
             Comment.objects.filter(id__in=ids)
             .select_related(*related)
@@ -846,12 +1024,15 @@ def get_user_profile_comments(request, username):
     comment_ids = [c.id for c in page_qs]
     if request.user.is_authenticated:
         liked_ids = set(
-            CommentLike.objects.filter(comment_id__in=comment_ids, user=request.user)
+            CommentLike.objects.filter(
+                comment_id__in=comment_ids, user=request.user)
             .values_list('comment_id', flat=True)
         )
     else:
         liked_ids = set(
-            CommentLike.objects.filter(comment_id__in=comment_ids, session_key=session_key)
+            CommentLike.objects.filter(
+                comment_id__in=comment_ids,
+                session_key=session_key)
             .values_list('comment_id', flat=True)
         )
 
@@ -864,7 +1045,9 @@ def get_user_profile_comments(request, username):
         user_liked = c.id in liked_ids
 
         if comment_type == 'cartoon':
-            author_url = reverse('user_profile', args=[c.author.username]) if c.author else None
+            author_url = reverse(
+                'user_profile', args=[
+                    c.author.username]) if c.author else None
             avatar_url = _get_user_avatar_url(c.author)
 
         data.append({
@@ -914,9 +1097,9 @@ def set_as_avatar(request, pk):
     def _clamp(v):
         return max(0.0, min(1.0, float(v)))
 
-    left_n   = _clamp(body.get('left',   0))
-    top_n    = _clamp(body.get('top',    0))
-    right_n  = _clamp(body.get('right',  1))
+    left_n = _clamp(body.get('left', 0))
+    top_n = _clamp(body.get('top', 0))
+    right_n = _clamp(body.get('right', 1))
     bottom_n = _clamp(body.get('bottom', 1))
 
     try:
@@ -924,13 +1107,18 @@ def set_as_avatar(request, pk):
             cartoon.preview.path, left_n, top_n, right_n, bottom_n
         )
     except Exception as e:
-        return JsonResponse({'error': f'Ошибка создания аватара: {e}'}, status=500)
+        return JsonResponse(
+            {'error': f'Ошибка создания аватара: {e}'}, status=500)
 
     pref, _ = UserPreference.objects.get_or_create(user=request.user)
     if pref.avatar_gif:
         pref.avatar_gif.delete(save=False)
     pref.avatar = cartoon
-    pref.avatar_gif.save(f'avatar_{request.user.id}.gif', avatar_content, save=False)
+    pref.avatar_gif.save(
+        f'avatar_{
+            request.user.id}.gif',
+        avatar_content,
+        save=False)
     pref.save()
 
     return JsonResponse({
@@ -950,7 +1138,8 @@ def delete_avatar(request):
     pref.avatar = None
     pref.save()
 
-    return JsonResponse({'ok': True, 'avatar_url': static('cartoons/images/default_avatar.png')})
+    return JsonResponse({'ok': True, 'avatar_url': static(
+        'cartoons/images/default_avatar.png')})
 
 
 @require_GET
@@ -961,10 +1150,13 @@ def get_avatar_cartoons(request):
     per_page = 12
     offset = max(0, int(request.GET.get('offset', 0)))
 
-    qs = Cartoon.objects.filter(author=request.user).only('id', 'title', 'preview', 'frames_data')
+    qs = Cartoon.objects.filter(
+        author=request.user).only(
+        'id', 'title', 'preview', 'frames_data')
 
     eligible = [
-        {'id': c.id, 'title': c.title, 'preview_url': c.preview.url if c.preview else None}
+        {'id': c.id, 'title': c.title,
+            'preview_url': c.preview.url if c.preview else None}
         for c in qs
         if 1 <= _frames_count(c) <= 10
     ]
@@ -998,7 +1190,7 @@ def verify_email(request, token):
         request,
         'registration/verification_success.html',
         {'user': user}
-        )
+    )
 
 
 def verification_sent(request):
@@ -1034,7 +1226,7 @@ def resend_verification(request):
                 request,
                 f'Повторная отправка доступна через \
 {60 - int(time_since_last)} секунд.'
-                )
+            )
             return redirect('verification_sent')
 
     # Обновляем expires_at и отправляем письмо

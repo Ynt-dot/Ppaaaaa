@@ -65,7 +65,7 @@
                             ★ Избранное
                         </button>
                         {% endif %}
-                        {% if user == cartoon.author and not is_used_as_avatar or can_set_as_avatar %}
+                        {% if user == cartoon.author and not is_used_as_avatar or can_set_as_avatar or can_delete_cartoon %}
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" aria-expanded="false">⋯</button>
                             <ul class="dropdown-menu dropdown-menu-end">
@@ -76,6 +76,13 @@
                                 <li>
                                     <button class="dropdown-item" id="set-avatar-btn" data-url="{% url 'set_as_avatar' cartoon.pk %}">
                                         🖼 Установить аватар
+                                    </button>
+                                </li>
+                                {% endif %}
+                                {% if can_delete_cartoon %}
+                                <li>
+                                    <button class="dropdown-item text-danger" id="delete-cartoon-btn">
+                                        🗑 Удалить мульт
                                     </button>
                                 </li>
                                 {% endif %}
@@ -201,6 +208,8 @@
     const ADD_COMMENT_URL = "{% url 'add_comment' cartoon.pk %}";
     const SET_SORT_URL    = "{% url 'set_comment_sort' %}";
     const REC_URL         = "{% url 'get_recommendations' cartoon.pk %}";
+    const DELETE_CARTOON_URL = "{% url 'delete_cartoon' cartoon.pk %}";
+    const INDEX_URL       = "{% url 'index' %}";
     const IS_AUTH         = {{ user.is_authenticated|yesno:'true,false' }};
     const MY_PROFILE_URL  = "{% if user.is_authenticated %}{% url 'user_profile' username=request.user.username %}{% endif %}";
     let myCurrentAvatarSrc = null;
@@ -252,6 +261,26 @@
             }
         } finally { liking = false; }
     });
+
+    // ── Удаление мульта (только для администратора) ────────────────────────────
+    const deleteCartoonBtn = document.getElementById('delete-cartoon-btn');
+    if (deleteCartoonBtn) {
+        let deletingCartoon = false;
+        deleteCartoonBtn.addEventListener('click', async () => {
+            if (deletingCartoon) return;
+            if (!confirm('Удалить этот мульт без возможности восстановления?')) return;
+            deletingCartoon = true;
+            try {
+                const resp = await postJson(DELETE_CARTOON_URL, {});
+                if (resp.ok) {
+                    const d = await resp.json();
+                    window.location.href = d.redirect_url || INDEX_URL;
+                } else {
+                    alert('Не удалось удалить мульт.');
+                }
+            } finally { deletingCartoon = false; }
+        });
+    }
 
     // ── Избранное ─────────────────────────────────────────────────────────────
     const favBtn = document.getElementById('cartoon-favorite-btn');
@@ -393,12 +422,13 @@
         const replyBtnHTML = IS_AUTH
             ? '<button class="reply-btn btn btn-link btn-sm p-0" style="font-size:0.72rem;" data-comment-id="' + c.id + '">Ответить</button>'
             : '';
-        const dropdownHTML = (c.is_own || c.can_pin)
+        const dropdownHTML = (c.is_own || c.can_pin || c.can_delete)
             ? '<div class="dropdown ms-2 flex-shrink-0">' +
               '<button class="btn btn-link btn-sm p-0 text-secondary" data-bs-toggle="dropdown" aria-expanded="false" style="font-size:1.1rem;line-height:1;text-decoration:none;">⋮</button>' +
               '<ul class="dropdown-menu dropdown-menu-end py-1">' +
               (c.is_own ? '<li><button class="dropdown-item edit-btn py-1" data-comment-id="' + c.id + '" style="font-size:0.88rem;">Редактировать</button></li>' : '') +
               (c.can_pin ? '<li><button class="dropdown-item pin-btn py-1" data-comment-id="' + c.id + '" style="font-size:0.88rem;">' + (c.is_pinned ? 'Открепить' : 'Закрепить') + '</button></li>' : '') +
+              (c.can_delete ? '<li><button class="dropdown-item delete-comment-btn py-1 text-danger" data-comment-id="' + c.id + '" style="font-size:0.88rem;">Удалить</button></li>' : '') +
               '</ul></div>'
             : '';
         const replyFormHTML = IS_AUTH
@@ -651,6 +681,10 @@
         // Закрепить/открепить
         const pinBtn = e.target.closest('.pin-btn');
         if (pinBtn) { handlePinComment(pinBtn, root); return; }
+
+        // Удалить (только администратор)
+        const deleteCommentBtn = e.target.closest('.delete-comment-btn');
+        if (deleteCommentBtn) { handleDeleteComment(deleteCommentBtn, root); return; }
     }
 
     commentsList.addEventListener('click', function(e) { handleCommentClick(e, commentsList); });
@@ -762,6 +796,22 @@
                 }
             }
         } finally { delete pinBtn.dataset.loading; }
+    }
+
+    async function handleDeleteComment(deleteBtn, root) {
+        if (deleteBtn.dataset.loading) return;
+        if (!confirm('Удалить этот комментарий?')) return;
+        deleteBtn.dataset.loading = '1';
+        try {
+            const commentId = deleteBtn.dataset.commentId;
+            const resp      = await postJson('/comment/' + commentId + '/delete/', {});
+            if (resp.ok) {
+                const commentEl = root.querySelector('.comment-item[data-comment-id="' + commentId + '"]');
+                if (commentEl) commentEl.remove();
+            } else {
+                alert('Не удалось удалить комментарий.');
+            }
+        } finally { delete deleteBtn.dataset.loading; }
     }
 
     async function handleSubmitEdit(submitBtn, root) {
