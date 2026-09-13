@@ -195,7 +195,7 @@ def detail(request, pk):
         'rec_sort': rec_sort,
         'rec_author_filter': rec_author_filter,
         'can_delete_cartoon': (request.user.is_authenticated
-                                and request.user.is_staff),
+                               and request.user.is_staff),
     }
     if cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)

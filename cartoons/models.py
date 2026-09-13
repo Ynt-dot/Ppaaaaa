@@ -3,7 +3,6 @@ from django.contrib.auth.models import User
 import uuid
 from django.utils import timezone
 from datetime import timedelta
-from django.db.models import Count
 
 
 class Cartoon(models.Model):
@@ -19,7 +18,8 @@ class Cartoon(models.Model):
     fps = models.PositiveSmallIntegerField(default=12)
     description = models.TextField(blank=True, verbose_name="Описание")
     tags = models.JSONField(default=list, blank=True, verbose_name="Теги")
-    views_count = models.PositiveIntegerField(default=0, verbose_name="Просмотры")
+    views_count = models.PositiveIntegerField(
+        default=0, verbose_name="Просмотры")
     author_last_seen_comments = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -93,8 +93,12 @@ class Comment(models.Model):
     class Meta:
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['author', '-likes_count', '-created_at'], name='comment_author_popular_idx'),
-            models.Index(fields=['cartoon', '-likes_count', '-created_at'], name='comment_cartoon_popular_idx'),
+            models.Index(
+                fields=['author', '-likes_count', '-created_at'],
+                name='comment_author_popular_idx'),
+            models.Index(
+                fields=['cartoon', '-likes_count', '-created_at'],
+                name='comment_cartoon_popular_idx'),
         ]
 
     def __str__(self):

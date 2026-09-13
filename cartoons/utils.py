@@ -2,7 +2,6 @@ import base64
 from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
-import os
 from django.core.mail import send_mail
 from django.core.mail.utils import DNS_NAME
 from django.urls import reverse
@@ -65,7 +64,8 @@ def create_avatar_gif(source_path, left_n, top_n, right_n, bottom_n, size=200):
     Crop each frame of source GIF to the specified normalized rectangle and
     return a square ContentFile GIF of `size x size` pixels.
 
-    left_n, top_n, right_n, bottom_n are in [0, 1] relative to image dimensions.
+    left_n, top_n, right_n, bottom_n are in [0, 1] relative to image
+    dimensions.
     """
     images = []
     durations = []
@@ -80,9 +80,9 @@ def create_avatar_gif(source_path, left_n, top_n, right_n, bottom_n, size=200):
             bg = Image.new('RGB', frame.size, (255, 255, 255))
             bg.paste(frame, mask=frame.split()[3])
             w, h = bg.size
-            left   = max(0, int(round(left_n   * w)))
-            top    = max(0, int(round(top_n    * h)))
-            right  = min(w, int(round(right_n  * w)))
+            left = max(0, int(round(left_n * w)))
+            top = max(0, int(round(top_n * h)))
+            right = min(w, int(round(right_n * w)))
             bottom = min(h, int(round(bottom_n * h)))
             cropped = bg.crop((left, top, right, bottom))
             resized = cropped.resize((size, size), Image.LANCZOS)

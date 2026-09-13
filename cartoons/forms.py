@@ -16,8 +16,10 @@ trol'}))
         required=True,
         label='Я согласен с условиями обработки персональных данных',
         error_messages={
-            'required': 'Необходимо согласиться с условиями обработки '
-                         'персональных данных.',
+            'required': (
+                'Необходимо согласиться с условиями обработки '
+                'персональных данных.'
+            ),
         },
     )
 
@@ -59,13 +61,18 @@ l={email}"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['username'].widget.attrs.update({'class': 'form-control', 'maxlength': 15})
+        self.fields['username'].widget.attrs.update(
+            {'class': 'form-control', 'maxlength': 15})
         self.fields['username'].max_length = 15
         self.fields['password1'].widget.attrs.update({'class': 'form-control'})
         self.fields['password2'].widget.attrs.update({'class': 'form-control'})
-        self.fields['username'].help_text = 'Обязательное поле. Не более 15 символов. Только буквы, цифры и символы @/./+/-/_.'
+        self.fields['username'].help_text = (
+            'Обязательное поле. Не более 15 символов. Только буквы, '
+            'цифры и символы @/./+/-/_.'
+        )
         self.fields['password1'].help_text = 'Пароль должен содержать минимум \
 8 символов и не может быть слишком простым или состоять только из цифр.'
         self.fields['password2'].help_text = 'Введите тот же пароль для подтве\
 рждения.'
-        self.fields['agree_to_terms'].widget.attrs.update({'class': 'form-check-input'})
+        self.fields['agree_to_terms'].widget.attrs.update(
+            {'class': 'form-check-input'})
