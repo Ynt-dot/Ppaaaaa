@@ -133,12 +133,6 @@ def index(request):
     })
 
 
-def _ensure_session(request):
-    if not request.session.session_key:
-        request.session.create()
-    return request.session.session_key
-
-
 def _get_comment_sort(request):
     if request.user.is_authenticated:
         try:
@@ -152,7 +146,6 @@ def detail(request, pk):
     cartoon = get_object_or_404(Cartoon, pk=pk)
     Cartoon.objects.filter(pk=pk).update(views_count=F('views_count') + 1)
     cartoon.refresh_from_db(fields=['views_count'])
-    session_key = _ensure_session(request)
 
     if request.user.is_authenticated:
         CartoonView.objects.get_or_create(cartoon=cartoon, user=request.user)
@@ -166,7 +159,7 @@ def detail(request, pk):
     if request.user.is_authenticated:
         user_liked = cartoon.likes.filter(user=request.user).exists()
     else:
-        user_liked = cartoon.likes.filter(session_key=session_key).exists()
+        user_liked = False
 
     comment_sort = _get_comment_sort(request)
 
@@ -320,8 +313,7 @@ def toggle_cartoon_like(request, pk):
 
     cartoon = get_object_or_404(Cartoon, pk=pk)
     like, created = CartoonLike.objects.get_or_create(
-        cartoon=cartoon, user=request.user,
-        defaults={'session_key': ''}
+        cartoon=cartoon, user=request.user
     )
     if not created:
         like.delete()
@@ -332,14 +324,14 @@ def toggle_cartoon_like(request, pk):
     return JsonResponse({'liked': liked, 'count': cartoon.likes.count()})
 
 
-def _serialize_comment(comment, request, session_key, current_level=0,
+def _serialize_comment(comment, request, current_level=0,
                        max_inline_level=2, root_level=0,
                        cartoon_author_id=None):
     """Serialize comment with nested replies up to max_inline_level."""
     if request.user.is_authenticated:
         user_liked = comment.likes.filter(user=request.user).exists()
     else:
-        user_liked = comment.likes.filter(session_key=session_key).exists()
+        user_liked = False
 
     author_url = reverse(
         'user_profile', args=[
@@ -376,7 +368,6 @@ def _serialize_comment(comment, request, session_key, current_level=0,
                 _serialize_comment(
                     r,
                     request,
-                    session_key,
                     current_level + 1,
                     max_inline_level,
                     root_level,
@@ -418,7 +409,6 @@ def _serialize_comment(comment, request, session_key, current_level=0,
 @require_GET
 def get_comments(request, pk):
     cartoon = get_object_or_404(Cartoon, pk=pk)
-    session_key = _ensure_session(request)
     page = max(1, int(request.GET.get('page', 1)))
     sort = request.GET.get('sort', 'popular')
     per_page = 10
@@ -459,7 +449,6 @@ def get_comments(request, pk):
         _serialize_comment(
             c,
             request,
-            session_key,
             max_inline_level=0,
             cartoon_author_id=cartoon_author_id) for c in comments]
 
@@ -475,7 +464,6 @@ def get_replies(request, comment_pk):
     parent = get_object_or_404(
         Comment.objects.select_related('cartoon'),
         pk=comment_pk)
-    session_key = _ensure_session(request)
 
     try:
         per_page = int(request.GET.get('per_page', 0))
@@ -516,7 +504,6 @@ def get_replies(request, comment_pk):
         _serialize_comment(
             r,
             request,
-            session_key,
             current_level=child_level,
             max_inline_level=0,
             cartoon_author_id=cartoon_author_id) for r in replies]
@@ -531,7 +518,6 @@ def get_thread(request, comment_pk):
     root = get_object_or_404(
         Comment.objects.select_related('cartoon'),
         pk=comment_pk)
-    session_key = _ensure_session(request)
     page = max(1, int(request.GET.get('page', 1)))
     per_page = 10
 
@@ -564,7 +550,6 @@ def get_thread(request, comment_pk):
         _serialize_comment(
             r,
             request,
-            session_key,
             current_level=child_level,
             max_inline_level=max_inline,
             root_level=child_level,
@@ -573,7 +558,6 @@ def get_thread(request, comment_pk):
     root_data = _serialize_comment(
         root,
         request,
-        session_key,
         current_level=root.level,
         max_inline_level=root.level - 1,
         root_level=root.level,
@@ -633,11 +617,9 @@ def add_comment(request, pk):
             pk=pk).update(
             author_last_seen_comments=timezone.now())
 
-    session_key = _ensure_session(request)
     data = _serialize_comment(
         comment,
         request,
-        session_key,
         current_level=level,
         max_inline_level=level - 1,
         cartoon_author_id=cartoon.author_id)
@@ -700,8 +682,7 @@ def toggle_comment_like(request, comment_pk):
 
     comment = get_object_or_404(Comment, pk=comment_pk)
     like, created = CommentLike.objects.get_or_create(
-        comment=comment, user=request.user,
-        defaults={'session_key': ''}
+        comment=comment, user=request.user
     )
     if not created:
         like.delete()
@@ -1007,7 +988,6 @@ def toggle_favorite(request, pk):
 @require_GET
 def get_user_profile_comments(request, username):
     profile_user = get_object_or_404(User, username=username)
-    session_key = _ensure_session(request)
 
     comment_type = request.GET.get('type', 'user')
     sort = request.GET.get('sort', 'newest')
@@ -1047,12 +1027,7 @@ def get_user_profile_comments(request, username):
             .values_list('comment_id', flat=True)
         )
     else:
-        liked_ids = set(
-            CommentLike.objects.filter(
-                comment_id__in=comment_ids,
-                session_key=session_key)
-            .values_list('comment_id', flat=True)
-        )
+        liked_ids = set()
 
     if comment_type == 'user':
         author_url = reverse('user_profile', args=[profile_user.username])

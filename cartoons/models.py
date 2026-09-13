@@ -58,7 +58,6 @@ class CartoonLike(models.Model):
                                 related_name='likes')
     user = models.ForeignKey(User, on_delete=models.CASCADE,
                              null=True, blank=True)
-    session_key = models.CharField(max_length=40, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -67,11 +66,6 @@ class CartoonLike(models.Model):
                 fields=['cartoon', 'user'],
                 condition=models.Q(user__isnull=False),
                 name='unique_cartoon_user_like'
-            ),
-            models.UniqueConstraint(
-                fields=['cartoon', 'session_key'],
-                condition=models.Q(session_key__gt=''),
-                name='unique_cartoon_session_like'
             ),
         ]
 
@@ -116,7 +110,6 @@ class CommentLike(models.Model):
                                 related_name='likes')
     user = models.ForeignKey(User, on_delete=models.CASCADE,
                              null=True, blank=True)
-    session_key = models.CharField(max_length=40, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -125,11 +118,6 @@ class CommentLike(models.Model):
                 fields=['comment', 'user'],
                 condition=models.Q(user__isnull=False),
                 name='unique_comment_user_like'
-            ),
-            models.UniqueConstraint(
-                fields=['comment', 'session_key'],
-                condition=models.Q(session_key__gt=''),
-                name='unique_comment_session_like'
             ),
         ]
 
