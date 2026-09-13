@@ -12,6 +12,14 @@ class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, label='Email',
                              widget=forms.EmailInput(attrs={'class': 'form-con\
 trol'}))
+    agree_to_terms = forms.BooleanField(
+        required=True,
+        label='Я согласен с условиями обработки персональных данных',
+        error_messages={
+            'required': 'Необходимо согласиться с условиями обработки '
+                         'персональных данных.',
+        },
+    )
 
     class Meta:
         model = User
@@ -60,3 +68,4 @@ l={email}"
 8 символов и не может быть слишком простым или состоять только из цифр.'
         self.fields['password2'].help_text = 'Введите тот же пароль для подтве\
 рждения.'
+        self.fields['agree_to_terms'].widget.attrs.update({'class': 'form-check-input'})

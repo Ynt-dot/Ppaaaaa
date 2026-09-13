@@ -21,6 +21,7 @@ urlpatterns = [
     path('comment/<int:comment_pk>/thread/', views.get_thread, name='get_thread'),
     path('set-comment-sort/', views.set_comment_sort, name='set_comment_sort'),
     path('register/', views.register, name='register'),
+    path('privacy-policy/', views.privacy_policy, name='privacy_policy'),
     path('user/<str:username>/', views.user_profile, name='user_profile'),
     path('user/<str:username>/comments/', views.get_user_profile_comments,
          name='user_profile_comments'),

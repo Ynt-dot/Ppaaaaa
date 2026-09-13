@@ -1005,6 +1005,10 @@ def verification_sent(request):
     return render(request, 'registration/verification_sent.html')
 
 
+def privacy_policy(request):
+    return render(request, 'cartoons/privacy_policy.html')
+
+
 def resend_verification(request):
     # Получаем id пользователя из сессии
     user_id = request.session.get('pending_user_id')

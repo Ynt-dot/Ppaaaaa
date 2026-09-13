@@ -65,6 +65,18 @@
                         <div class="form-text">{{ form.password2.help_text }}</div>
                     </div>
 
+                    <!-- Согласие с обработкой персональных данных -->
+                    <div class="mb-3 form-check">
+                        {{ form.agree_to_terms }}
+                        <label class="form-check-label" for="{{ form.agree_to_terms.id_for_label }}">
+                            Я согласен с
+                            <a href="{% url 'privacy_policy' %}" target="_blank">условиями обработки персональных данных</a>
+                        </label>
+                        {% if form.agree_to_terms.errors %}
+                            <div class="text-danger small">{{ form.agree_to_terms.errors }}</div>
+                        {% endif %}
+                    </div>
+
                     <button type="submit" class="btn btn-success w-100">Зарегистрироваться</button>
                 </form>
                 <hr>
