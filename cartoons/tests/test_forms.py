@@ -42,15 +42,13 @@ class RegistrationFormTests(TestCase):
         form = CustomUserCreationForm(_valid_data())
         self.assertTrue(form.is_valid(), form.errors)
 
-    def test_username_over_15_chars_currently_accepted(self):
-        # NOTE: forms.py sets `self.fields['username'].max_length = 15`
-        # in __init__, but that only updates the widget's HTML
-        # `maxlength` attribute - the validator Django attaches at
-        # field-construction time still uses the model's max_length
-        # (150), so this does NOT actually enforce the 15-char limit
-        # server-side despite the help text promising it. Documenting
-        # the current (buggy) behavior here rather than silently
-        # asserting the intended one.
+    def test_username_over_15_chars_rejected(self):
         data = _valid_data(username='a' * 16)
+        form = CustomUserCreationForm(data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('username', form.errors)
+
+    def test_username_exactly_15_chars_accepted(self):
+        data = _valid_data(username='a' * 15)
         form = CustomUserCreationForm(data)
         self.assertTrue(form.is_valid(), form.errors)

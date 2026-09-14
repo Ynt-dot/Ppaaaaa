@@ -27,6 +27,13 @@ trol'}))
         model = User
         fields = ('username', 'email', 'password1', 'password2')
 
+    def clean_username(self):
+        username = self.cleaned_data.get('username', '')
+        if len(username) > 15:
+            raise ValidationError(
+                'Имя пользователя не может быть длиннее 15 символов.')
+        return username
+
     def clean_email(self):
         email = self.cleaned_data.get('email')
 
@@ -63,7 +70,6 @@ l={email}"
         super().__init__(*args, **kwargs)
         self.fields['username'].widget.attrs.update(
             {'class': 'form-control', 'maxlength': 15})
-        self.fields['username'].max_length = 15
         self.fields['password1'].widget.attrs.update({'class': 'form-control'})
         self.fields['password2'].widget.attrs.update({'class': 'form-control'})
         self.fields['username'].help_text = (
