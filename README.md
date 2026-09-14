@@ -292,49 +292,10 @@
 <https://drawn.digifi.ca>  
 <https://anishare.co>  
 <https://theanimator.co.uk>  
-  
-Надо не забыть прописать `python manage.py makemigrations cartoons` при обновлении прода перед `python manage.py migrate`.
-
-### Миграции для лайков и комментариев (добавлены 2026-04-30)
-
-При переходе на прод выполнить после `git pull`:
-
-```bash
-python manage.py makemigrations cartoons
-python manage.py migrate
-```
-
-Эти команды создадут таблицы для новых моделей: `CartoonLike`, `Comment`, `CommentLike`, `UserPreference`.
 
 <https://multator-fandom.fandom.com/ru/wiki/Kio-kio>
 <https://planeta.ru/campaigns/multator2> - это чё? Изучить... (<https://planeta.ru/r/away?to=https://vk.com/club236431942>, <https://t.me/> D8idXXnG_1sxYTg6)
 Загуглить как работает Grease Pencil в Blender
-<https://drawn.digifi.ca/play/uxj1kq> - рекдама Toonator Revival на Drawn
+<https://drawn.digifi.ca/play/uxj1kq> - реклама Toonator Revival на Drawn
 
 Предупреждение `about:blank:1 An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.` в консоли браузера, вроде как, можно игнорировать. Это не реальная уязвимость, а особенность проверки Chrome. Если пытаться исправить - сломается виджет Discord
-
-### Миграции для заметок и избранного (добавлены 2026-04-30)
-
-При переходе на прод выполнить после `git pull`:
-
-```bash
-python manage.py migrate
-```
-
-Применится миграция `0009_usernote_favorite`, которая создаёт таблицы для двух новых моделей:
-
-- `cartoons_usernote` - заметки пользователей о других пользователях
-- `cartoons_favorite` - избранные мульты
-
-### Миграции для счётчика просмотров (добавлены 2026-04-30)
-
-При переходе на прод выполнить после `git pull`:
-
-```bash
-python manage.py migrate
-```
-
-Применятся две миграции:
-
-- `0010_add_views_count` - добавляет поле `views_count` (общий счётчик просмотров) в таблицу `cartoons_cartoon`
-- `0011_add_cartoon_view` - создаёт таблицу `cartoons_cartoonview` для хранения уникальных просмотров авторизованных пользователей
