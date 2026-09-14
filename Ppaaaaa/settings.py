@@ -161,6 +161,59 @@ INTERNAL_IPS = [
     '127.0.0.1',
 ]
 
+# Логирование
+LOGS_DIR = BASE_DIR / 'logs'
+os.makedirs(LOGS_DIR, exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'django.log',
+            'maxBytes': 5 * 1024 * 1024,
+            'backupCount': 3,
+            'formatter': 'verbose',
+        },
+        # Требует DISCORD_LOG_WEBHOOK_URL в local_settings.py, иначе
+        # молча ничего не отправляет (см. cartoons/logging_handlers.py)
+        'discord': {
+            'class': 'cartoons.logging_handlers.DiscordLogHandler',
+            'level': 'ERROR',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        # Необработанные исключения и 5xx-ошибки во view
+        'django.request': {
+            'handlers': ['console', 'file', 'discord'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        # Все logger.warning()/logger.error() из cartoons/*.py
+        'cartoons': {
+            'handlers': ['console', 'file', 'discord'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}
+
 # Axes settings
 AXES_FAILURE_LIMIT = 5               # количество неудачных попыток
 AXES_COOLOFF_TIME = 1                # блокировка на 1 час (в часах)
@@ -182,7 +235,7 @@ try:
 except ImportError:
     pass
 
-# django-debug-toolbar — только для локальной разработки, на проде
+# django-debug-toolbar - только для локальной разработки, на проде
 # не устанавливается вообще (см. requirements-prod.txt)
 if DEBUG:
     INSTALLED_APPS += ['debug_toolbar']

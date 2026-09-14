@@ -39,3 +39,9 @@ ADMIN_EMAIL = 'your-email@example.com'   # email администратора
 DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/...'   # ваш URL
 
 DISCORD_ADMIN_USER_ID = 123456789012345678   # ваш ID
+
+# Отдельный вебхук для ERROR-логов (django.request, cartoons.*).
+# Опционально: не задан - логи просто пишутся в файл/консоль, ничего
+# в Discord не летит. Можно указать тот же URL, что и выше, или
+# отдельный канал.
+DISCORD_LOG_WEBHOOK_URL = 'https://discord.com/api/webhooks/...'   # ваш URL

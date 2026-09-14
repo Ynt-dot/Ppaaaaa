@@ -88,8 +88,17 @@ python manage.py shell -c "from django.conf import settings; print(settings.DEBU
 
 ## Логи и диагностика
 
+- Логи самого приложения (`logger.warning`/`error` из кода, необработанные
+  исключения во view) - `<путь-к-проекту>/logs/django.log` (ротация на
+  5 МБ, хранится 3 бэкапа). Смотреть: `tail -f logs/django.log` или
+  `cat logs/django.log`.
+- Реальные ошибки (`ERROR` и выше) дополнительно прилетают в Discord,
+  если в `local_settings.py` задан `DISCORD_LOG_WEBHOOK_URL` - удобно,
+  чтобы не заходить на сервер ради каждой проверки. Не задан - просто
+  ничего не приходит, ошибок из-за этого не будет.
 - Cron-логи: `/var/www/<username>/data/logs/cron.log` (или другой путь,
-  указанный при создании задачи в ISPmanager).
+  указанный при создании задачи в ISPmanager) - это отдельный файл,
+  не связанный с `logs/django.log`.
 - Ошибки Passenger (500-е на сайте, не связанные с самим кодом
   представления) - смотрите логи приложения через ISPmanager
   ("Сайты" -> домен -> "Логи") либо стандартный `passenger.log`, если
