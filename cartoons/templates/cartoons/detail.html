@@ -891,19 +891,30 @@
         } finally { delete pinBtn.dataset.loading; }
     }
 
+    function replaceWithBlockedLabel(blockBtn) {
+        const label = document.createElement('span');
+        label.className = 'comment-block-label text-dark fw-bold flex-shrink-0';
+        label.style.fontSize = '0.72rem';
+        label.textContent = 'пользователь заблокирован';
+        blockBtn.replaceWith(label);
+    }
+
     async function handleBlockUser(blockBtn, root) {
         if (blockBtn.dataset.loading) return;
         blockBtn.dataset.loading = '1';
         try {
-            const resp = await postJson(blockBtn.dataset.blockUrl, {});
+            const blockUrl = blockBtn.dataset.blockUrl;
+            const resp = await postJson(blockUrl, {});
             if (!resp.ok) { alert('Не удалось заблокировать пользователя.'); return; }
             const d = await resp.json();
             if (!d.blocked) return;
-            const label = document.createElement('span');
-            label.className = 'comment-block-label text-dark fw-bold flex-shrink-0';
-            label.style.fontSize = '0.72rem';
-            label.textContent = 'пользователь заблокирован';
-            blockBtn.replaceWith(label);
+            // Кнопка "заблокировать" под другими комментариями этого
+            // же автора на этой странице (data-block-url одинаковый
+            // для всех его комментариев) - меняем сразу все, а не
+            // только ту, по которой кликнули.
+            document.querySelectorAll(
+                '.block-user-btn[data-block-url="' + CSS.escape(blockUrl) + '"]'
+            ).forEach(replaceWithBlockedLabel);
         } finally { delete blockBtn.dataset.loading; }
     }
 

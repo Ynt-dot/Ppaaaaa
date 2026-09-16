@@ -371,3 +371,31 @@ class TrollFlagCommentVisibilityTests(TestCase):
         staff_comment = next(
             c for c in data['comments'] if c['text'] == 'staff text')
         self.assertFalse(staff_comment['show_block_label'])
+
+
+class BlockUrlConsistentAcrossCommentsTests(TestCase):
+    """The frontend updates every "block" label for an author on the
+    page in one go after a single block action, by matching on
+    block_url (see handleBlockUser in detail.html) - that only works
+    if every comment by the same author gets the exact same
+    block_url, which this locks in."""
+
+    def setUp(self):
+        self.cartoon_author = User.objects.create_user('owner', password='x')
+        self.commenter = User.objects.create_user('chatty', password='x')
+        self.cartoon = Cartoon.objects.create(
+            title='c', author=self.cartoon_author)
+        Comment.objects.create(
+            cartoon=self.cartoon, author=self.commenter, text='first')
+        Comment.objects.create(
+            cartoon=self.cartoon, author=self.commenter, text='second')
+        self.client.force_login(self.cartoon_author)
+
+    def test_block_url_identical_for_same_authors_comments(self):
+        resp = self.client.get(
+            reverse('get_comments', args=[self.cartoon.pk]))
+        comments = resp.json()['comments']
+        urls = {c['block_url'] for c in comments}
+        self.assertEqual(len(comments), 2)
+        self.assertEqual(len(urls), 1)
+        self.assertIsNotNone(next(iter(urls)))
