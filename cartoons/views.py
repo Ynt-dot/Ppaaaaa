@@ -1614,22 +1614,9 @@ def resend_verification(request):
             )
             return redirect('verification_sent')
 
-    # Обновляем expires_at и отправляем письмо
-    token.expires_at = timezone.now() + timezone.timedelta(hours=24)
-    token.save()
-    send_verification_email(user)  # используем ту же функцию, она обновит
-    # токен (но мы уже обновили вручную, можно просто отправить)
-    # Можно также вызвать send_verification_email, но она создаст новый токен.
-    # Чтобы не дублировать, просто отправим письмо с существующим токеном.
-    # Для этого выделим отправку в отдельную функцию, либо здесь сформируем
-    # письмо заново.
-    # Лучше реорганизовать код: send_verification_email принимает токен или
-    # пользователя и использует существующий токен.
-    # Сейчас функция send_verification_email создаёт/обновляет токен. Если мы
-    # уже обновили, можно вызвать её снова — она перезапишет токен, но это
-    # нормально.
-    send_verification_email(user)  # она обновит expires_at ещё раз, но это не
-    # страшно.
+    # send_verification_email сама обновляет токен (expires_at,
+    # updated_at) через update_or_create и отправляет письмо.
+    send_verification_email(user)
 
     messages.success(request, 'Письмо с подтверждением отправлено повторно.')
     return redirect('verification_sent')
