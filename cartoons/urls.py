@@ -12,6 +12,10 @@ urlpatterns = [
         'cartoon/<int:pk>/delete/',
         views.delete_cartoon,
         name='delete_cartoon'),
+    path(
+        'cartoon/<int:pk>/delete-own/',
+        views.delete_own_cartoon,
+        name='delete_own_cartoon'),
     path('cartoon/<int:pk>/like/', views.toggle_cartoon_like,
          name='toggle_cartoon_like'),
     path(
@@ -28,6 +32,10 @@ urlpatterns = [
         'comment/<int:comment_pk>/delete/',
         views.delete_comment,
         name='delete_comment'),
+    path(
+        'comment/<int:comment_pk>/delete-own/',
+        views.delete_own_comment,
+        name='delete_own_comment'),
     path(
         'comment/<int:comment_pk>/descendants-count/',
         views.get_comment_descendants_count,

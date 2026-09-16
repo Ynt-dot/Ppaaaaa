@@ -248,6 +248,17 @@ def delete_cartoon(request, pk):
     return JsonResponse({'ok': True, 'redirect_url': reverse('index')})
 
 
+@require_POST
+def delete_own_cartoon(request, pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+    cartoon = get_object_or_404(Cartoon, pk=pk)
+    if cartoon.author != request.user:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    cartoon.delete()
+    return JsonResponse({'ok': True, 'redirect_url': reverse('index')})
+
+
 @require_GET
 def get_recommendations(request, pk):
     cartoon = get_object_or_404(Cartoon, pk=pk)
@@ -406,8 +417,21 @@ def _serialize_comment(comment, request, current_level=0,
     elif current_level == max_inline_level:
         has_deeper_replies = comment.replies.exists()
 
-    is_own = (request.user.is_authenticated
-              and comment.author_id == request.user.id)
+    # Удалённый автором комментарий: текст и личность автора скрыты,
+    # но лайки/закреп/ответы остаются рабочими (см. is_deleted ниже,
+    # реальная строка в БД не удаляется - иначе пропали бы ответы).
+    if comment.is_deleted:
+        is_own = False
+        display_text = 'Комментарий удалён'
+        display_author_url = None
+        display_avatar_url = _get_user_avatar_url(None)
+    else:
+        is_own = (request.user.is_authenticated
+                  and comment.author_id == request.user.id)
+        display_text = comment.text
+        display_author_url = author_url
+        display_avatar_url = _get_user_avatar_url(comment.author)
+
     can_pin = (request.user.is_authenticated
                and cartoon_author_id is not None
                and request.user.id == cartoon_author_id)
@@ -415,10 +439,11 @@ def _serialize_comment(comment, request, current_level=0,
 
     return {
         'id': comment.id,
-        'author': comment.display_author(),
-        'author_url': author_url,
-        'avatar_url': _get_user_avatar_url(comment.author),
-        'text': comment.text,
+        'author': '' if comment.is_deleted else comment.display_author(),
+        'author_url': display_author_url,
+        'avatar_url': display_avatar_url,
+        'text': display_text,
+        'is_deleted': comment.is_deleted,
         'is_edited': comment.is_edited,
         'is_pinned': comment.is_pinned,
         'is_own': is_own,
@@ -693,12 +718,32 @@ def delete_comment(request, comment_pk):
 
 
 @require_POST
+def delete_own_comment(request, comment_pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+    comment = get_object_or_404(Comment, pk=comment_pk)
+    if comment.author != request.user:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    if comment.is_deleted:
+        return JsonResponse({'error': 'Комментарий уже удалён'}, status=400)
+    # Не удаляем саму запись - иначе пропали бы ответы под ней
+    # (Comment.parent -> on_delete=CASCADE). Просто прячем текст и
+    # авторство, оставляя лайки/закреп/ответы рабочими.
+    comment.text = ''
+    comment.is_deleted = True
+    comment.save(update_fields=['text', 'is_deleted'])
+    return JsonResponse({'ok': True})
+
+
+@require_POST
 def edit_comment(request, comment_pk):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'login_required'}, status=401)
     comment = get_object_or_404(Comment, pk=comment_pk)
     if comment.author != request.user:
         return JsonResponse({'error': 'forbidden'}, status=403)
+    if comment.is_deleted:
+        return JsonResponse({'error': 'Комментарий удалён'}, status=400)
     try:
         body = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
@@ -1036,10 +1081,12 @@ def get_user_profile_comments(request, username):
     per_page = 10
 
     if comment_type == 'cartoon':
-        base_filter = Comment.objects.filter(cartoon__author=profile_user)
+        base_filter = Comment.objects.filter(
+            cartoon__author=profile_user, is_deleted=False)
         related = ('author', 'author__preference', 'cartoon')
     else:
-        base_filter = Comment.objects.filter(author=profile_user)
+        base_filter = Comment.objects.filter(
+            author=profile_user, is_deleted=False)
         related = ('cartoon',)
 
     total = base_filter.count()
