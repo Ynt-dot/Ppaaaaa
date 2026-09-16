@@ -302,14 +302,15 @@
                     headers: {'X-CSRFToken': getCsrf()},
                 })
                     .then(r => r.json())
-                    .then(data => {
-                        const pinned = !!data.pinned;
-                        btn.classList.toggle('pinned', pinned);
-                        btn.title = pinned ? 'Открепить' : 'Закрепить';
-                        const card = btn.closest('.card');
-                        if (card) card.classList.toggle('cartoon-pinned', pinned);
+                    .then(() => {
+                        // Порядок мультов на странице (закреплённые
+                        // первыми) считает сервер при рендере - после
+                        // закрепления/открепления перезагружаем
+                        // страницу, чтобы порядок сразу стал верным,
+                        // а не только после ручного обновления.
+                        window.location.reload();
                     })
-                    .finally(() => { btn.disabled = false; });
+                    .catch(() => { btn.disabled = false; });
             });
         })();
     </script>
