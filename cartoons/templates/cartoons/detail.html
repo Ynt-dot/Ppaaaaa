@@ -479,9 +479,11 @@
             dropdownHTML + '</div>' +
             '<div class="comment-text-wrap">' +
             '<p class="mb-0 desc-clamp comment-text-clamp" style="white-space:pre-wrap;margin-top:-3px;">' + escapeHtml(c.text) + '</p>' +
+            '</div>' +
+            '<div class="comment-expand-row">' +
+            '<button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.72rem;">развернуть</button>' +
             '</div>' + editFormHTML +
             '<div class="d-flex align-items-center gap-2 comment-meta-row">' +
-            '<button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.72rem;">развернуть</button>' +
             '<button class="btn btn-link btn-sm p-0 ' + likeColorClass + ' comment-like-btn" data-comment-id="' + c.id + '" style="font-size:0.72rem;">❤ <span class="comment-likes-count">' + c.likes_count + '</span></button>' +
             replyBtnHTML + '</div>' + replyFormHTML +
             '</div></div></div>' +
@@ -648,6 +650,7 @@
                 editForm.style.display = opening ? 'block' : 'none';
                 if (commentEl) {
                     commentEl.querySelector('.comment-text-wrap').style.display = opening ? 'none' : '';
+                    commentEl.querySelector('.comment-expand-row').style.display = opening ? 'none' : '';
                     commentEl.querySelector('.comment-meta-row').style.display  = opening ? 'none' : '';
                 }
                 if (opening) editForm.querySelector('.edit-textarea').focus();
@@ -668,6 +671,7 @@
                     const textEl = commentEl.querySelector('.comment-text-clamp');
                     editForm.querySelector('.edit-textarea').value = textEl ? textEl.textContent : '';
                     commentEl.querySelector('.comment-text-wrap').style.display = '';
+                    commentEl.querySelector('.comment-expand-row').style.display = '';
                     commentEl.querySelector('.comment-meta-row').style.display  = '';
                 }
             }
@@ -850,6 +854,7 @@
                     if (textEl) { textEl.textContent = d.text; textEl.classList.remove('expanded'); }
                     textarea.value = d.text;
                     cBody.querySelector('.comment-text-wrap').style.display = '';
+                    cBody.querySelector('.comment-expand-row').style.display = '';
                     cBody.querySelector('.comment-meta-row').style.display  = '';
                     const dateEl = cBody.querySelector('.comment-date');
                     if (dateEl && !cBody.querySelector('.edited-mark')) {
