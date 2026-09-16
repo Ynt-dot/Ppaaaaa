@@ -1,4 +1,30 @@
 {% load static cartoon_tags %}
+{% if compact %}
+<a href="{% url 'detail' cartoon.pk %}" class="text-decoration-none text-dark compact-card d-flex gap-2">
+    {% if cartoon.preview %}
+    <img src="{{ cartoon.preview.url }}" class="compact-card-img flex-shrink-0" alt="{{ cartoon.title }}">
+    {% else %}
+    <div class="compact-card-img compact-card-placeholder flex-shrink-0 bg-light d-flex align-items-center justify-content-center">
+        <span class="text-muted" style="font-size:0.68rem;">Нет превью</span>
+    </div>
+    {% endif %}
+    <div class="min-w-0">
+        <div class="compact-card-title" title="{{ cartoon.title }}">{{ cartoon.title }}</div>
+        {% if show_author %}
+        <div class="compact-card-author text-muted">
+            {% if cartoon.author %}{{ cartoon.author.username }}{% else %}Аноним{% endif %}
+        </div>
+        {% endif %}
+        <div class="compact-card-stats text-muted">
+            <span title="Лайки">❤ {{ cartoon.likes.count }}</span>
+            <span class="mx-1">·</span>
+            <span title="Уникальных: {{ cartoon.unique_views_count }} / Всего: {{ cartoon.views_count }}"><i class="bi bi-eye-fill"></i> {{ cartoon.unique_views_count }}</span>
+            <span class="mx-1">·</span>
+            <span title="{{ cartoon.created_at|date:'d.m.Y H:i' }}">{{ cartoon.created_at|time_ago }}</span>
+        </div>
+    </div>
+</a>
+{% else %}
 <div class="col">
     <div class="card h-100 shadow-sm">
         <a href="{% url 'detail' cartoon.pk %}" class="text-decoration-none text-dark">
@@ -32,3 +58,4 @@
         </a>
     </div>
 </div>
+{% endif %}

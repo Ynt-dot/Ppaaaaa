@@ -349,7 +349,8 @@ def get_recommendations(request, pk):
     html = ''.join(
         render_to_string('cartoons/cartoon_card.html',
                          {'cartoon': c,
-                          'show_author': show_author},
+                          'show_author': show_author,
+                          'compact': True},
                          request=request)
         for c in qs
     )
