@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% load cartoon_tags %}
+
+{% block title %}Настройки{% endblock %}
+
+{% block content %}
+{% with active_tab=request.GET.tab|default:"password" %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <h2 class="h4 mb-3">Настройки аккаунта</h2>
+
+        <div class="d-flex gap-1 mb-3 flex-wrap">
+            <a href="?tab=password" class="btn btn-sm {% if active_tab == 'password' %}btn-dark{% else %}btn-outline-dark{% endif %}">Пароль</a>
+            <a href="?tab=profile" class="btn btn-sm {% if active_tab == 'profile' %}btn-dark{% else %}btn-outline-dark{% endif %}">Ник и ссылка</a>
+            <a href="?tab=description" class="btn btn-sm {% if active_tab == 'description' %}btn-dark{% else %}btn-outline-dark{% endif %}">О себе</a>
+            <a href="?tab=blocklist" class="btn btn-sm {% if active_tab == 'blocklist' %}btn-dark{% else %}btn-outline-dark{% endif %}">Чёрный список</a>
+        </div>
+
+        {% if messages %}
+        <div class="mb-3">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if active_tab == 'password' %}
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Изменить пароль</h5>
+                <form method="post" action="{% url 'change_password' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Старый пароль</label>
+                        <input type="password" name="old_password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Новый пароль</label>
+                        <input type="password" name="new_password1" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Повторите новый пароль</label>
+                        <input type="password" name="new_password2" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">Сменить пароль</button>
+                </form>
+                <hr>
+                <p class="mb-0">
+                    Забыли пароль?
+                    <a href="{% url 'password_reset' %}">Сбросить через почту</a>
+                </p>
+            </div>
+        </div>
+
+        {% elif active_tab == 'profile' %}
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Ник и ссылка на профиль</h5>
+                <form method="post" action="{% url 'update_username' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Ник</label>
+                        <input type="text" name="username" class="form-control" value="{{ current_username }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ссылка на профиль</label>
+                        <div class="input-group">
+                            <span class="input-group-text">/user/</span>
+                            <input type="text" name="slug" class="form-control" value="{{ current_slug }}">
+                        </div>
+                        <div class="form-text">
+                            Ссылка не меняется автоматически при смене ника.
+                            Можно изменить только ссылку, оставив ник прежним.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success">Сохранить</button>
+                </form>
+            </div>
+        </div>
+
+        {% elif active_tab == 'description' %}
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">О себе</h5>
+                <form method="post" action="{% url 'update_description' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <textarea name="description" class="form-control" rows="6" maxlength="1000">{{ current_description }}</textarea>
+                        <div class="form-text">Максимум 1000 символов. Отображается на странице профиля.</div>
+                    </div>
+                    <button type="submit" class="btn btn-success">Сохранить</button>
+                </form>
+            </div>
+        </div>
+
+        {% elif active_tab == 'blocklist' %}
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Чёрный список</h5>
+                <div class="input-group mb-3">
+                    <input type="text" id="blocklist-add-input" class="form-control" placeholder="Ник или ссылка на профиль">
+                    <button type="button" id="blocklist-add-btn" class="btn btn-outline-dark">Заблокировать</button>
+                </div>
+                <div id="blocklist-add-error" class="text-danger small mb-2" style="display:none;"></div>
+
+                <ul id="blocklist-items" class="list-group">
+                    {% for blocked_user in blocklist %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center" data-username="{{ blocked_user.username }}">
+                        <a href="{{ blocked_user|profile_url }}">{{ blocked_user.username }}</a>
+                        <button type="button" class="btn btn-sm btn-outline-secondary blocklist-remove-btn"
+                                data-block-url="{% url 'toggle_block_user' blocked_user|profile_slug %}">
+                            Убрать
+                        </button>
+                    </li>
+                    {% empty %}
+                    <li id="blocklist-empty" class="list-group-item text-muted">Список пуст.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endwith %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    function getCsrf() {
+        for (const c of document.cookie.split(';')) {
+            const t = c.trim();
+            if (t.startsWith('csrftoken=')) return decodeURIComponent(t.slice('csrftoken='.length));
+        }
+        return '';
+    }
+
+    function postJson(url, data) {
+        return fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrf()},
+            body: JSON.stringify(data),
+        });
+    }
+
+    function escapeHtml(str) {
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(str));
+        return d.innerHTML;
+    }
+
+    const list = document.getElementById('blocklist-items');
+
+    if (list) {
+        list.addEventListener('click', (e) => {
+            const btn = e.target.closest('.blocklist-remove-btn');
+            if (!btn) return;
+            btn.disabled = true;
+            postJson(btn.dataset.blockUrl, {}).then(() => {
+                const li = btn.closest('li');
+                if (li) li.remove();
+                if (!list.querySelector('li[data-username]')) {
+                    list.innerHTML = '<li class="list-group-item text-muted">Список пуст.</li>';
+                }
+            });
+        });
+    }
+
+    const addBtn = document.getElementById('blocklist-add-btn');
+    const addInput = document.getElementById('blocklist-add-input');
+    const addError = document.getElementById('blocklist-add-error');
+    if (addBtn && addInput) {
+        addBtn.addEventListener('click', () => {
+            const value = addInput.value.trim();
+            if (!value) return;
+            addError.style.display = 'none';
+            addBtn.disabled = true;
+            postJson("{% url 'blocklist_add' %}", {identifier: value})
+                .then(r => r.json().then(data => ({ok: r.ok, data})))
+                .then(({ok, data}) => {
+                    if (!ok) {
+                        addError.textContent = data.error || 'Не удалось заблокировать пользователя.';
+                        addError.style.display = 'block';
+                        return;
+                    }
+                    const empty = document.getElementById('blocklist-empty');
+                    if (empty) empty.remove();
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    li.dataset.username = data.username;
+                    li.innerHTML = '<a href="' + data.profile_url + '">' + escapeHtml(data.username) + '</a>' +
+                        '<button type="button" class="btn btn-sm btn-outline-secondary blocklist-remove-btn" ' +
+                        'data-block-url="' + data.block_url + '">Убрать</button>';
+                    list.appendChild(li);
+                    addInput.value = '';
+                })
+                .finally(() => { addBtn.disabled = false; });
+        });
+    }
+})();
+</script>
+{% endblock %}

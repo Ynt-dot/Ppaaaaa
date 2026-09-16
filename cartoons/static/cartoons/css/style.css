@@ -315,6 +315,36 @@ input[type="password"]::-ms-clear {
     border-radius: 4px;
 }
 
+/* === Закреп мульта на странице автора === */
+.cartoon-preview-wrap {
+    position: relative;
+}
+.card.cartoon-pinned {
+    outline: 2px solid #212529;
+}
+.cartoon-pin-btn {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.85);
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    padding: 0;
+}
+.cartoon-pin-btn:hover {
+    background: #fff;
+}
+.cartoon-pin-btn.pinned {
+    color: #212529;
+}
+
 /* === Ветки комментариев (рисованые полоски) === */
 /* Убираем нижний отступ у последнего ответа — полоска заканчивается вровень с ним */
 .replies-container > .comment-item:last-child {

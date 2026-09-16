@@ -26,7 +26,16 @@
 </a>
 {% else %}
 <div class="col">
-    <div class="card h-100 shadow-sm">
+    <div class="card h-100 shadow-sm{% if cartoon.is_pinned %} cartoon-pinned{% endif %}">
+        {% if show_pin %}
+        <div class="cartoon-preview-wrap">
+            <button type="button"
+                    class="cartoon-pin-btn cartoon-pin-toggle{% if cartoon.is_pinned %} pinned{% endif %}"
+                    data-pin-url="{% url 'toggle_cartoon_pin' cartoon.pk %}"
+                    title="{% if cartoon.is_pinned %}Открепить{% else %}Закрепить{% endif %}">
+                <i class="bi bi-pin-angle-fill"></i>
+            </button>
+        {% endif %}
         <a href="{% url 'detail' cartoon.pk %}" class="text-decoration-none text-dark">
             {% if cartoon.preview %}
             <img src="{{ cartoon.preview.url }}" class="card-img-top card-preview-img" alt="{{ cartoon.title }}">
@@ -35,12 +44,17 @@
                 <span class="text-muted">Нет превью</span>
             </div>
             {% endif %}
+        </a>
+        {% if show_pin %}
+        </div>
+        {% endif %}
+        <a href="{% url 'detail' cartoon.pk %}" class="text-decoration-none text-dark">
             <div class="card-body">
                 <h5 class="card-title title-clamp" title="{{ cartoon.title }}">{{ cartoon.title }}</h5>
                 {% if show_author %}
                 <p class="card-text small mb-1">
                     {% if cartoon.author %}
-                    <a href="{% url 'user_profile' username=cartoon.author.username %}" class="username-link">{{ cartoon.author.username }}</a>
+                    <a href="{{ cartoon.author|profile_url }}" class="username-link">{{ cartoon.author.username }}</a>
                     {% else %}
                     Аноним
                     {% endif %}

@@ -1,7 +1,23 @@
 from django import template
+from django.urls import reverse
 from django.utils import timezone
 
 register = template.Library()
+
+
+@register.filter
+def profile_slug(user):
+    if not user:
+        return ''
+    pref = getattr(user, 'preference', None)
+    return pref.profile_slug if pref and pref.profile_slug else user.username
+
+
+@register.filter
+def profile_url(user):
+    if not user:
+        return ''
+    return reverse('user_profile', args=[profile_slug(user)])
 
 
 @register.filter

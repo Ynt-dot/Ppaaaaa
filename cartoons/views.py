@@ -1,17 +1,21 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import (
     Cartoon, CartoonLike, Comment, CommentLike, UserPreference, UserNote,
-    Favorite, CartoonView,
+    Favorite, CartoonView, UserBlock,
 )
 import json
 from .utils import create_gif_from_frames, create_avatar_gif
-from django.contrib.auth import login
+from django.contrib.auth import login, update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .utils import send_verification_email
 from .models import EmailVerificationToken
 from .forms import CustomUserCreationForm
 from django.contrib import messages
 from django.utils import timezone
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_unicode_slug
 from django.core.paginator import Paginator
 import os
 from django.conf import settings
@@ -38,6 +42,30 @@ def _get_user_avatar_url(user):
             except Exception:
                 pass
     return static('cartoons/images/default_avatar.png')
+
+
+def _profile_slug(user):
+    """The stable, independently-changeable profile URL segment for a
+    user - falls back to username if, somehow, no UserPreference row
+    exists yet (should not happen for real accounts; register()
+    always creates one)."""
+    pref = getattr(user, 'preference', None)
+    return (pref.profile_slug if pref and pref.profile_slug
+            else user.username)
+
+
+def _profile_url(user):
+    return reverse('user_profile', args=[_profile_slug(user)])
+
+
+def _resolve_profile_user(slug):
+    """Find the user a profile-URL segment refers to: by profile_slug
+    first, falling back to username (see user_profile() for why the
+    fallback exists)."""
+    user = User.objects.filter(preference__profile_slug=slug).first()
+    if user is None:
+        user = get_object_or_404(User, username=slug)
+    return user
 
 
 def _frames_count(cartoon):
@@ -230,12 +258,20 @@ def detail(request, pk):
         'user_favorited': user_favorited,
         'comment_sort': comment_sort,
         'author_avatar_url': _get_user_avatar_url(cartoon.author),
+        'author_profile_url': (
+            _profile_url(cartoon.author) if cartoon.author else None),
         'can_set_as_avatar': can_set_as_avatar,
         'is_used_as_avatar': is_used_as_avatar,
         'rec_sort': rec_sort,
         'rec_author_filter': rec_author_filter,
         'can_delete_cartoon': (request.user.is_authenticated
                                and request.user.is_staff),
+        'can_moderate_comments': (
+            request.user.is_authenticated
+            and cartoon.author == request.user),
+        'my_profile_url': (
+            _profile_url(request.user)
+            if request.user.is_authenticated else None),
         'og_url': settings.SITE_URL + reverse('detail', args=[pk]),
         'og_image_url': (
             settings.SITE_URL + cartoon.preview.url
@@ -425,9 +461,7 @@ def _serialize_comment(comment, request, current_level=0,
     else:
         user_liked = False
 
-    author_url = reverse(
-        'user_profile', args=[
-            comment.author.username]) if comment.author else None
+    author_url = _profile_url(comment.author) if comment.author else None
 
     likes_count = comment.likes_count
 
@@ -483,10 +517,30 @@ def _serialize_comment(comment, request, current_level=0,
         display_author_url = author_url
         display_avatar_url = _get_user_avatar_url(comment.author)
 
-    can_pin = (request.user.is_authenticated
-               and cartoon_author_id is not None
-               and request.user.id == cartoon_author_id)
+    is_cartoon_author = (
+        request.user.is_authenticated
+        and cartoon_author_id is not None
+        and request.user.id == cartoon_author_id)
+    can_pin = is_cartoon_author
     can_delete = request.user.is_authenticated and request.user.is_staff
+    can_delete_own = (
+        not comment.is_deleted
+        and (is_own or (is_cartoon_author and not is_own
+                        and comment.author_id is not None)))
+
+    can_block_author = (
+        not comment.is_deleted
+        and request.user.is_authenticated
+        and comment.author_id is not None
+        and comment.author_id != request.user.id
+        and not comment.author.is_staff)
+    author_pref = (
+        getattr(comment.author, 'preference', None)
+        if can_block_author else None)
+    show_block_label = can_block_author and (
+        is_cartoon_author or (author_pref and author_pref.is_troll))
+    is_blocked_author = show_block_label and UserBlock.objects.filter(
+        blocker=request.user, blocked=comment.author).exists()
 
     total_replies_count = _count_descendant_comments(comment.id)
     new_replies_count = (
@@ -505,6 +559,12 @@ def _serialize_comment(comment, request, current_level=0,
         'is_own': is_own,
         'can_pin': can_pin,
         'can_delete': can_delete,
+        'can_delete_own': can_delete_own,
+        'show_block_label': show_block_label,
+        'is_blocked_author': is_blocked_author,
+        'block_url': (
+            reverse('toggle_block_user', args=[_profile_slug(comment.author)])
+            if show_block_label else None),
         'created_at': comment.created_at.strftime('%d.%m.%Y %H:%M'),
         'likes_count': likes_count,
         'user_liked': user_liked,
@@ -714,6 +774,11 @@ def add_comment(request, pk):
         return JsonResponse(
             {'error': 'Войдите, чтобы оставить комментарий'}, status=403)
 
+    if cartoon.author_id and UserBlock.objects.filter(
+            blocker_id=cartoon.author_id, blocked=request.user).exists():
+        return JsonResponse(
+            {'error': 'Автор заблокировал вас'}, status=403)
+
     parent = None
     level = 0
     parent_id = body.get('parent_id')
@@ -802,8 +867,10 @@ def delete_comment(request, comment_pk):
 def delete_own_comment(request, comment_pk):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'login_required'}, status=401)
-    comment = get_object_or_404(Comment, pk=comment_pk)
-    if comment.author != request.user:
+    comment = get_object_or_404(
+        Comment.objects.select_related('cartoon'), pk=comment_pk)
+    is_cartoon_author = comment.cartoon.author == request.user
+    if comment.author != request.user and not is_cartoon_author:
         return JsonResponse({'error': 'forbidden'}, status=403)
     if comment.is_deleted:
         return JsonResponse({'error': 'Комментарий уже удалён'}, status=400)
@@ -987,6 +1054,8 @@ def register(request):
                     user = form.save(commit=False)
                     user.is_active = False
                     user.save()
+                    UserPreference.objects.create(
+                        user=user, profile_slug=user.username)
                     send_verification_email(user)
                 request.session['pending_user_id'] = user.id
                 return redirect('verification_sent')
@@ -1000,8 +1069,9 @@ def register(request):
     return render(request, 'registration/register.html', {'form': form})
 
 
-def user_profile(request, username):
-    profile_user = get_object_or_404(User, username=username)
+def user_profile(request, slug):
+    profile_user = _resolve_profile_user(slug)
+    pref, _ = UserPreference.objects.get_or_create(user=profile_user)
     tab = request.GET.get('tab', 'album')
     if tab not in ('album', 'comments', 'liked', 'favorites'):
         tab = 'album'
@@ -1019,13 +1089,31 @@ def user_profile(request, username):
 
     is_own_profile = request.user == profile_user
 
+    can_block = (
+        request.user.is_authenticated
+        and not is_own_profile
+        and not profile_user.is_staff)
+    is_blocked = (
+        can_block
+        and UserBlock.objects.filter(
+            blocker=request.user, blocked=profile_user).exists())
+
+    resolved_slug = pref.profile_slug or _profile_slug(profile_user)
+
     context = {
         'profile_user': profile_user,
+        'profile_slug': resolved_slug,
+        'profile_description': pref.description,
         'active_tab': tab,
         'user_note': user_note,
         'is_own_profile': is_own_profile,
         'total_cartoons': total_cartoons,
         'profile_avatar_url': _get_user_avatar_url(profile_user),
+        'can_block': can_block,
+        'is_blocked': is_blocked,
+        'block_url': (
+            reverse('toggle_block_user', args=[resolved_slug])
+            if can_block else None),
     }
 
     if tab == 'album':
@@ -1038,7 +1126,7 @@ def user_profile(request, username):
                 author=profile_user).annotate(
                 like_count=Count('likes', distinct=True),
                 unique_views_count=Count('unique_views', distinct=True),
-            ).order_by('-like_count', '-created_at')
+            ).order_by('-is_pinned', '-like_count', '-created_at')
         elif sort == 'trending':
             week_ago = timezone.now() - timedelta(days=7)
             cartoon_list = Cartoon.objects.filter(
@@ -1049,7 +1137,7 @@ def user_profile(request, username):
                         likes__created_at__gte=week_ago),
                     distinct=True),
                 unique_views_count=Count('unique_views', distinct=True),
-            ).order_by('-recent_likes', '-created_at')
+            ).order_by('-is_pinned', '-recent_likes', '-created_at')
         elif sort == 'trending_24h':
             day_ago = timezone.now() - timedelta(hours=24)
             cartoon_list = Cartoon.objects.filter(
@@ -1060,12 +1148,12 @@ def user_profile(request, username):
                         likes__created_at__gte=day_ago),
                     distinct=True),
                 unique_views_count=Count('unique_views', distinct=True),
-            ).order_by('-recent_likes', '-created_at')
+            ).order_by('-is_pinned', '-recent_likes', '-created_at')
         else:
             cartoon_list = Cartoon.objects.filter(
                 author=profile_user).annotate(
                 unique_views_count=Count('unique_views', distinct=True),
-            ).order_by('-created_at')
+            ).order_by('-is_pinned', '-created_at')
 
         if is_own_profile:
             cartoon_list = cartoon_list.annotate(
@@ -1110,11 +1198,11 @@ def user_profile(request, username):
 
 
 @require_POST
-def save_user_note(request, username):
+def save_user_note(request, slug):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'login_required'}, status=401)
 
-    about_user = get_object_or_404(User, username=username)
+    about_user = _resolve_profile_user(slug)
     if request.user == about_user:
         return JsonResponse({'error': 'forbidden'}, status=400)
 
@@ -1153,8 +1241,8 @@ def toggle_favorite(request, pk):
 
 
 @require_GET
-def get_user_profile_comments(request, username):
-    profile_user = get_object_or_404(User, username=username)
+def get_user_profile_comments(request, slug):
+    profile_user = _resolve_profile_user(slug)
 
     comment_type = request.GET.get('type', 'user')
     sort = request.GET.get('sort', 'newest')
@@ -1199,7 +1287,7 @@ def get_user_profile_comments(request, username):
         liked_ids = set()
 
     if comment_type == 'user':
-        author_url = reverse('user_profile', args=[profile_user.username])
+        author_url = _profile_url(profile_user)
         avatar_url = _get_user_avatar_url(profile_user)
 
     data = []
@@ -1207,9 +1295,7 @@ def get_user_profile_comments(request, username):
         user_liked = c.id in liked_ids
 
         if comment_type == 'cartoon':
-            author_url = reverse(
-                'user_profile', args=[
-                    c.author.username]) if c.author else None
+            author_url = _profile_url(c.author) if c.author else None
             avatar_url = _get_user_avatar_url(c.author)
 
         data.append({
@@ -1414,3 +1500,168 @@ def resend_verification(request):
 
     messages.success(request, 'Письмо с подтверждением отправлено повторно.')
     return redirect('verification_sent')
+
+
+def _resolve_user_by_identifier(raw):
+    """Resolve a UserBlock target from free-text input that may be a
+    bare username, a bare profile slug, or a pasted profile URL - the
+    user can add someone to their blocklist "по нику или ссылке"."""
+    raw = (raw or '').strip()
+    if not raw:
+        return None
+    if '/' in raw:
+        segments = [s for s in raw.split('/') if s]
+        raw = segments[-1] if segments else raw
+    return (User.objects.filter(username=raw).first()
+            or User.objects.filter(preference__profile_slug=raw).first())
+
+
+@require_POST
+def toggle_block_user(request, slug):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+    target = _resolve_profile_user(slug)
+    if target == request.user:
+        return JsonResponse({'error': 'forbidden'}, status=400)
+    if target.is_staff:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    block, created = UserBlock.objects.get_or_create(
+        blocker=request.user, blocked=target)
+    if not created:
+        block.delete()
+        blocked = False
+    else:
+        blocked = True
+    return JsonResponse({'blocked': blocked})
+
+
+@require_POST
+def blocklist_add(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Неверный формат данных'}, status=400)
+
+    target = _resolve_user_by_identifier(body.get('identifier', ''))
+    if target is None:
+        return JsonResponse(
+            {'error': 'Пользователь не найден'}, status=404)
+    if target == request.user:
+        return JsonResponse(
+            {'error': 'Нельзя заблокировать самого себя'}, status=400)
+    if target.is_staff:
+        return JsonResponse(
+            {'error': 'Нельзя заблокировать этого пользователя'}, status=403)
+
+    UserBlock.objects.get_or_create(blocker=request.user, blocked=target)
+    return JsonResponse({
+        'ok': True,
+        'username': target.username,
+        'profile_slug': _profile_slug(target),
+        'profile_url': _profile_url(target),
+        'block_url': reverse(
+            'toggle_block_user', args=[_profile_slug(target)]),
+    })
+
+
+@require_POST
+def toggle_cartoon_pin(request, pk):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+    cartoon = get_object_or_404(Cartoon, pk=pk)
+    if cartoon.author != request.user:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    cartoon.is_pinned = not cartoon.is_pinned
+    cartoon.save(update_fields=['is_pinned'])
+    return JsonResponse({'pinned': cartoon.is_pinned})
+
+
+@login_required
+def account_settings(request):
+    pref, _ = UserPreference.objects.get_or_create(user=request.user)
+    blocklist = User.objects.filter(
+        blocked_by_users__blocker=request.user
+    ).select_related('preference').order_by('username')
+    context = {
+        'password_form': PasswordChangeForm(user=request.user),
+        'current_username': request.user.username,
+        'current_slug': pref.profile_slug or request.user.username,
+        'current_description': pref.description,
+        'blocklist': blocklist,
+    }
+    return render(request, 'cartoons/account_settings.html', context)
+
+
+@require_POST
+@login_required
+def change_password(request):
+    form = PasswordChangeForm(user=request.user, data=request.POST)
+    if form.is_valid():
+        user = form.save()
+        update_session_auth_hash(request, user)
+        messages.success(request, 'Пароль успешно изменён.')
+    else:
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(request, error)
+    return redirect(reverse('account_settings') + '?tab=password')
+
+
+@require_POST
+@login_required
+def update_username(request):
+    new_username = request.POST.get('username', '').strip()
+    new_slug = request.POST.get('slug', '').strip()
+    pref, _ = UserPreference.objects.get_or_create(user=request.user)
+    redirect_url = reverse('account_settings') + '?tab=profile'
+
+    if new_username and new_username != request.user.username:
+        try:
+            User._meta.get_field('username').run_validators(new_username)
+        except Exception:
+            messages.error(
+                request,
+                'Ник может содержать только буквы, цифры и символы '
+                '@/./+/-/_')
+            return redirect(redirect_url)
+        if User.objects.filter(
+                username=new_username).exclude(pk=request.user.pk).exists():
+            messages.error(request, 'Этот ник уже занят.')
+            return redirect(redirect_url)
+        request.user.username = new_username
+        request.user.save(update_fields=['username'])
+
+    if new_slug and new_slug != pref.profile_slug:
+        try:
+            validate_unicode_slug(new_slug)
+        except ValidationError:
+            messages.error(
+                request,
+                'Ссылка может содержать только буквы, цифры, "-" и "_"')
+            return redirect(redirect_url)
+        if UserPreference.objects.filter(
+                profile_slug=new_slug).exclude(pk=pref.pk).exists():
+            messages.error(request, 'Эта ссылка уже занята.')
+            return redirect(redirect_url)
+        pref.profile_slug = new_slug
+        pref.save(update_fields=['profile_slug'])
+
+    messages.success(request, 'Изменения сохранены.')
+    return redirect(redirect_url)
+
+
+@require_POST
+@login_required
+def update_description(request):
+    text = request.POST.get('description', '').strip()
+    if len(text) > 1000:
+        messages.error(
+            request, 'Описание слишком длинное (макс. 1000 символов)')
+        return redirect(reverse('account_settings') + '?tab=description')
+    pref, _ = UserPreference.objects.get_or_create(user=request.user)
+    pref.description = text
+    pref.save(update_fields=['description'])
+    messages.success(request, 'Описание сохранено.')
+    return redirect(reverse('account_settings') + '?tab=description')

@@ -38,7 +38,8 @@
                                 {{ user.username }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                <li><a class="dropdown-item" href="{% url 'user_profile' username=user.username %}">Личная страница</a></li>
+                                <li><a class="dropdown-item" href="{% url 'user_profile' slug=user.preference.profile_slug|default:user.username %}">Личная страница</a></li>
+                                <li><a class="dropdown-item" href="{% url 'account_settings' %}">Настройки</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form method="post" action="{% url 'logout' %}">
@@ -278,6 +279,39 @@
             input.classList.add('form-control');
         });
         // Для поля color не добавляем form-control, оно само стилизуется
+    </script>
+    <script>
+        // Закреп мульта на странице автора (кнопка поверх превью)
+        (function () {
+            function getCsrf() {
+                for (const c of document.cookie.split(';')) {
+                    const t = c.trim();
+                    if (t.startsWith('csrftoken=')) return decodeURIComponent(t.slice('csrftoken='.length));
+                }
+                return '';
+            }
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('.cartoon-pin-toggle');
+                if (!btn) return;
+                e.preventDefault();
+                e.stopPropagation();
+                if (btn.disabled) return;
+                btn.disabled = true;
+                fetch(btn.dataset.pinUrl, {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': getCsrf()},
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        const pinned = !!data.pinned;
+                        btn.classList.toggle('pinned', pinned);
+                        btn.title = pinned ? 'Открепить' : 'Закрепить';
+                        const card = btn.closest('.card');
+                        if (card) card.classList.toggle('cartoon-pinned', pinned);
+                    })
+                    .finally(() => { btn.disabled = false; });
+            });
+        })();
     </script>
     {% block extra_scripts %}{% endblock %}
 </body>

@@ -20,8 +20,25 @@
                 <h2 class="h4 mb-1 mt-2">{{ profile_user.username }}</h2>
                 <p class="text-muted small mb-1">Зарегистрирован: {{ profile_user.date_joined|date:"d.m.Y" }}</p>
                 <p class="mb-0">Мультов: {{ total_cartoons }}</p>
+                {% if can_block %}
+                <button id="block-user-btn"
+                        class="btn btn-sm mt-2 {% if is_blocked %}btn-outline-secondary{% else %}btn-outline-danger{% endif %}"
+                        data-block-url="{{ block_url }}"
+                        data-blocked="{{ is_blocked|yesno:'true,false' }}">
+                    {% if is_blocked %}Разблокировать{% else %}Заблокировать{% endif %}
+                </button>
+                {% endif %}
             </div>
         </div>
+
+        {% if profile_description %}
+        <div class="card shadow-sm mt-3">
+            <div class="card-body p-2">
+                <p class="text-uppercase text-muted mb-1" style="font-size:0.65rem;letter-spacing:.08em;font-weight:bold;">О себе</p>
+                <p class="mb-0 small" style="white-space:pre-wrap;">{{ profile_description }}</p>
+            </div>
+        </div>
+        {% endif %}
 
         {% if is_own_profile %}
         <!-- Модал выбора аватара -->
@@ -136,7 +153,7 @@
 
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
             {% for cartoon in cartoons %}
-            {% include 'cartoons/cartoon_card.html' with show_author=False %}
+            {% include 'cartoons/cartoon_card.html' with show_author=False show_pin=is_own_profile %}
             {% empty %}
             <div class="col-12">
                 <p class="text-center py-4">У этого пользователя пока нет мультов.</p>
@@ -381,13 +398,31 @@
         return d.innerHTML;
     }
 
-    const PROFILE_USER_URL = "{% url 'user_profile' profile_user.username %}";
+    const PROFILE_USER_URL = "{% url 'user_profile' profile_slug %}";
     let currentAvatarSrc = null;
+
+    // === Блокировка пользователя ===
+    const blockBtn = document.getElementById('block-user-btn');
+    if (blockBtn) {
+        blockBtn.addEventListener('click', () => {
+            blockBtn.disabled = true;
+            postJson(blockBtn.dataset.blockUrl, {})
+                .then(r => r.json())
+                .then(data => {
+                    const blocked = !!data.blocked;
+                    blockBtn.dataset.blocked = blocked ? 'true' : 'false';
+                    blockBtn.textContent = blocked ? 'Разблокировать' : 'Заблокировать';
+                    blockBtn.classList.toggle('btn-outline-secondary', blocked);
+                    blockBtn.classList.toggle('btn-outline-danger', !blocked);
+                })
+                .finally(() => { blockBtn.disabled = false; });
+        });
+    }
 
     // === Заметка ===
     const noteField = document.getElementById('user-note-field');
     if (noteField) {
-        const NOTE_URL = "{% url 'save_user_note' profile_user.username %}";
+        const NOTE_URL = "{% url 'save_user_note' profile_slug %}";
         let savedValue = noteField.value;
         let saveTimer = null;
 
@@ -416,7 +451,7 @@
 
     // === Комментарии на вкладке "Комментарии" ===
     {% if active_tab == 'comments' %}
-    const COMMENTS_API = "{% url 'user_profile_comments' profile_user.username %}";
+    const COMMENTS_API = "{% url 'user_profile_comments' profile_slug %}";
     const IS_AUTHENTICATED = {{ user.is_authenticated|yesno:'true,false' }};
 
     const commentsList = document.getElementById('profile-comments-list');

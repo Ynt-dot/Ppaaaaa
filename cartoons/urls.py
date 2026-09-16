@@ -57,13 +57,38 @@ urlpatterns = [
     path('set-comment-sort/', views.set_comment_sort, name='set_comment_sort'),
     path('register/', views.register, name='register'),
     path('privacy-policy/', views.privacy_policy, name='privacy_policy'),
-    path('user/<str:username>/', views.user_profile, name='user_profile'),
-    path('user/<str:username>/comments/', views.get_user_profile_comments,
+    path('user/<str:slug>/', views.user_profile, name='user_profile'),
+    path('user/<str:slug>/comments/', views.get_user_profile_comments,
          name='user_profile_comments'),
     path(
-        'user/<str:username>/note/',
+        'user/<str:slug>/note/',
         views.save_user_note,
         name='save_user_note'),
+    path(
+        'user/<str:slug>/block/',
+        views.toggle_block_user,
+        name='toggle_block_user'),
+    path(
+        'cartoon/<int:pk>/pin/',
+        views.toggle_cartoon_pin,
+        name='toggle_cartoon_pin'),
+    path('settings/', views.account_settings, name='account_settings'),
+    path(
+        'settings/password/',
+        views.change_password,
+        name='change_password'),
+    path(
+        'settings/username/',
+        views.update_username,
+        name='update_username'),
+    path(
+        'settings/description/',
+        views.update_description,
+        name='update_description'),
+    path(
+        'settings/blocklist/add/',
+        views.blocklist_add,
+        name='blocklist_add'),
     path(
         'cartoon/<int:pk>/recommendations/',
         views.get_recommendations,

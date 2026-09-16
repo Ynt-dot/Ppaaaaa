@@ -22,6 +22,8 @@ class Cartoon(models.Model):
     views_count = models.PositiveIntegerField(
         default=0, verbose_name="Просмотры")
     author_last_seen_comments = models.DateTimeField(null=True, blank=True)
+    is_pinned = models.BooleanField(
+        default=False, verbose_name="Закреплён на странице автора")
 
     class Meta:
         ordering = ['-created_at']  # сортировка по новизне
@@ -139,6 +141,31 @@ class UserPreference(models.Model):
     rec_sort = models.CharField(max_length=20, default='trending')
     rec_author_filter = models.BooleanField(default=False)
     index_sort = models.CharField(max_length=20, default='trending')
+    # Ссылка на профиль (/user/<profile_slug>/) - по умолчанию равна
+    # username на момент регистрации, но не меняется вместе с ним,
+    # если пользователь потом сменит ник.
+    profile_slug = models.SlugField(
+        max_length=30, unique=True, allow_unicode=True,
+        null=True, blank=True)
+    description = models.TextField(
+        max_length=1000, blank=True, default='', verbose_name="О себе")
+    # Ставится только вручную в админке - не через какой-либо
+    # пользовательский запрос.
+    is_troll = models.BooleanField(
+        default=False, verbose_name="Тролль",
+        help_text="Комментарии показываются с кнопкой \"заблокировать\" "
+                  "всем, а не только автору мульта.")
+
+
+class UserBlock(models.Model):
+    blocker = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='blocked_users')
+    blocked = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='blocked_by_users')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [('blocker', 'blocked')]
 
 
 class UserNote(models.Model):
