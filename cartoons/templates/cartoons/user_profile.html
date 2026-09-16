@@ -159,7 +159,7 @@
 
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
             {% for cartoon in cartoons %}
-            {% include 'cartoons/cartoon_card.html' with show_author=False show_pin=is_own_profile %}
+            {% include 'cartoons/cartoon_card.html' with show_author=False show_pin=is_own_profile pinned_style=True %}
             {% empty %}
             <div class="col-12">
                 <p class="text-center py-4">У этого пользователя пока нет мультов.</p>
