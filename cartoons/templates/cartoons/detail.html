@@ -55,7 +55,7 @@
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div class="d-flex align-items-center gap-2">
                         {% if cartoon.author %}
-                        <a href="{{ author_profile_url }}">
+                        <a href="{{ author_avatar_link_url }}">
                             <img id="author-avatar-img" src="{{ author_avatar_url }}" class="user-avatar-md" alt="{{ cartoon.author.username }}">
                         </a>
                         <div>
@@ -488,7 +488,7 @@
             ? '<a href="' + escapeHtml(c.author_url) + '" class="username-link">' + escapeHtml(c.author) + '</a>'
             : escapeHtml(c.author));
         const avatarImgHTML  = '<img src="' + escapeHtml(c.avatar_url) + '" class="user-avatar-sm" alt="" data-author-url="' + escapeHtml(c.author_url || '') + '">';
-        const avatarLink     = c.author_url ? '<a href="' + escapeHtml(c.author_url) + '">' + avatarImgHTML + '</a>' : avatarImgHTML;
+        const avatarLink     = c.avatar_link_url ? '<a href="' + escapeHtml(c.avatar_link_url) + '">' + avatarImgHTML + '</a>' : avatarImgHTML;
 
         const editedMark  = (!c.is_deleted && c.is_edited) ? '<small class="text-muted edited-mark ms-1" style="font-size:0.72rem;">изм.</small>' : '';
         const pinnedBadge = '<i class="bi bi-pin-fill pin-badge ms-1" style="font-size:0.72rem;' + (c.is_pinned ? '' : 'display:none;') + '"></i>';

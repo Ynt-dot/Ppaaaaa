@@ -67,6 +67,20 @@ def _profile_url(user):
     return reverse('user_profile', args=[_profile_slug(user)])
 
 
+def _avatar_link_url(user):
+    """Where clicking a user's avatar image should go: the cartoon set
+    as their avatar (UserPreference.avatar), if they picked one -
+    otherwise their profile page, since there's no specific cartoon to
+    send the click to (this also covers the sitewide default avatar,
+    which isn't "their" cartoon)."""
+    if user is None:
+        return None
+    pref = getattr(user, 'preference', None)
+    if pref and pref.avatar_id:
+        return reverse('detail', args=[pref.avatar_id])
+    return _profile_url(user)
+
+
 def _resolve_profile_user(slug):
     """Find the user a profile-URL segment refers to: by profile_slug
     first, falling back to username (see user_profile() for why the
@@ -301,6 +315,7 @@ def detail(request, pk):
         'author_avatar_url': _get_user_avatar_url(cartoon.author),
         'author_profile_url': (
             _profile_url(cartoon.author) if cartoon.author else None),
+        'author_avatar_link_url': _avatar_link_url(cartoon.author),
         'can_set_as_avatar': can_set_as_avatar,
         'is_used_as_avatar': is_used_as_avatar,
         'rec_sort': rec_sort,
@@ -551,12 +566,14 @@ def _serialize_comment(comment, request, current_level=0,
         display_text = 'Комментарий удалён'
         display_author_url = None
         display_avatar_url = _get_user_avatar_url(None)
+        display_avatar_link_url = None
     else:
         is_own = (request.user.is_authenticated
                   and comment.author_id == request.user.id)
         display_text = comment.text
         display_author_url = author_url
         display_avatar_url = _get_user_avatar_url(comment.author)
+        display_avatar_link_url = _avatar_link_url(comment.author)
 
     is_cartoon_author = (
         request.user.is_authenticated
@@ -593,6 +610,7 @@ def _serialize_comment(comment, request, current_level=0,
         'author': '' if comment.is_deleted else comment.display_author(),
         'author_url': display_author_url,
         'avatar_url': display_avatar_url,
+        'avatar_link_url': display_avatar_link_url,
         'text': display_text,
         'is_deleted': comment.is_deleted,
         'is_edited': comment.is_edited,
@@ -1150,6 +1168,7 @@ def user_profile(request, slug):
         'is_own_profile': is_own_profile,
         'total_cartoons': total_cartoons,
         'profile_avatar_url': _get_user_avatar_url(profile_user),
+        'avatar_link_url': _avatar_link_url(profile_user),
         'can_block': can_block,
         'is_blocked': is_blocked,
         'block_url': (
@@ -1330,6 +1349,7 @@ def get_user_profile_comments(request, slug):
     if comment_type == 'user':
         author_url = _profile_url(profile_user)
         avatar_url = _get_user_avatar_url(profile_user)
+        avatar_link_url = _avatar_link_url(profile_user)
 
     data = []
     for c in page_qs:
@@ -1338,12 +1358,14 @@ def get_user_profile_comments(request, slug):
         if comment_type == 'cartoon':
             author_url = _profile_url(c.author) if c.author else None
             avatar_url = _get_user_avatar_url(c.author)
+            avatar_link_url = _avatar_link_url(c.author)
 
         data.append({
             'id': c.id,
             'author': c.display_author(),
             'author_url': author_url,
             'avatar_url': avatar_url,
+            'avatar_link_url': avatar_link_url,
             'text': c.text,
             'created_at': c.created_at.strftime('%d.%m.%Y %H:%M'),
             'likes_count': c.likes_count,
