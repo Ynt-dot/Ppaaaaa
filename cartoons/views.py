@@ -17,7 +17,10 @@ import os
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
-from django.db.models import Count, Q, F, Case, When, Value, IntegerField
+from django.db.models import (
+    Count, Q, F, Case, When, Value, IntegerField, OuterRef, Subquery,
+)
+from django.db.models.functions import Coalesce
 from django.template.loader import render_to_string
 from django.db import transaction
 from datetime import timedelta
@@ -97,34 +100,40 @@ def index(request):
         if sort not in SORT_LABELS:
             sort = 'popular'
 
-    if sort == 'popular':
+    # Через подзапросы, а не annotate(Count(...)) на нескольких связях
+    # сразу - см. подробный комментарий в get_recommendations() про
+    # декартово произведение строк при нескольких Count() с join к
+    # разным related-таблицам в одном запросе.
+    views_subquery = (
+        CartoonView.objects.filter(cartoon=OuterRef('pk'))
+        .order_by().values('cartoon')
+        .annotate(c=Count('id')).values('c')
+    )
+    unique_views_annotation = Coalesce(
+        Subquery(views_subquery, output_field=IntegerField()), 0)
+
+    if sort in ('popular', 'trending', 'trending_24h'):
+        likes_time_filter = Q()
+        if sort == 'trending':
+            likes_time_filter = Q(
+                created_at__gte=timezone.now() - timedelta(days=7))
+        elif sort == 'trending_24h':
+            likes_time_filter = Q(
+                created_at__gte=timezone.now() - timedelta(hours=24))
+        likes_subquery = (
+            CartoonLike.objects.filter(
+                likes_time_filter, cartoon=OuterRef('pk'))
+            .order_by().values('cartoon')
+            .annotate(c=Count('id')).values('c')
+        )
         cartoon_list = Cartoon.objects.annotate(
-            like_count=Count('likes', distinct=True),
-            unique_views_count=Count('unique_views', distinct=True),
-        ).order_by('-like_count', '-created_at')
-    elif sort == 'trending':
-        week_ago = timezone.now() - timedelta(days=7)
-        cartoon_list = Cartoon.objects.annotate(
-            recent_likes=Count(
-                'likes',
-                filter=Q(
-                    likes__created_at__gte=week_ago),
-                distinct=True),
-            unique_views_count=Count('unique_views', distinct=True),
-        ).order_by('-recent_likes', '-created_at')
-    elif sort == 'trending_24h':
-        day_ago = timezone.now() - timedelta(hours=24)
-        cartoon_list = Cartoon.objects.annotate(
-            recent_likes=Count(
-                'likes',
-                filter=Q(
-                    likes__created_at__gte=day_ago),
-                distinct=True),
-            unique_views_count=Count('unique_views', distinct=True),
+            recent_likes=Coalesce(
+                Subquery(likes_subquery, output_field=IntegerField()), 0),
+            unique_views_count=unique_views_annotation,
         ).order_by('-recent_likes', '-created_at')
     else:
         cartoon_list = Cartoon.objects.annotate(
-            unique_views_count=Count('unique_views', distinct=True),
+            unique_views_count=unique_views_annotation,
         ).order_by('-created_at')
 
     paginator = Paginator(cartoon_list, 12)
@@ -258,32 +267,40 @@ def get_recommendations(request, pk):
         qs = qs.filter(author=cartoon.author)
     qs = qs.exclude(pk=pk)
 
+    # Считаем лайки/просмотры через коррелированные подзапросы, а не
+    # через annotate(Count(...)) на нескольких связях сразу: несколько
+    # Count() c join к разным related-таблицам в одном запросе дают
+    # декартово произведение строк до GROUP BY (лайки × просмотры на
+    # каждый мульт), и запрос резко замедляется по мере роста лайков
+    # и просмотров. Подзапросы этого не делают - каждый считается
+    # отдельно на свою таблицу.
     now = timezone.now()
+    likes_time_filter = Q()
     if sort == 'trending':
-        week_ago = now - timedelta(days=7)
-        qs = qs.annotate(
-            sort_val=Count(
-                'likes',
-                filter=Q(
-                    likes__created_at__gte=week_ago),
-                distinct=True))
-        order = ['-sort_val', '-created_at']
+        likes_time_filter = Q(created_at__gte=now - timedelta(days=7))
     elif sort == 'trending_24h':
-        day_ago = now - timedelta(hours=24)
-        qs = qs.annotate(
-            sort_val=Count(
-                'likes',
-                filter=Q(
-                    likes__created_at__gte=day_ago),
-                distinct=True))
-        order = ['-sort_val', '-created_at']
-    elif sort == 'new':
+        likes_time_filter = Q(created_at__gte=now - timedelta(hours=24))
+
+    if sort == 'new':
         order = ['-created_at']
-    else:  # popular
-        qs = qs.annotate(sort_val=Count('likes', distinct=True))
+    else:  # trending, trending_24h, popular
+        likes_subquery = (
+            CartoonLike.objects.filter(
+                likes_time_filter, cartoon=OuterRef('pk'))
+            .order_by().values('cartoon')
+            .annotate(c=Count('id')).values('c')
+        )
+        qs = qs.annotate(sort_val=Coalesce(
+            Subquery(likes_subquery, output_field=IntegerField()), 0))
         order = ['-sort_val', '-created_at']
 
-    qs = qs.annotate(unique_views_count=Count('unique_views', distinct=True))
+    views_subquery = (
+        CartoonView.objects.filter(cartoon=OuterRef('pk'))
+        .order_by().values('cartoon')
+        .annotate(c=Count('id')).values('c')
+    )
+    qs = qs.annotate(unique_views_count=Coalesce(
+        Subquery(views_subquery, output_field=IntegerField()), 0))
 
     if request.user.is_authenticated:
         viewed_ids = list(
