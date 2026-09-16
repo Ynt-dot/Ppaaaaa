@@ -19,6 +19,10 @@ urlpatterns = [
     path('cartoon/<int:pk>/like/', views.toggle_cartoon_like,
          name='toggle_cartoon_like'),
     path(
+        'cartoon/<int:pk>/mark-comments-seen/',
+        views.mark_comments_seen,
+        name='mark_comments_seen'),
+    path(
         'cartoon/<int:pk>/comments/',
         views.get_comments,
         name='get_comments'),

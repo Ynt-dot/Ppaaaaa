@@ -237,6 +237,8 @@
     const REC_URL         = "{% url 'get_recommendations' cartoon.pk %}";
     const INDEX_URL       = "{% url 'index' %}";
     const DEFAULT_AVATAR_URL = "{% static 'cartoons/images/default_avatar.png' %}";
+    const MARK_COMMENTS_SEEN_URL = "{% url 'mark_comments_seen' cartoon.pk %}";
+    const IS_OWN_CARTOON  = {% if user == cartoon.author %}true{% else %}false{% endif %};
     const IS_AUTH         = {{ user.is_authenticated|yesno:'true,false' }};
     const MY_PROFILE_URL  = "{% if user.is_authenticated %}{% url 'user_profile' username=request.user.username %}{% endif %}";
     let myCurrentAvatarSrc = null;
@@ -248,6 +250,18 @@
         }
         return '';
     }
+    // Сброс "непрочитанных ответов" при уходе со страницы (не раньше -
+    // иначе зелёные бейджи "новых ответов" обнулятся ещё до того, как
+    // автор мульта успеет их увидеть). sendBeacon надёжно срабатывает
+    // даже при закрытии вкладки, в отличие от обычного fetch.
+    if (IS_OWN_CARTOON && navigator.sendBeacon) {
+        window.addEventListener('pagehide', function() {
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', getCsrf());
+            navigator.sendBeacon(MARK_COMMENTS_SEEN_URL, formData);
+        });
+    }
+
     function postJson(url, data) {
         return fetch(url, {
             method: 'POST',
@@ -431,12 +445,26 @@
         return 'url("data:image/svg+xml;base64,' + btoa(makeBarSvg(color)) + '")';
     }
 
-    function pluralReplies(n) {
+    function repliesWord(n) {
         const m10 = n % 10, m100 = n % 100;
-        if (m100 >= 11 && m100 <= 14) return n + ' ответов';
-        if (m10 === 1) return n + ' ответ';
-        if (m10 >= 2 && m10 <= 4) return n + ' ответа';
-        return n + ' ответов';
+        if (m100 >= 11 && m100 <= 14) return 'ответов';
+        if (m10 === 1) return 'ответ';
+        if (m10 >= 2 && m10 <= 4) return 'ответа';
+        return 'ответов';
+    }
+    function pluralReplies(n) {
+        return n + ' ' + repliesWord(n);
+    }
+    // "2 (1) ответа" - (1) зелёным, число непрочитанных ответов на
+    // всех уровнях вложенности; без скобок, если непрочитанных нет.
+    function repliesLabelHTML(c) {
+        const word = repliesWord(c.replies_count);
+        if (c.new_replies_count > 0) {
+            return c.replies_count +
+                ' <span style="color:#28a745;">(' + c.new_replies_count + ')</span> ' +
+                word;
+        }
+        return c.replies_count + ' ' + word;
     }
 
     function initCommentClamp(commentDiv) {
@@ -502,10 +530,10 @@
         let showRepliesHTML = '';
         if (c.replies_count > 0) {
             if (relLevel >= maxRelLevel) {
-                // Слишком глубоко — открыть в модале
-                showRepliesHTML = '<button class="view-thread-btn btn btn-link btn-sm p-0" data-comment-id="' + c.id + '" data-replies-count="' + c.replies_count + '" style="font-size:0.8rem;color:#888;text-decoration:none;">↳ ' + pluralReplies(c.replies_count) + ' →</button>';
+                // Слишком глубоко - открыть в модале
+                showRepliesHTML = '<button class="view-thread-btn btn btn-link btn-sm p-0" data-comment-id="' + c.id + '" data-replies-count="' + c.replies_count + '" style="font-size:0.8rem;color:#888;text-decoration:none;">↳ ' + repliesLabelHTML(c) + ' →</button>';
             } else {
-                showRepliesHTML = '<button class="show-replies-btn btn btn-link btn-sm p-0" data-comment-id="' + c.id + '" style="font-size:0.8rem;color:#888;text-decoration:none;">↳ ' + pluralReplies(c.replies_count) + '</button>';
+                showRepliesHTML = '<button class="show-replies-btn btn btn-link btn-sm p-0" data-comment-id="' + c.id + '" style="font-size:0.8rem;color:#888;text-decoration:none;">↳ ' + repliesLabelHTML(c) + '</button>';
             }
         }
 
@@ -541,7 +569,7 @@
         if (myCurrentAvatarSrc && MY_PROFILE_URL)
             commentDiv.querySelectorAll('[data-author-url="' + MY_PROFILE_URL + '"]').forEach(function(img) { img.src = myCurrentAvatarSrc; });
 
-        // Полоска — единый элемент на весь replies-container этого комментария
+        // Полоска - единый элемент на весь replies-container этого комментария
         const childRelLevel = relLevel + 1;
         if (childRelLevel >= 1 && childRelLevel <= maxRelLevel) {
             const color = REPLY_BAR_COLOR;
@@ -733,18 +761,18 @@
         const pinBtn = e.target.closest('.pin-btn');
         if (pinBtn) { handlePinComment(pinBtn, root); return; }
 
-        // Удалить (только администратор) — полное удаление вместе с ответами
+        // Удалить (только администратор) - полное удаление вместе с ответами
         const deleteCommentBtn = e.target.closest('.delete-comment-btn');
         if (deleteCommentBtn) { handleDeleteComment(deleteCommentBtn, root); return; }
 
-        // Удалить свой комментарий — ответы под ним остаются
+        // Удалить свой комментарий - ответы под ним остаются
         const deleteOwnCommentBtn = e.target.closest('.delete-own-comment-btn');
         if (deleteOwnCommentBtn) { handleDeleteOwnComment(deleteOwnCommentBtn, root); return; }
     }
 
     commentsList.addEventListener('click', function(e) { handleCommentClick(e, commentsList); });
 
-    // При наведении на полоску — все полоски того же уровня темнеют
+    // При наведении на полоску - все полоски того же уровня темнеют
     function setupBarHoverHighlight(root) {
         root.addEventListener('mouseover', function(e) {
             const bar = e.target.closest('.replies-bar');
@@ -800,7 +828,7 @@
                 form.style.display = 'none'; textarea.value = '';
                 const newRelLevel = Math.max(0, d.level - baseLevel);
                 if (newRelLevel > maxRelLevel) {
-                    // Ответ глубже maxRelLevel — не показывать инлайн, обновить кнопку счётчика
+                    // Ответ глубже maxRelLevel - не показывать инлайн, обновить кнопку счётчика
                     const parentEl = root.querySelector('.comment-item[data-comment-id="' + commentId + '"]');
                     if (parentEl) {
                         let bottomDiv = parentEl.querySelector(':scope > .bottom-btns');

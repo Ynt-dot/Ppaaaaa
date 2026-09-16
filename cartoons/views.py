@@ -45,17 +45,23 @@ def _frames_count(cartoon):
     return len(fd) if isinstance(fd, list) else 0
 
 
-def _count_descendant_comments(comment_id):
+def _count_descendant_comments(comment_id, created_after=None):
     """Count all nested replies under a comment, at every depth level -
-    matches what the parent's CASCADE delete would remove."""
+    matches what the parent's CASCADE delete would remove.
+
+    With created_after given, counts only the subset created after that
+    moment (still across every depth level) - used for the "unread
+    replies" badge.
+    """
     total = 0
     current_ids = [comment_id]
     while current_ids:
-        current_ids = list(
-            Comment.objects.filter(parent_id__in=current_ids)
-            .values_list('id', flat=True)
-        )
-        total += len(current_ids)
+        qs = Comment.objects.filter(parent_id__in=current_ids)
+        if created_after is not None:
+            total += qs.filter(created_at__gt=created_after).count()
+        current_ids = list(qs.values_list('id', flat=True))
+        if created_after is None:
+            total += len(current_ids)
     return total
 
 
@@ -172,10 +178,12 @@ def detail(request, pk):
 
     if request.user.is_authenticated:
         CartoonView.objects.get_or_create(cartoon=cartoon, user=request.user)
-        if cartoon.author == request.user:
-            Cartoon.objects.filter(
-                pk=pk).update(
-                author_last_seen_comments=timezone.now())
+        # "author_last_seen_comments" НЕ обновляем здесь: comments/replies
+        # подгружаются отдельными AJAX-запросами уже после рендера этой
+        # страницы, и им нужен старый (ещё не сброшенный) cutoff, чтобы
+        # посчитать "новых ответов" зелёным бейджем. Сброс происходит
+        # через mark_comments_seen(), который фронтенд дёргает при уходе
+        # со страницы (см. detail.html).
 
     likes_count = cartoon.likes.count()
     unique_views = cartoon.unique_views.count()
@@ -390,10 +398,28 @@ def toggle_cartoon_like(request, pk):
     return JsonResponse({'liked': liked, 'count': cartoon.likes.count()})
 
 
+def _get_seen_cutoff(request, cartoon):
+    """The cartoon author's "last seen comments" timestamp, but only
+    for the author themselves - anyone else gets None, meaning "don't
+    compute/show an unread-replies badge"."""
+    if (request.user.is_authenticated
+            and cartoon.author_id == request.user.id):
+        return cartoon.author_last_seen_comments
+    return None
+
+
 def _serialize_comment(comment, request, current_level=0,
                        max_inline_level=2, root_level=0,
-                       cartoon_author_id=None):
-    """Serialize comment with nested replies up to max_inline_level."""
+                       cartoon_author_id=None, seen_cutoff=None):
+    """Serialize comment with nested replies up to max_inline_level.
+
+    seen_cutoff (a datetime, or None) is the cartoon author's
+    "last seen comments" timestamp captured at the start of this page
+    visit - used to compute new_replies_count (replies at any depth
+    created after that moment). Only meaningful/passed when the
+    current viewer is the cartoon's author; None means "don't show an
+    unread badge" for anyone else.
+    """
     if request.user.is_authenticated:
         user_liked = comment.likes.filter(user=request.user).exists()
     else:
@@ -437,7 +463,8 @@ def _serialize_comment(comment, request, current_level=0,
                     current_level + 1,
                     max_inline_level,
                     root_level,
-                    cartoon_author_id))
+                    cartoon_author_id,
+                    seen_cutoff))
     elif current_level == max_inline_level:
         has_deeper_replies = comment.replies.exists()
 
@@ -461,6 +488,11 @@ def _serialize_comment(comment, request, current_level=0,
                and request.user.id == cartoon_author_id)
     can_delete = request.user.is_authenticated and request.user.is_staff
 
+    total_replies_count = _count_descendant_comments(comment.id)
+    new_replies_count = (
+        _count_descendant_comments(comment.id, created_after=seen_cutoff)
+        if seen_cutoff is not None else 0)
+
     return {
         'id': comment.id,
         'author': '' if comment.is_deleted else comment.display_author(),
@@ -482,7 +514,8 @@ def _serialize_comment(comment, request, current_level=0,
         'replies': replies_data,
         'has_more_replies': has_more_replies,
         'has_deeper_replies': has_deeper_replies,
-        'replies_count': comment.replies.count(),
+        'replies_count': total_replies_count,
+        'new_replies_count': new_replies_count,
     }
 
 
@@ -525,12 +558,14 @@ def get_comments(request, pk):
     comments = list(qs[start:end])
 
     cartoon_author_id = cartoon.author_id
+    seen_cutoff = _get_seen_cutoff(request, cartoon)
     data = [
         _serialize_comment(
             c,
             request,
             max_inline_level=0,
-            cartoon_author_id=cartoon_author_id) for c in comments]
+            cartoon_author_id=cartoon_author_id,
+            seen_cutoff=seen_cutoff) for c in comments]
 
     return JsonResponse({
         'comments': data,
@@ -580,13 +615,15 @@ def get_replies(request, comment_pk):
 
     child_level = parent.level + 1
     cartoon_author_id = parent.cartoon.author_id
+    seen_cutoff = _get_seen_cutoff(request, parent.cartoon)
     data = [
         _serialize_comment(
             r,
             request,
             current_level=child_level,
             max_inline_level=0,
-            cartoon_author_id=cartoon_author_id) for r in replies]
+            cartoon_author_id=cartoon_author_id,
+            seen_cutoff=seen_cutoff) for r in replies]
 
     return JsonResponse({'comments': data, 'has_next': end < total})
 
@@ -624,6 +661,7 @@ def get_thread(request, comment_pk):
     replies = list(qs[start:end])
 
     cartoon_author_id = root.cartoon.author_id
+    seen_cutoff = _get_seen_cutoff(request, root.cartoon)
     max_inline = root.level + 3
     child_level = root.level + 1
     replies_data = [
@@ -633,7 +671,8 @@ def get_thread(request, comment_pk):
             current_level=child_level,
             max_inline_level=max_inline,
             root_level=child_level,
-            cartoon_author_id=cartoon_author_id) for r in replies]
+            cartoon_author_id=cartoon_author_id,
+            seen_cutoff=seen_cutoff) for r in replies]
 
     root_data = _serialize_comment(
         root,
@@ -641,7 +680,8 @@ def get_thread(request, comment_pk):
         current_level=root.level,
         max_inline_level=root.level - 1,
         root_level=root.level,
-        cartoon_author_id=cartoon_author_id)
+        cartoon_author_id=cartoon_author_id,
+        seen_cutoff=seen_cutoff)
     root_data['replies'] = replies_data
     root_data['has_more_replies'] = end < total
     root_data['per_used'] = per_page
@@ -702,8 +742,25 @@ def add_comment(request, pk):
         request,
         current_level=level,
         max_inline_level=level - 1,
-        cartoon_author_id=cartoon.author_id)
+        cartoon_author_id=cartoon.author_id,
+        seen_cutoff=_get_seen_cutoff(request, cartoon))
     return JsonResponse(data, status=201)
+
+
+@require_POST
+def mark_comments_seen(request, pk):
+    """Called (via navigator.sendBeacon) when the cartoon's author
+    leaves the detail page - resets author_last_seen_comments so the
+    unread-replies badges and the personal-page "new comments" count
+    both start counting from this point forward, not before."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+    updated = Cartoon.objects.filter(
+        pk=pk, author=request.user
+    ).update(author_last_seen_comments=timezone.now())
+    if not updated:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    return JsonResponse({'ok': True})
 
 
 @require_POST
