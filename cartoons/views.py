@@ -275,6 +275,11 @@ def get_recommendations(request, pk):
     sort = request.GET.get('sort', 'trending')
     if sort not in ('trending', 'trending_24h', 'new', 'popular'):
         sort = 'trending'
+    try:
+        page = max(1, int(request.GET.get('page', 1)))
+    except (TypeError, ValueError):
+        page = 1
+    per_page = 10
 
     if request.user.is_authenticated:
         pref, _ = UserPreference.objects.get_or_create(user=request.user)
@@ -340,10 +345,15 @@ def get_recommendations(request, pk):
     qs = qs.select_related(
         'author',
         'author__preference',
-        'author__preference__avatar').order_by(
-        *
-        order)[
-            :10]
+        'author__preference__avatar').order_by(*order)
+
+    start = (page - 1) * per_page
+    end = start + per_page
+    # +1 лишний, чтобы узнать has_next без отдельного count() на всём
+    # (потенциально большом) отсортированном/аннотированном qs
+    page_qs = list(qs[start:end + 1])
+    has_next = len(page_qs) > per_page
+    page_qs = page_qs[:per_page]
 
     show_author = (author_filter != 'author')
     html = ''.join(
@@ -352,10 +362,14 @@ def get_recommendations(request, pk):
                           'show_author': show_author,
                           'compact': True},
                          request=request)
-        for c in qs
+        for c in page_qs
     )
 
-    return JsonResponse({'html': html, 'empty': len(html) == 0})
+    return JsonResponse({
+        'html': html,
+        'empty': (page == 1 and len(page_qs) == 0),
+        'has_next': has_next,
+    })
 
 
 @require_POST

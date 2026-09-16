@@ -108,3 +108,48 @@ class RecommendationsTests(TestCase):
         html = resp.json()['html']
         self.assertNotIn('by someone else', html)
         self.assertIn('popular one', html)
+
+    def test_no_has_next_when_ten_or_fewer_results(self):
+        resp = self.client.get(
+            reverse('get_recommendations', args=[self.current.pk]),
+            {'sort': 'new'})
+        data = resp.json()
+        self.assertFalse(data['has_next'])
+        self.assertFalse(data['empty'])
+
+    def test_pagination_across_pages(self):
+        for i in range(15):
+            Cartoon.objects.create(title=f'extra {i}', author=self.author)
+        # 15 extra + popular + plain = 17 candidates total
+
+        resp1 = self.client.get(
+            reverse('get_recommendations', args=[self.current.pk]),
+            {'sort': 'new', 'page': 1})
+        data1 = resp1.json()
+        self.assertTrue(data1['has_next'])
+        self.assertEqual(data1['html'].count('<a href="/cartoon/'), 10)
+
+        resp2 = self.client.get(
+            reverse('get_recommendations', args=[self.current.pk]),
+            {'sort': 'new', 'page': 2})
+        data2 = resp2.json()
+        self.assertFalse(data2['has_next'])
+        self.assertEqual(data2['html'].count('<a href="/cartoon/'), 7)
+
+    def test_pagination_no_duplicate_or_missing_items(self):
+        titles = [f'extra {i}' for i in range(15)]
+        for t in titles:
+            Cartoon.objects.create(title=t, author=self.author)
+
+        seen = []
+        for page in (1, 2):
+            resp = self.client.get(
+                reverse('get_recommendations', args=[self.current.pk]),
+                {'sort': 'new', 'page': page})
+            seen.append(resp.json()['html'])
+
+        combined = ''.join(seen)
+        for t in titles + ['popular one', 'plain one']:
+            self.assertEqual(
+                combined.count(f'title="{t}"'), 1,
+                f'{t!r} should appear exactly once across both pages')

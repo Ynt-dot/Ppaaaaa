@@ -194,6 +194,9 @@
         </div>
         <div id="rec-container" class="d-flex flex-column gap-2"></div>
         <p id="rec-empty" class="text-muted text-center small mt-2" style="display:none;">Мультов не найдено</p>
+        <div class="text-center mt-2" id="rec-load-more-container" style="display:none;">
+            <button id="rec-load-more-btn" class="btn btn-sm btn-outline-secondary">Загрузить ещё</button>
+        </div>
         <div id="rec-loading" class="text-center py-3">
             <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
         </div>
@@ -350,24 +353,41 @@
     }
 
     // ── Рекомендации ─────────────────────────────────────────────────────────
-    const recContainer     = document.getElementById('rec-container');
-    const recEmpty         = document.getElementById('rec-empty');
-    const recLoading       = document.getElementById('rec-loading');
-    const recFilterSelect  = document.getElementById('rec-filter-select');
-    const recSortSelect    = document.getElementById('rec-sort-select');
+    const recContainer         = document.getElementById('rec-container');
+    const recEmpty             = document.getElementById('rec-empty');
+    const recLoading           = document.getElementById('rec-loading');
+    const recFilterSelect      = document.getElementById('rec-filter-select');
+    const recSortSelect        = document.getElementById('rec-sort-select');
+    const recLoadMoreContainer = document.getElementById('rec-load-more-container');
+    const recLoadMoreBtn       = document.getElementById('rec-load-more-btn');
 
-    async function loadRecommendations() {
-        recLoading.style.display = 'block'; recContainer.innerHTML = ''; recEmpty.style.display = 'none';
+    let currentRecPage = 1;
+    let recLoading_    = false;
+
+    async function loadRecommendations(reset) {
+        if (recLoading_) return;
+        recLoading_ = true;
+        if (reset) {
+            currentRecPage = 1;
+            recContainer.innerHTML = '';
+            recLoadMoreContainer.style.display = 'none';
+            recEmpty.style.display = 'none';
+        }
+        recLoading.style.display = 'block';
         try {
-            const resp = await fetch(REC_URL + '?filter=' + recFilterSelect.value + '&sort=' + recSortSelect.value);
+            const resp = await fetch(REC_URL + '?filter=' + recFilterSelect.value +
+                '&sort=' + recSortSelect.value + '&page=' + currentRecPage);
             const data = await resp.json();
-            recContainer.innerHTML = data.html;
-            recEmpty.style.display = data.empty ? 'block' : 'none';
-        } finally { recLoading.style.display = 'none'; }
+            recContainer.insertAdjacentHTML('beforeend', data.html);
+            recLoadMoreContainer.style.display = data.has_next ? 'block' : 'none';
+            if (currentRecPage === 1 && data.empty) recEmpty.style.display = 'block';
+            currentRecPage++;
+        } finally { recLoading.style.display = 'none'; recLoading_ = false; }
     }
-    recFilterSelect.addEventListener('change', loadRecommendations);
-    recSortSelect.addEventListener('change', loadRecommendations);
-    loadRecommendations();
+    recFilterSelect.addEventListener('change', function() { loadRecommendations(true); });
+    recSortSelect.addEventListener('change', function() { loadRecommendations(true); });
+    recLoadMoreBtn.addEventListener('click', function() { loadRecommendations(false); });
+    loadRecommendations(true);
 
     // ── Теги / описание ──────────────────────────────────────────────────────
     function initClamp(textEl, toggleBtn) {
