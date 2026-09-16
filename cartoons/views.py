@@ -228,6 +228,15 @@ def detail(request, pk):
         'rec_author_filter': rec_author_filter,
         'can_delete_cartoon': (request.user.is_authenticated
                                and request.user.is_staff),
+        'og_url': settings.SITE_URL + reverse('detail', args=[pk]),
+        'og_image_url': (
+            settings.SITE_URL + cartoon.preview.url
+            if cartoon.preview else None),
+        'og_description': (
+            cartoon.description[:200] if cartoon.description
+            else 'Мультфильм «{}» от {}'.format(
+                cartoon.title,
+                cartoon.author.username if cartoon.author else 'Аноним')),
     }
     if cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)
