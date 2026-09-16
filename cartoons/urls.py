@@ -106,6 +106,14 @@ urlpatterns = [
         views.get_avatar_cartoons,
         name='get_avatar_cartoons'),
     path('delete-avatar/', views.delete_avatar, name='delete_avatar'),
+    path(
+        'admin-default-avatar/<int:pk>/crop/',
+        views.admin_default_avatar_crop,
+        name='admin_default_avatar_crop'),
+    path(
+        'admin-default-avatar/<int:pk>/save/',
+        views.set_default_avatar,
+        name='set_default_avatar'),
     path('verify/<uuid:token>/', views.verify_email, name='verify_email'),
     path(
         'verification-sent/',

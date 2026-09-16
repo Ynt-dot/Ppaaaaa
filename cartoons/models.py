@@ -190,6 +190,26 @@ class CartoonView(models.Model):
         unique_together = [('cartoon', 'user')]
 
 
+class SiteSettings(models.Model):
+    """Singleton (always pk=1) holding sitewide admin-controlled
+    settings - currently just the default avatar shown for users who
+    haven't picked one of their own."""
+    default_avatar_gif = models.ImageField(
+        upload_to='avatars/', null=True, blank=True,
+        verbose_name="Аватар по умолчанию")
+
+    class Meta:
+        verbose_name = "Настройки сайта"
+        verbose_name_plural = "Настройки сайта"
+
+    def __str__(self):
+        return "Настройки сайта"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+
 class Favorite(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE,
                              related_name='favorites')

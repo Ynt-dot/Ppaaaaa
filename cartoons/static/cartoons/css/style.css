@@ -345,6 +345,18 @@ input[type="password"]::-ms-clear {
     color: #212529;
 }
 
+/* === Объявление наверху заглавной (data/announcement.html) === */
+.announcement-banner {
+    background: #fdf1d8;
+    border: 1px solid #e0b96a;
+    color: #6b4a1a;
+    border-radius: 6px;
+    padding: 12px 16px;
+}
+.announcement-banner p:last-child {
+    margin-bottom: 0;
+}
+
 /* === Ветки комментариев (рисованые полоски) === */
 /* Убираем нижний отступ у последнего ответа — полоска заканчивается вровень с ним */
 .replies-container > .comment-item:last-child {

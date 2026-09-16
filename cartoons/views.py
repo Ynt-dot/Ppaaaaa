@@ -1,9 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import (
     Cartoon, CartoonLike, Comment, CommentLike, UserPreference, UserNote,
-    Favorite, CartoonView, UserBlock,
+    Favorite, CartoonView, UserBlock, SiteSettings,
 )
 import json
+import re
 from .utils import create_gif_from_frames, create_avatar_gif
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
@@ -19,7 +20,7 @@ from django.core.validators import validate_unicode_slug
 from django.core.paginator import Paginator
 import os
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST, require_GET
 from django.db.models import (
     Count, Q, F, Case, When, Value, IntegerField, OuterRef, Subquery,
@@ -33,7 +34,9 @@ from django.templatetags.static import static
 
 
 def _get_user_avatar_url(user):
-    """Return avatar GIF URL for user, or default avatar static URL."""
+    """Return avatar GIF URL for user, falling back to the sitewide
+    default avatar (SiteSettings, set by a superuser in the admin
+    panel) and finally to the static placeholder image."""
     if user is not None:
         pref = getattr(user, 'preference', None)
         if pref and pref.avatar_gif:
@@ -41,6 +44,12 @@ def _get_user_avatar_url(user):
                 return pref.avatar_gif.url
             except Exception:
                 pass
+    site_settings = SiteSettings.objects.filter(pk=1).first()
+    if site_settings and site_settings.default_avatar_gif:
+        try:
+            return site_settings.default_avatar_gif.url
+        except Exception:
+            pass
     return static('cartoons/images/default_avatar.png')
 
 
@@ -71,6 +80,25 @@ def _resolve_profile_user(slug):
 def _frames_count(cartoon):
     fd = cartoon.frames_data
     return len(fd) if isinstance(fd, list) else 0
+
+
+def _build_avatar_gif(cartoon, body):
+    """Crop cartoon.preview per body's normalized left/top/right/bottom
+    (each clamped to [0, 1]; malformed/missing values fall back to the
+    full frame) and return an avatar-sized ContentFile GIF."""
+    def _clamp(v, default):
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            v = default
+        return max(0.0, min(1.0, v))
+
+    left_n = _clamp(body.get('left', 0), 0.0)
+    top_n = _clamp(body.get('top', 0), 0.0)
+    right_n = _clamp(body.get('right', 1), 1.0)
+    bottom_n = _clamp(body.get('bottom', 1), 1.0)
+    return create_avatar_gif(
+        cartoon.preview.path, left_n, top_n, right_n, bottom_n)
 
 
 def _count_descendant_comments(comment_id, created_after=None):
@@ -182,9 +210,22 @@ def index(request):
     except FileNotFoundError:
         news_content = '<p class="text-muted">Новостей пока нет.</p>'
 
+    # Яркое объявление наверху заглавной - как и news.html, живёт вне
+    # git (data/announcement.html, в .gitignore) и правится вручную на
+    # сервере. Файла обычно нет - блок тогда просто не показывается.
+    announcement_file = os.path.join(
+        settings.BASE_DIR, 'data', 'announcement.html')
+    announcement_content = ''
+    try:
+        with open(announcement_file, 'r', encoding='utf-8') as f:
+            announcement_content = f.read().strip()
+    except FileNotFoundError:
+        pass
+
     return render(request, 'cartoons/index.html', {
         'cartoons': cartoons,
         'news_content': news_content,
+        'announcement_content': announcement_content,
         'current_sort': sort,
         'sort_label': SORT_LABELS[sort],
     })
@@ -1342,22 +1383,8 @@ def set_as_avatar(request, pk):
     except (json.JSONDecodeError, ValueError):
         body = {}
 
-    def _clamp(v, default):
-        try:
-            v = float(v)
-        except (TypeError, ValueError):
-            v = default
-        return max(0.0, min(1.0, v))
-
-    left_n = _clamp(body.get('left', 0), 0.0)
-    top_n = _clamp(body.get('top', 0), 0.0)
-    right_n = _clamp(body.get('right', 1), 1.0)
-    bottom_n = _clamp(body.get('bottom', 1), 1.0)
-
     try:
-        avatar_content = create_avatar_gif(
-            cartoon.preview.path, left_n, top_n, right_n, bottom_n
-        )
+        avatar_content = _build_avatar_gif(cartoon, body)
     except Exception as e:
         return JsonResponse(
             {'error': f'Ошибка создания аватара: {e}'}, status=500)
@@ -1390,8 +1417,92 @@ def delete_avatar(request):
     pref.avatar = None
     pref.save()
 
-    return JsonResponse({'ok': True, 'avatar_url': static(
-        'cartoons/images/default_avatar.png')})
+    return JsonResponse(
+        {'ok': True, 'avatar_url': _get_user_avatar_url(request.user)})
+
+
+def _extract_cartoon_pk_from_link(link):
+    """Pull a cartoon pk out of admin-pasted input - a full detail-page
+    URL, a bare path, or just the number itself. Returns None (instead
+    of raising) for anything unrecognizable, so the caller can show a
+    friendly "broken link" error rather than a 500."""
+    link = (link or '').strip()
+    if not link:
+        return None
+    match = re.search(r'/cartoon/(\d+)/?', link)
+    if match:
+        return int(match.group(1))
+    if link.isdigit():
+        return int(link)
+    return None
+
+
+def _require_superuser(request):
+    return (
+        request.user.is_authenticated
+        and request.user.is_active
+        and request.user.is_superuser)
+
+
+@login_required
+def admin_default_avatar_crop(request, pk):
+    """Superuser-only crop page for setting the sitewide default
+    avatar. Reachable from the SiteSettings admin change page (see
+    SiteSettingsAdmin.response_change), which is where the pasted
+    link is parsed and validated - this view re-checks permissions
+    and the cartoon's eligibility independently, since a URL alone is
+    trivially guessable/forgeable by anyone."""
+    if not _require_superuser(request):
+        return HttpResponseForbidden(
+            'Только суперпользователь может это сделать.')
+    cartoon = get_object_or_404(Cartoon, pk=pk)
+    fc = _frames_count(cartoon)
+    if not cartoon.preview or not (1 <= fc <= 10):
+        messages.error(
+            request,
+            'У этого мульта нет подходящего превью для аватара '
+            '(нужно от 1 до 10 кадров).')
+        return redirect('admin:cartoons_sitesettings_change', 1)
+    return render(request, 'cartoons/admin_default_avatar_crop.html', {
+        'cartoon': cartoon,
+    })
+
+
+@require_POST
+def set_default_avatar(request, pk):
+    if not _require_superuser(request):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+
+    cartoon = get_object_or_404(Cartoon, pk=pk)
+    fc = _frames_count(cartoon)
+    if not (1 <= fc <= 10):
+        return JsonResponse(
+            {'error': 'Мульт должен иметь от 1 до 10 кадров'}, status=400)
+    if not cartoon.preview:
+        return JsonResponse({'error': 'У мульта нет превью'}, status=400)
+
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        body = {}
+
+    try:
+        avatar_content = _build_avatar_gif(cartoon, body)
+    except Exception as e:
+        return JsonResponse(
+            {'error': f'Ошибка создания аватара: {e}'}, status=500)
+
+    site_settings, _ = SiteSettings.objects.get_or_create(pk=1)
+    if site_settings.default_avatar_gif:
+        site_settings.default_avatar_gif.delete(save=False)
+    site_settings.default_avatar_gif.save(
+        'default_avatar.gif', avatar_content, save=False)
+    site_settings.save()
+
+    return JsonResponse({
+        'ok': True,
+        'avatar_url': site_settings.default_avatar_gif.url,
+    })
 
 
 @require_GET
