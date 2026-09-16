@@ -28,8 +28,8 @@ class DiscordLogHandlerTests(TestCase):
         mock_post.assert_called_once()
         args, kwargs = mock_post.call_args
         self.assertEqual(args[0], 'https://discord.com/api/webhooks/x/y')
-        self.assertIn('something broke',
-                       kwargs['json']['embeds'][0]['description'])
+        self.assertIn(
+            'something broke', kwargs['json']['embeds'][0]['description'])
 
     @override_settings(
         DISCORD_LOG_WEBHOOK_URL='https://discord.com/api/webhooks/x/y')
