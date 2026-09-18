@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load static cartoon_tags %}
+
+{% block title %}Поиск{% if query %}: {{ query }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="h5 mb-3">
+            {% if query %}Результаты поиска по запросу «{{ query }}»{% else %}Поиск{% endif %}
+        </h2>
+
+        {% if not query %}
+        <p class="text-muted">Введите запрос в строке поиска наверху страницы.</p>
+        {% else %}
+
+        {% if cartoons.has_other_pages %}
+        <nav aria-label="Навигация по страницам" class="mb-3">
+            <ul class="pagination justify-content-center mb-0 flex-wrap">
+                {% if cartoons.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?q={{ query|urlencode }}&page={{ cartoons.previous_page_number }}" aria-label="Предыдущая">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                {% endif %}
+
+                {% for num in cartoons.paginator.page_range %}
+                    {% if cartoons.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > cartoons.number|add:'-3' and num < cartoons.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?q={{ query|urlencode }}&page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if cartoons.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?q={{ query|urlencode }}&page={{ cartoons.next_page_number }}" aria-label="Следующая">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+            {% for cartoon in cartoons %}
+            {% include 'cartoons/cartoon_card.html' with show_author=True %}
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    Ничего не найдено по запросу «{{ query }}».
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if cartoons.has_other_pages %}
+        <nav aria-label="Навигация по страницам" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if cartoons.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?q={{ query|urlencode }}&page={{ cartoons.previous_page_number }}" aria-label="Предыдущая">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                {% endif %}
+
+                {% for num in cartoons.paginator.page_range %}
+                    {% if cartoons.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > cartoons.number|add:'-3' and num < cartoons.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?q={{ query|urlencode }}&page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if cartoons.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?q={{ query|urlencode }}&page={{ cartoons.next_page_number }}" aria-label="Следующая">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,8 +1,20 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.serializers.json import DjangoJSONEncoder
 import uuid
 from django.utils import timezone
 from datetime import timedelta
+
+
+class UnicodeJSONEncoder(DjangoJSONEncoder):
+    """Как обычный DjangoJSONEncoder, но не экранирует не-ASCII
+    символы в \\uXXXX - иначе кириллица в JSON-полях (например,
+    Cartoon.tags) хранится нечитаемыми escape-последовательностями и
+    её невозможно найти обычным LIKE/icontains по сырому тексту поля
+    (см. поиск - views.search())."""
+    def __init__(self, *args, **kwargs):
+        kwargs['ensure_ascii'] = False
+        super().__init__(*args, **kwargs)
 
 
 class Cartoon(models.Model):
@@ -18,7 +30,9 @@ class Cartoon(models.Model):
     fps = models.PositiveSmallIntegerField(default=12)
     description = models.TextField(
         max_length=1000, blank=True, verbose_name="Описание")
-    tags = models.JSONField(default=list, blank=True, verbose_name="Теги")
+    tags = models.JSONField(
+        default=list, blank=True, encoder=UnicodeJSONEncoder,
+        verbose_name="Теги")
     views_count = models.PositiveIntegerField(
         default=0, verbose_name="Просмотры")
     author_last_seen_comments = models.DateTimeField(null=True, blank=True)

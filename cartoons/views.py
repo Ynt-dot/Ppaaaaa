@@ -238,6 +238,51 @@ def index(request):
     })
 
 
+def search(request):
+    """Ищет по названию, описанию, тегам, нику/отображаемому имени
+    автора и тексту (неудалённых) комментариев - одним OR-запросом по
+    всей строке поиска целиком (без разбивки на слова: так и проще,
+    и быстрее - не плодит JOIN'ы на каждое слово). Совпадение в
+    названии поднимает мульт наверх выдачи, дальше - по свежести.
+
+    JOIN на комментарии даёт по строке на каждый подходящий
+    комментарий - убирается через distinct(). На объёмах одного сайта
+    (не миллионы записей) укладывается в доли секунды без отдельного
+    полнотекстового движка."""
+    query = request.GET.get('q', '').strip()[:100]
+
+    if query:
+        cartoon_list = (
+            Cartoon.objects.filter(
+                Q(title__icontains=query)
+                | Q(description__icontains=query)
+                | Q(tags__icontains=query)
+                | Q(author__username__icontains=query)
+                | Q(author__preference__display_name__icontains=query)
+                | Q(comments__is_deleted=False,
+                    comments__text__icontains=query)
+            )
+            .select_related('author', 'author__preference')
+            .annotate(
+                title_match=Case(
+                    When(title__icontains=query, then=Value(1)),
+                    default=Value(0), output_field=IntegerField()),
+            )
+            .distinct()
+            .order_by('-title_match', '-created_at')
+        )
+    else:
+        cartoon_list = Cartoon.objects.none()
+
+    paginator = Paginator(cartoon_list, 16)
+    cartoons = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'cartoons/search.html', {
+        'cartoons': cartoons,
+        'query': query,
+    })
+
+
 def _get_comment_sort(request):
     if request.user.is_authenticated:
         try:

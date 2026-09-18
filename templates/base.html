@@ -23,6 +23,9 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
+                <form class="d-flex flex-grow-1 mx-lg-3 my-2 my-lg-0" style="max-width:400px;" method="get" action="{% url 'search' %}" role="search">
+                    <input type="search" name="q" class="form-control" placeholder="Поиск мультов..." value="{{ request.GET.q }}" aria-label="Поиск">
+                </form>
                 <ul class="navbar-nav ms-auto">
                     <!-- Кнопка создания мульта для всех -->
                     <li class="nav-item">
