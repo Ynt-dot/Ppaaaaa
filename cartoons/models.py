@@ -104,6 +104,9 @@ class Comment(models.Model):
 
     def display_author(self):
         if self.author:
+            pref = getattr(self.author, 'preference', None)
+            if pref and pref.display_name:
+                return pref.display_name
             return self.author.username
         return self.author_name or 'Аноним'
 
@@ -141,12 +144,12 @@ class UserPreference(models.Model):
     rec_sort = models.CharField(max_length=20, default='trending')
     rec_author_filter = models.BooleanField(default=False)
     index_sort = models.CharField(max_length=20, default='trending')
-    # Ссылка на профиль (/user/<profile_slug>/) - по умолчанию равна
-    # username на момент регистрации, но не меняется вместе с ним,
-    # если пользователь потом сменит ник.
-    profile_slug = models.SlugField(
-        max_length=30, unique=True, allow_unicode=True,
-        null=True, blank=True)
+    # Отображаемое имя - показывается вместо C-key (User.username)
+    # везде, где виден пользователь (комментарии, страница профиля и
+    # т.д.). Не задано - показывается C-key. В отличие от C-key, не
+    # ограничено требованиями к нику - только длиной.
+    display_name = models.CharField(
+        max_length=15, blank=True, default='', verbose_name="Отображаемое имя")
     description = models.TextField(
         max_length=1000, blank=True, default='', verbose_name="О себе")
     # Ставится только вручную в админке - не через какой-либо

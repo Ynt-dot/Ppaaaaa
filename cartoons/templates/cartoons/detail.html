@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static cartoon_tags %}
 
 {% block title %}{{ cartoon.title }}{% endblock %}
 
@@ -56,10 +56,10 @@
                     <div class="d-flex align-items-center gap-2">
                         {% if cartoon.author %}
                         <a href="{{ author_avatar_link_url }}">
-                            <img id="author-avatar-img" src="{{ author_avatar_url }}" class="user-avatar-md" alt="{{ cartoon.author.username }}">
+                            <img id="author-avatar-img" src="{{ author_avatar_url }}" class="user-avatar-md" alt="{{ cartoon.author|display_name }}">
                         </a>
                         <div>
-                            <a href="{{ author_profile_url }}" class="username-link fs-5 d-block lh-1">{{ cartoon.author.username }}</a>
+                            <a href="{{ author_profile_url }}" class="username-link fs-5 d-block lh-1">{{ cartoon.author|display_name }}</a>
                             <small class="text-muted">{{ cartoon.created_at|date:"d.m.Y H:i" }}, {{ cartoon.fps }} FPS</small>
                         </div>
                         {% else %}
@@ -182,7 +182,7 @@
             <select id="rec-filter-select" class="form-select form-select-sm">
                 <option value="all" {% if not rec_author_filter %}selected{% endif %}>Все мульты</option>
                 {% if cartoon.author %}
-                <option value="author" {% if rec_author_filter %}selected{% endif %}>Автор: {{ cartoon.author.username }}</option>
+                <option value="author" {% if rec_author_filter %}selected{% endif %}>Автор: {{ cartoon.author|display_name }}</option>
                 {% endif %}
             </select>
             <select id="rec-sort-select" class="form-select form-select-sm">

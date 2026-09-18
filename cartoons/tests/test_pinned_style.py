@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from cartoons.models import Cartoon, CartoonLike, Favorite, UserPreference
+from cartoons.models import Cartoon, CartoonLike, Favorite
 
 
 class PinnedBorderScopeTests(TestCase):
@@ -14,7 +14,6 @@ class PinnedBorderScopeTests(TestCase):
 
     def setUp(self):
         self.author = User.objects.create_user('pinner', password='x')
-        UserPreference.objects.create(user=self.author, profile_slug='pinner')
         self.cartoon = Cartoon.objects.create(
             title='pinned one', author=self.author, is_pinned=True)
 
@@ -39,7 +38,6 @@ class PinnedBorderScopeTests(TestCase):
 
     def test_border_not_shown_on_someone_elses_liked_tab(self):
         viewer = User.objects.create_user('viewer', password='x')
-        UserPreference.objects.create(user=viewer, profile_slug='viewer')
         CartoonLike.objects.create(cartoon=self.cartoon, user=viewer)
         resp = self.client.get(
             reverse('user_profile', args=['viewer']), {'tab': 'liked'})
@@ -47,8 +45,6 @@ class PinnedBorderScopeTests(TestCase):
 
     def test_border_not_shown_on_someone_elses_favorites_tab(self):
         viewer = User.objects.create_user('favoriter', password='x')
-        UserPreference.objects.create(
-            user=viewer, profile_slug='favoriter')
         Favorite.objects.create(cartoon=self.cartoon, user=viewer)
         resp = self.client.get(
             reverse('user_profile', args=['favoriter']),

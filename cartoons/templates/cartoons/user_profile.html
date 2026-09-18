@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static cartoon_tags %}
 
-{% block title %}{{ profile_user.username }}{% endblock %}
+{% block title %}{{ profile_display_name }}{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -10,10 +10,10 @@
         <div class="card shadow-sm">
             <div class="card-body text-center">
                 {% if is_own_profile %}
-                <img id="profile-avatar-img" src="{{ profile_avatar_url }}" class="user-avatar mb-2" alt="{{ profile_user.username }}">
+                <img id="profile-avatar-img" src="{{ profile_avatar_url }}" class="user-avatar mb-2" alt="{{ profile_display_name }}">
                 {% else %}
                 <a href="{{ avatar_link_url }}">
-                    <img id="profile-avatar-img" src="{{ profile_avatar_url }}" class="user-avatar mb-2" alt="{{ profile_user.username }}">
+                    <img id="profile-avatar-img" src="{{ profile_avatar_url }}" class="user-avatar mb-2" alt="{{ profile_display_name }}">
                 </a>
                 {% endif %}
                 {% if is_own_profile %}
@@ -23,7 +23,8 @@
                     </button>
                 </div>
                 {% endif %}
-                <h2 class="h4 mb-1 mt-2">{{ profile_user.username }}</h2>
+                <h2 class="h4 mb-0 mt-2">{{ profile_display_name }}</h2>
+                <p class="text-muted small mb-1">@{{ profile_user.username }}</p>
                 <p class="text-muted small mb-1">Зарегистрирован: {{ profile_user.date_joined|date:"d.m.Y" }}</p>
                 <p class="mb-0">Мультов: {{ total_cartoons }}</p>
                 {% if can_block %}
@@ -404,7 +405,7 @@
         return d.innerHTML;
     }
 
-    const PROFILE_USER_URL = "{% url 'user_profile' profile_slug %}";
+    const PROFILE_USER_URL = "{% url 'user_profile' profile_user.username %}";
     let currentAvatarSrc = null;
 
     // === Блокировка пользователя ===
@@ -428,7 +429,7 @@
     // === Заметка ===
     const noteField = document.getElementById('user-note-field');
     if (noteField) {
-        const NOTE_URL = "{% url 'save_user_note' profile_slug %}";
+        const NOTE_URL = "{% url 'save_user_note' profile_user.username %}";
         let savedValue = noteField.value;
         let saveTimer = null;
 
@@ -457,7 +458,7 @@
 
     // === Комментарии на вкладке "Комментарии" ===
     {% if active_tab == 'comments' %}
-    const COMMENTS_API = "{% url 'user_profile_comments' profile_slug %}";
+    const COMMENTS_API = "{% url 'user_profile_comments' profile_user.username %}";
     const IS_AUTHENTICATED = {{ user.is_authenticated|yesno:'true,false' }};
 
     const commentsList = document.getElementById('profile-comments-list');

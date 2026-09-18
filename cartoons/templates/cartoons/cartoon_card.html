@@ -12,7 +12,7 @@
         <div class="compact-card-title" title="{{ cartoon.title }}">{{ cartoon.title }}</div>
         {% if show_author %}
         <div class="compact-card-author text-muted">
-            {% if cartoon.author %}{{ cartoon.author.username }}{% else %}Аноним{% endif %}
+            {% if cartoon.author %}{{ cartoon.author|display_name }}{% else %}Аноним{% endif %}
         </div>
         {% endif %}
         <div class="compact-card-stats text-muted">
@@ -54,7 +54,7 @@
                 {% if show_author %}
                 <p class="card-text small mb-1">
                     {% if cartoon.author %}
-                    <a href="{{ cartoon.author|profile_url }}" class="username-link">{{ cartoon.author.username }}</a>
+                    <a href="{{ cartoon.author|profile_url }}" class="username-link">{{ cartoon.author|display_name }}</a>
                     {% else %}
                     Аноним
                     {% endif %}

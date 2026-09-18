@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from cartoons.models import Cartoon, Comment, UserPreference
+from cartoons.models import Cartoon, Comment
 from cartoons.tests.helpers import PNG_FRAME
 from cartoons.views import _avatar_link_url
 
@@ -51,7 +51,6 @@ class AvatarLinkInResponsesTests(TestCase):
     def setUp(self):
         self.author = User.objects.create_user('drawer', password='x')
         self.viewer = User.objects.create_user('viewer', password='x')
-        UserPreference.objects.create(user=self.author, profile_slug='drawer')
         self.client.force_login(self.author)
         self.client.post(reverse('editor_create'), {
             'title': 'avatar source',

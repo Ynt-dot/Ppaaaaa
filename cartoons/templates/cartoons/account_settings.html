@@ -11,7 +11,7 @@
 
         <div class="d-flex gap-1 mb-3 flex-wrap">
             <a href="?tab=password" class="btn btn-sm {% if active_tab == 'password' %}btn-dark{% else %}btn-outline-dark{% endif %}">Пароль</a>
-            <a href="?tab=profile" class="btn btn-sm {% if active_tab == 'profile' %}btn-dark{% else %}btn-outline-dark{% endif %}">Ник и ссылка</a>
+            <a href="?tab=profile" class="btn btn-sm {% if active_tab == 'profile' %}btn-dark{% else %}btn-outline-dark{% endif %}">C-key и имя</a>
             <a href="?tab=description" class="btn btn-sm {% if active_tab == 'description' %}btn-dark{% else %}btn-outline-dark{% endif %}">О себе</a>
             <a href="?tab=blocklist" class="btn btn-sm {% if active_tab == 'blocklist' %}btn-dark{% else %}btn-outline-dark{% endif %}">Чёрный список</a>
         </div>
@@ -56,25 +56,37 @@
         </div>
 
         {% elif active_tab == 'profile' %}
-        <div class="card shadow-sm">
+        <div class="card shadow-sm mb-3">
             <div class="card-body">
-                <h5 class="card-title">Ник и ссылка на профиль</h5>
+                <h5 class="card-title">C-key</h5>
+                <p class="text-muted small">
+                    Технический идентификатор: именно его вы вводите при входе
+                    на сайт, и он же используется в ссылке на ваш профиль
+                    (/user/&lt;C-key&gt;/). До 15 символов, только буквы,
+                    цифры и символы @/./+/-/_.
+                </p>
                 <form method="post" action="{% url 'update_username' %}">
                     {% csrf_token %}
                     <div class="mb-3">
-                        <label class="form-label">Ник</label>
-                        <input type="text" name="username" class="form-control" value="{{ current_username }}">
+                        <input type="text" name="username" class="form-control" value="{{ current_username }}" maxlength="15">
                     </div>
+                    <button type="submit" class="btn btn-success">Сохранить</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Отображаемое имя</h5>
+                <p class="text-muted small">
+                    Показывается вместо C-key везде, где виден ваш профиль
+                    (комментарии, страница профиля). Любые символы, до 15.
+                    Не задано - показывается C-key.
+                </p>
+                <form method="post" action="{% url 'update_display_name' %}">
+                    {% csrf_token %}
                     <div class="mb-3">
-                        <label class="form-label">Ссылка на профиль</label>
-                        <div class="input-group">
-                            <span class="input-group-text">/user/</span>
-                            <input type="text" name="slug" class="form-control" value="{{ current_slug }}">
-                        </div>
-                        <div class="form-text">
-                            Ссылка не меняется автоматически при смене ника.
-                            Можно изменить только ссылку, оставив ник прежним.
-                        </div>
+                        <input type="text" name="display_name" class="form-control" value="{{ current_display_name }}" maxlength="15" placeholder="{{ current_username }}">
                     </div>
                     <button type="submit" class="btn btn-success">Сохранить</button>
                 </form>
@@ -101,7 +113,7 @@
             <div class="card-body">
                 <h5 class="card-title">Чёрный список</h5>
                 <div class="input-group mb-3">
-                    <input type="text" id="blocklist-add-input" class="form-control" placeholder="Ник или ссылка на профиль">
+                    <input type="text" id="blocklist-add-input" class="form-control" placeholder="C-key или ссылка на профиль">
                     <button type="button" id="blocklist-add-btn" class="btn btn-outline-dark">Заблокировать</button>
                 </div>
                 <div id="blocklist-add-error" class="text-danger small mb-2" style="display:none;"></div>
@@ -109,9 +121,9 @@
                 <ul id="blocklist-items" class="list-group">
                     {% for blocked_user in blocklist %}
                     <li class="list-group-item d-flex justify-content-between align-items-center" data-username="{{ blocked_user.username }}">
-                        <a href="{{ blocked_user|profile_url }}">{{ blocked_user.username }}</a>
+                        <a href="{{ blocked_user|profile_url }}">{{ blocked_user|display_name }}</a>
                         <button type="button" class="btn btn-sm btn-outline-secondary blocklist-remove-btn"
-                                data-block-url="{% url 'toggle_block_user' blocked_user|profile_slug %}">
+                                data-block-url="{% url 'toggle_block_user' blocked_user.username %}">
                             Убрать
                         </button>
                     </li>
@@ -191,7 +203,7 @@
                     const li = document.createElement('li');
                     li.className = 'list-group-item d-flex justify-content-between align-items-center';
                     li.dataset.username = data.username;
-                    li.innerHTML = '<a href="' + data.profile_url + '">' + escapeHtml(data.username) + '</a>' +
+                    li.innerHTML = '<a href="' + data.profile_url + '">' + escapeHtml(data.display_name) + '</a>' +
                         '<button type="button" class="btn btn-sm btn-outline-secondary blocklist-remove-btn" ' +
                         'data-block-url="' + data.block_url + '">Убрать</button>';
                     list.appendChild(li);

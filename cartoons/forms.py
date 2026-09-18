@@ -31,7 +31,7 @@ trol'}))
         username = self.cleaned_data.get('username', '')
         if len(username) > 15:
             raise ValidationError(
-                'Имя пользователя не может быть длиннее 15 символов.')
+                'C-key не может быть длиннее 15 символов.')
         return username
 
     def clean_email(self):
@@ -72,7 +72,9 @@ l={email}"
             {'class': 'form-control', 'maxlength': 15})
         self.fields['password1'].widget.attrs.update({'class': 'form-control'})
         self.fields['password2'].widget.attrs.update({'class': 'form-control'})
+        self.fields['username'].label = 'C-key'
         self.fields['username'].help_text = (
+            'Используется для входа на сайт и в ссылке на профиль. '
             'Обязательное поле. Не более 15 символов. Только буквы, '
             'цифры и символы @/./+/-/_.'
         )

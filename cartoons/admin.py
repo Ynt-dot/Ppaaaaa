@@ -16,7 +16,7 @@ class CartoonAdmin(admin.ModelAdmin):
 class UserPreferenceInline(admin.StackedInline):
     model = UserPreference
     can_delete = False
-    fields = ('profile_slug', 'description', 'is_troll')
+    fields = ('display_name', 'description', 'is_troll')
 
 
 class CustomUserAdmin(UserAdmin):

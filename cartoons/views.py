@@ -15,8 +15,6 @@ from .models import EmailVerificationToken
 from .forms import CustomUserCreationForm
 from django.contrib import messages
 from django.utils import timezone
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_unicode_slug
 from django.core.paginator import Paginator
 import os
 from django.conf import settings
@@ -54,18 +52,19 @@ def _get_user_avatar_url(user):
     return static('cartoons/images/default_avatar.png')
 
 
-def _profile_slug(user):
-    """Стабильный, независимо изменяемый сегмент URL профиля
-    пользователя - откатывается на username, если по какой-то
-    причине ещё нет строки UserPreference (для настоящих аккаунтов
-    такого быть не должно; register() всегда её создаёт)."""
-    pref = getattr(user, 'preference', None)
-    return (pref.profile_slug if pref and pref.profile_slug
-            else user.username)
-
-
 def _profile_url(user):
-    return reverse('user_profile', args=[_profile_slug(user)])
+    return reverse('user_profile', args=[user.username])
+
+
+def _display_name(user):
+    """Имя, которое видят другие: UserPreference.display_name, если
+    задано, иначе C-key (User.username)."""
+    if user is None:
+        return ''
+    pref = getattr(user, 'preference', None)
+    if pref and pref.display_name:
+        return pref.display_name
+    return user.username
 
 
 def _avatar_link_url(user):
@@ -80,16 +79,6 @@ def _avatar_link_url(user):
     if pref and pref.avatar_id:
         return reverse('detail', args=[pref.avatar_id])
     return _profile_url(user)
-
-
-def _resolve_profile_user(slug):
-    """Находит пользователя, на которого указывает сегмент URL
-    профиля: сначала по profile_slug, с откатом на username (см.
-    user_profile() - там объясняется, зачем нужен этот откат)."""
-    user = User.objects.filter(preference__profile_slug=slug).first()
-    if user is None:
-        user = get_object_or_404(User, username=slug)
-    return user
 
 
 def _frames_count(cartoon):
@@ -339,8 +328,7 @@ def detail(request, pk):
         'og_description': (
             cartoon.description[:200] if cartoon.description
             else 'Мультфильм «{}» от {}'.format(
-                cartoon.title,
-                cartoon.author.username if cartoon.author else 'Аноним')),
+                cartoon.title, _display_name(cartoon.author) or 'Аноним')),
     }
     if cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)
@@ -628,7 +616,8 @@ def _serialize_comment(comment, request, current_level=0,
         'show_block_label': show_block_label,
         'is_blocked_author': is_blocked_author,
         'block_url': (
-            reverse('toggle_block_user', args=[_profile_slug(comment.author)])
+            reverse(
+                'toggle_block_user', args=[comment.author.username])
             if show_block_label else None),
         'created_at': comment.created_at.strftime('%d.%m.%Y %H:%M'),
         'likes_count': likes_count,
@@ -1120,8 +1109,7 @@ def register(request):
                     user = form.save(commit=False)
                     user.is_active = False
                     user.save()
-                    UserPreference.objects.create(
-                        user=user, profile_slug=user.username)
+                    UserPreference.objects.create(user=user)
                     send_verification_email(user)
                 request.session['pending_user_id'] = user.id
                 return redirect('verification_sent')
@@ -1135,8 +1123,8 @@ def register(request):
     return render(request, 'registration/register.html', {'form': form})
 
 
-def user_profile(request, slug):
-    profile_user = _resolve_profile_user(slug)
+def user_profile(request, username):
+    profile_user = get_object_or_404(User, username=username)
     pref, _ = UserPreference.objects.get_or_create(user=profile_user)
     tab = request.GET.get('tab', 'album')
     if tab not in ('album', 'comments', 'liked', 'favorites'):
@@ -1164,11 +1152,9 @@ def user_profile(request, slug):
         and UserBlock.objects.filter(
             blocker=request.user, blocked=profile_user).exists())
 
-    resolved_slug = pref.profile_slug or _profile_slug(profile_user)
-
     context = {
         'profile_user': profile_user,
-        'profile_slug': resolved_slug,
+        'profile_display_name': _display_name(profile_user),
         'profile_description': pref.description,
         'active_tab': tab,
         'user_note': user_note,
@@ -1179,7 +1165,7 @@ def user_profile(request, slug):
         'can_block': can_block,
         'is_blocked': is_blocked,
         'block_url': (
-            reverse('toggle_block_user', args=[resolved_slug])
+            reverse('toggle_block_user', args=[profile_user.username])
             if can_block else None),
     }
 
@@ -1265,11 +1251,11 @@ def user_profile(request, slug):
 
 
 @require_POST
-def save_user_note(request, slug):
+def save_user_note(request, username):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'login_required'}, status=401)
 
-    about_user = _resolve_profile_user(slug)
+    about_user = get_object_or_404(User, username=username)
     if request.user == about_user:
         return JsonResponse({'error': 'forbidden'}, status=400)
 
@@ -1308,8 +1294,8 @@ def toggle_favorite(request, pk):
 
 
 @require_GET
-def get_user_profile_comments(request, slug):
-    profile_user = _resolve_profile_user(slug)
+def get_user_profile_comments(request, username):
+    profile_user = get_object_or_404(User, username=username)
 
     comment_type = request.GET.get('type', 'user')
     sort = request.GET.get('sort', 'newest')
@@ -1632,24 +1618,23 @@ def resend_verification(request):
 
 def _resolve_user_by_identifier(raw):
     """Находит цель для UserBlock по произвольному тексту - это
-    может быть голый ник, голый slug профиля или вставленная ссылка
-    на профиль: пользователь может добавить кого-то в чёрный список
-    "по нику или ссылке"."""
+    может быть голый C-key или вставленная ссылка на профиль (C-key
+    и есть последний сегмент этой ссылки): пользователь может
+    добавить кого-то в чёрный список "по нику или ссылке"."""
     raw = (raw or '').strip()
     if not raw:
         return None
     if '/' in raw:
         segments = [s for s in raw.split('/') if s]
         raw = segments[-1] if segments else raw
-    return (User.objects.filter(username=raw).first()
-            or User.objects.filter(preference__profile_slug=raw).first())
+    return User.objects.filter(username=raw).first()
 
 
 @require_POST
-def toggle_block_user(request, slug):
+def toggle_block_user(request, username):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'login_required'}, status=401)
-    target = _resolve_profile_user(slug)
+    target = get_object_or_404(User, username=username)
     if target == request.user:
         return JsonResponse({'error': 'forbidden'}, status=400)
     if target.is_staff:
@@ -1688,10 +1673,10 @@ def blocklist_add(request):
     return JsonResponse({
         'ok': True,
         'username': target.username,
-        'profile_slug': _profile_slug(target),
+        'display_name': _display_name(target),
         'profile_url': _profile_url(target),
         'block_url': reverse(
-            'toggle_block_user', args=[_profile_slug(target)]),
+            'toggle_block_user', args=[target.username]),
     })
 
 
@@ -1716,7 +1701,7 @@ def account_settings(request):
     context = {
         'password_form': PasswordChangeForm(user=request.user),
         'current_username': request.user.username,
-        'current_slug': pref.profile_slug or request.user.username,
+        'current_display_name': pref.display_name,
         'current_description': pref.description,
         'blocklist': blocklist,
     }
@@ -1741,43 +1726,53 @@ def change_password(request):
 @require_POST
 @login_required
 def update_username(request):
+    """Меняет C-key (User.username) - технический идентификатор для
+    входа и ссылки на профиль. Требования те же, что раньше были у
+    ника: до 15 символов, только буквы/цифры/@/./+/-/_."""
     new_username = request.POST.get('username', '').strip()
-    new_slug = request.POST.get('slug', '').strip()
-    pref, _ = UserPreference.objects.get_or_create(user=request.user)
     redirect_url = reverse('account_settings') + '?tab=profile'
 
-    if new_username and new_username != request.user.username:
-        try:
-            User._meta.get_field('username').run_validators(new_username)
-        except Exception:
-            messages.error(
-                request,
-                'Ник может содержать только буквы, цифры и символы '
-                '@/./+/-/_')
-            return redirect(redirect_url)
-        if User.objects.filter(
-                username=new_username).exclude(pk=request.user.pk).exists():
-            messages.error(request, 'Этот ник уже занят.')
-            return redirect(redirect_url)
-        request.user.username = new_username
-        request.user.save(update_fields=['username'])
+    if not new_username or new_username == request.user.username:
+        return redirect(redirect_url)
 
-    if new_slug and new_slug != pref.profile_slug:
-        try:
-            validate_unicode_slug(new_slug)
-        except ValidationError:
-            messages.error(
-                request,
-                'Ссылка может содержать только буквы, цифры, "-" и "_"')
-            return redirect(redirect_url)
-        if UserPreference.objects.filter(
-                profile_slug=new_slug).exclude(pk=pref.pk).exists():
-            messages.error(request, 'Эта ссылка уже занята.')
-            return redirect(redirect_url)
-        pref.profile_slug = new_slug
-        pref.save(update_fields=['profile_slug'])
+    if len(new_username) > 15:
+        messages.error(
+            request, 'C-key не может быть длиннее 15 символов.')
+        return redirect(redirect_url)
+    try:
+        User._meta.get_field('username').run_validators(new_username)
+    except Exception:
+        messages.error(
+            request,
+            'C-key может содержать только буквы, цифры и символы '
+            '@/./+/-/_')
+        return redirect(redirect_url)
+    if User.objects.filter(
+            username=new_username).exclude(pk=request.user.pk).exists():
+        messages.error(request, 'Этот C-key уже занят.')
+        return redirect(redirect_url)
 
-    messages.success(request, 'Изменения сохранены.')
+    request.user.username = new_username
+    request.user.save(update_fields=['username'])
+    messages.success(request, 'C-key изменён.')
+    return redirect(redirect_url)
+
+
+@require_POST
+@login_required
+def update_display_name(request):
+    new_name = request.POST.get('display_name', '').strip()
+    redirect_url = reverse('account_settings') + '?tab=profile'
+
+    if len(new_name) > 15:
+        messages.error(
+            request, 'Отображаемое имя не может быть длиннее 15 символов.')
+        return redirect(redirect_url)
+
+    pref, _ = UserPreference.objects.get_or_create(user=request.user)
+    pref.display_name = new_name
+    pref.save(update_fields=['display_name'])
+    messages.success(request, 'Отображаемое имя сохранено.')
     return redirect(redirect_url)
 
 

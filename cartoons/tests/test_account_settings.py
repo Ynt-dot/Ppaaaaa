@@ -13,10 +13,6 @@ class BlockUserTests(TestCase):
         self.bob = User.objects.create_user('bob', password='x')
         self.staff = User.objects.create_user(
             'staffer', password='x', is_staff=True)
-        UserPreference.objects.create(user=self.alice, profile_slug='alice')
-        UserPreference.objects.create(user=self.bob, profile_slug='bob')
-        UserPreference.objects.create(
-            user=self.staff, profile_slug='staffer')
 
     def test_login_required(self):
         resp = self.client.post(reverse('toggle_block_user', args=['bob']))
@@ -64,8 +60,6 @@ class BlocklistAddTests(TestCase):
     def setUp(self):
         self.alice = User.objects.create_user('alice', password='x')
         self.bob = User.objects.create_user('bob', password='x')
-        UserPreference.objects.create(
-            user=self.bob, profile_slug='bobby-link')
         self.client.force_login(self.alice)
 
     def _post(self, identifier):
@@ -81,15 +75,8 @@ class BlocklistAddTests(TestCase):
             UserBlock.objects.filter(
                 blocker=self.alice, blocked=self.bob).exists())
 
-    def test_add_by_profile_slug(self):
-        resp = self._post('bobby-link')
-        self.assertEqual(resp.status_code, 200)
-        self.assertTrue(
-            UserBlock.objects.filter(
-                blocker=self.alice, blocked=self.bob).exists())
-
     def test_add_by_pasted_url(self):
-        resp = self._post('https://example.com/user/bobby-link/')
+        resp = self._post('https://example.com/user/bob/')
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(
             UserBlock.objects.filter(
@@ -251,56 +238,79 @@ class PasswordChangeTests(TestCase):
         self.assertTrue(self.other.check_password('otherpass1'))
 
 
-class UsernameSlugChangeTests(TestCase):
+class CKeyChangeTests(TestCase):
+    """C-key = User.username - используется и для входа, и как
+    сегмент ссылки на профиль (/user/<C-key>/)."""
+
     def setUp(self):
         self.user = User.objects.create_user('original', password='x')
-        self.pref = UserPreference.objects.create(
-            user=self.user, profile_slug='original')
         self.other = User.objects.create_user('taken', password='x')
-        UserPreference.objects.create(
-            user=self.other, profile_slug='taken-link')
         self.client.force_login(self.user)
 
-    def test_change_username_leaves_slug_untouched(self):
-        self.client.post(reverse('update_username'), {
-            'username': 'renamed', 'slug': 'original',
-        })
+    def test_change_ckey(self):
+        self.client.post(
+            reverse('update_username'), {'username': 'renamed'})
         self.user.refresh_from_db()
-        self.pref.refresh_from_db()
         self.assertEqual(self.user.username, 'renamed')
-        self.assertEqual(self.pref.profile_slug, 'original')
 
-    def test_change_slug_only_leaves_username_untouched(self):
-        self.client.post(reverse('update_username'), {
-            'username': 'original', 'slug': 'new-link',
-        })
-        self.user.refresh_from_db()
-        self.pref.refresh_from_db()
-        self.assertEqual(self.user.username, 'original')
-        self.assertEqual(self.pref.profile_slug, 'new-link')
-
-    def test_duplicate_username_rejected(self):
-        self.client.post(reverse('update_username'), {
-            'username': 'taken', 'slug': 'original',
-        })
+    def test_duplicate_ckey_rejected(self):
+        self.client.post(
+            reverse('update_username'), {'username': 'taken'})
         self.user.refresh_from_db()
         self.assertEqual(self.user.username, 'original')
 
-    def test_duplicate_slug_rejected(self):
-        self.client.post(reverse('update_username'), {
-            'username': 'original', 'slug': 'taken-link',
-        })
-        self.pref.refresh_from_db()
-        self.assertEqual(self.pref.profile_slug, 'original')
+    def test_invalid_characters_rejected(self):
+        self.client.post(
+            reverse('update_username'), {'username': 'bad key!'})
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.username, 'original')
+
+    def test_over_15_chars_rejected(self):
+        self.client.post(
+            reverse('update_username'), {'username': 'a' * 16})
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.username, 'original')
 
     def test_login_required(self):
         self.client.logout()
-        resp = self.client.post(reverse('update_username'), {
-            'username': 'hijacked', 'slug': 'hijacked',
-        })
+        resp = self.client.post(
+            reverse('update_username'), {'username': 'hijacked'})
         self.assertEqual(resp.status_code, 302)
         self.user.refresh_from_db()
         self.assertEqual(self.user.username, 'original')
+
+
+class DisplayNameChangeTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('ckeyuser', password='x')
+        self.pref = UserPreference.objects.create(user=self.user)
+        self.client.force_login(self.user)
+
+    def test_saves_display_name(self):
+        self.client.post(
+            reverse('update_display_name'), {'display_name': 'Кто-то'})
+        self.pref.refresh_from_db()
+        self.assertEqual(self.pref.display_name, 'Кто-то')
+
+    def test_any_characters_allowed(self):
+        self.client.post(
+            reverse('update_display_name'), {'display_name': '★ 忍者 ★'})
+        self.pref.refresh_from_db()
+        self.assertEqual(self.pref.display_name, '★ 忍者 ★')
+
+    def test_over_15_chars_rejected(self):
+        self.client.post(
+            reverse('update_display_name'), {'display_name': 'x' * 16})
+        self.pref.refresh_from_db()
+        self.assertEqual(self.pref.display_name, '')
+
+    def test_login_required(self):
+        self.client.logout()
+        resp = self.client.post(
+            reverse('update_display_name'), {'display_name': 'nope'})
+        self.assertEqual(resp.status_code, 302)
+        self.pref.refresh_from_db()
+        self.assertEqual(self.pref.display_name, '')
 
 
 class DescriptionUpdateTests(TestCase):
@@ -400,3 +410,64 @@ class BlockUrlConsistentAcrossCommentsTests(TestCase):
         self.assertEqual(len(comments), 2)
         self.assertEqual(len(urls), 1)
         self.assertIsNotNone(next(iter(urls)))
+
+
+class DisplayNameShownInsteadOfCKeyTests(TestCase):
+    """Отображаемое имя показывается вместо C-key везде, где виден
+    автор - с откатом на C-key, если оно не задано."""
+
+    def setUp(self):
+        self.author = User.objects.create_user('realckey', password='x')
+        self.cartoon = Cartoon.objects.create(title='c', author=self.author)
+
+    def test_comment_shows_display_name_when_set(self):
+        UserPreference.objects.create(
+            user=self.author, display_name='Кличка')
+        Comment.objects.create(
+            cartoon=self.cartoon, author=self.author, text='hi')
+        resp = self.client.get(
+            reverse('get_comments', args=[self.cartoon.pk]))
+        self.assertEqual(
+            resp.json()['comments'][0]['author'], 'Кличка')
+
+    def test_comment_falls_back_to_ckey_when_no_display_name(self):
+        Comment.objects.create(
+            cartoon=self.cartoon, author=self.author, text='hi')
+        resp = self.client.get(
+            reverse('get_comments', args=[self.cartoon.pk]))
+        self.assertEqual(
+            resp.json()['comments'][0]['author'], 'realckey')
+
+    def test_profile_page_title_shows_display_name(self):
+        UserPreference.objects.create(
+            user=self.author, display_name='Кличка')
+        resp = self.client.get(
+            reverse('user_profile', args=[self.author.username]))
+        self.assertEqual(resp.context['profile_display_name'], 'Кличка')
+        self.assertContains(resp, 'Кличка')
+
+
+class LoginUsesCKeyTests(TestCase):
+    """Поле авторизации принимает именно C-key (User.username) -
+    ничего дополнительного настраивать не нужно, так как это и есть
+    встроенное поле Django для входа."""
+
+    def setUp(self):
+        self.user = User.objects.create_user('mylogin', password='pass1234')
+        UserPreference.objects.create(
+            user=self.user, display_name='Совсем другое имя')
+
+    def test_login_with_ckey_succeeds(self):
+        resp = self.client.post(reverse('login'), {
+            'username': 'mylogin', 'password': 'pass1234',
+        })
+        self.assertTrue(
+            self.client.session.get('_auth_user_id') is not None)
+        self.assertEqual(resp.status_code, 302)
+
+    def test_login_with_display_name_fails(self):
+        resp = self.client.post(reverse('login'), {
+            'username': 'Совсем другое имя', 'password': 'pass1234',
+        })
+        self.assertIsNone(self.client.session.get('_auth_user_id'))
+        self.assertEqual(resp.status_code, 200)

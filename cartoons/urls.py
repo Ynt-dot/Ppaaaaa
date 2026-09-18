@@ -57,15 +57,15 @@ urlpatterns = [
     path('set-comment-sort/', views.set_comment_sort, name='set_comment_sort'),
     path('register/', views.register, name='register'),
     path('privacy-policy/', views.privacy_policy, name='privacy_policy'),
-    path('user/<str:slug>/', views.user_profile, name='user_profile'),
-    path('user/<str:slug>/comments/', views.get_user_profile_comments,
+    path('user/<str:username>/', views.user_profile, name='user_profile'),
+    path('user/<str:username>/comments/', views.get_user_profile_comments,
          name='user_profile_comments'),
     path(
-        'user/<str:slug>/note/',
+        'user/<str:username>/note/',
         views.save_user_note,
         name='save_user_note'),
     path(
-        'user/<str:slug>/block/',
+        'user/<str:username>/block/',
         views.toggle_block_user,
         name='toggle_block_user'),
     path(
@@ -81,6 +81,10 @@ urlpatterns = [
         'settings/username/',
         views.update_username,
         name='update_username'),
+    path(
+        'settings/display-name/',
+        views.update_display_name,
+        name='update_display_name'),
     path(
         'settings/description/',
         views.update_description,
