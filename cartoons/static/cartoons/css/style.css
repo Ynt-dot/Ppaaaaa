@@ -304,6 +304,15 @@ input[type="password"]::-ms-clear {
     display: block;
     overflow: visible;
 }
+.tag-link,
+a.tag-link {
+    color: #6c757d;
+    text-decoration: underline;
+}
+.tag-link:hover,
+a.tag-link:hover {
+    color: #adb5bd;
+}
 .comment-item {
     position: relative;
     margin-bottom: 6px;

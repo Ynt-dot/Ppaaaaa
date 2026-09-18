@@ -121,7 +121,7 @@
                 {% if cartoon.tags %}
                 <div class="small mb-1">
                     <strong>Теги:</strong>
-                    <span id="tags-text" class="tags-clamp">{{ sorted_tags|join:", " }}</span>
+                    <span id="tags-text" class="tags-clamp">{% for tag in sorted_tags %}<a href="{% url 'search' %}?q={{ tag|urlencode }}" class="tag-link">{{ tag }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</span>
                     <button id="tags-toggle" class="btn btn-link btn-sm p-0 d-none" style="font-size:0.78rem; vertical-align:baseline;">ещё</button>
                 </div>
                 {% endif %}
