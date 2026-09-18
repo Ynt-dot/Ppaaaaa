@@ -183,13 +183,15 @@
         </div>
         {% endif %}
 
-        {% if continuations_list %}
+        {% if has_continuations %}
         <div class="mb-3">
             <h6 class="fw-bold mb-2">Продолжения</h6>
-            <div class="d-flex flex-column gap-2">
-                {% for continuation in continuations_list %}
-                {% include 'cartoons/cartoon_card.html' with cartoon=continuation compact=True show_author=True %}
-                {% endfor %}
+            <div id="continuations-container" class="d-flex flex-column gap-2"></div>
+            <div class="text-center mt-2" id="continuations-load-more-container" style="display:none;">
+                <button id="continuations-load-more-btn" class="btn btn-sm btn-outline-secondary">Загрузить ещё</button>
+            </div>
+            <div id="continuations-loading" class="text-center py-2">
+                <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
             </div>
         </div>
         {% endif %}
@@ -254,6 +256,7 @@
     const ADD_COMMENT_URL = "{% url 'add_comment' cartoon.pk %}";
     const SET_SORT_URL    = "{% url 'set_comment_sort' %}";
     const REC_URL         = "{% url 'get_recommendations' cartoon.pk %}";
+    const CONTINUATIONS_URL = "{% url 'get_continuations' cartoon.pk %}";
     const INDEX_URL       = "{% url 'index' %}";
     const DEFAULT_AVATAR_URL = "{% static 'cartoons/images/default_avatar.png' %}";
     const MARK_COMMENTS_SEEN_URL = "{% url 'mark_comments_seen' cartoon.pk %}";
@@ -384,6 +387,32 @@
             });
             {% endif %}
         });
+    }
+
+    // ── Блок с продолжениями мульта ──────────────────────────────────────────
+    const continuationsContainer = document.getElementById('continuations-container');
+    if (continuationsContainer) {
+        const continuationsLoading           = document.getElementById('continuations-loading');
+        const continuationsLoadMoreContainer = document.getElementById('continuations-load-more-container');
+        const continuationsLoadMoreBtn       = document.getElementById('continuations-load-more-btn');
+
+        let currentContinuationsPage = 1;
+        let continuationsLoading_    = false;
+
+        async function loadContinuations() {
+            if (continuationsLoading_) return;
+            continuationsLoading_ = true;
+            continuationsLoading.style.display = 'block';
+            try {
+                const resp = await fetch(CONTINUATIONS_URL + '?page=' + currentContinuationsPage);
+                const data = await resp.json();
+                continuationsContainer.insertAdjacentHTML('beforeend', data.html);
+                continuationsLoadMoreContainer.style.display = data.has_next ? 'block' : 'none';
+                currentContinuationsPage++;
+            } finally { continuationsLoading.style.display = 'none'; continuationsLoading_ = false; }
+        }
+        continuationsLoadMoreBtn.addEventListener('click', function() { loadContinuations(); });
+        loadContinuations();
     }
 
     // ── Рекомендации ─────────────────────────────────────────────────────────

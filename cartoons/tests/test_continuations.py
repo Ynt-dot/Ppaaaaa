@@ -1,10 +1,12 @@
 import json
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from cartoons.models import Cartoon
 from cartoons.tests.helpers import PNG_FRAME
@@ -192,7 +194,7 @@ class DetailPageOriginalAndContinuationsTests(TestCase):
 
     def test_no_continuations_block_when_none_exist(self):
         resp = self.client.get(reverse('detail', args=[self.original.pk]))
-        self.assertEqual(list(resp.context['continuations_list']), [])
+        self.assertFalse(resp.context['has_continuations'])
         self.assertNotContains(resp, 'Продолжения')
 
     def test_original_block_shown_on_continuation_page(self):
@@ -206,25 +208,27 @@ class DetailPageOriginalAndContinuationsTests(TestCase):
         self.assertContains(resp, 'Оригинал')
         self.assertContains(resp, 'the original')
 
-    def test_continuations_block_lists_named_continuations(self):
+    def test_continuations_block_present_but_loaded_via_ajax(self):
+        # Заголовок блока в исходном HTML есть сразу, но сам список
+        # подгружается отдельным запросом (см. GetContinuationsEndpointTests)
+        # - поэтому в исходном HTML названия продолжений ещё нет.
         drawer = User.objects.create_user('drawer5', password='x')
         Cartoon.objects.create(
             title='named continuation', author=drawer,
             continuation_of=self.original)
         resp = self.client.get(reverse('detail', args=[self.original.pk]))
-        titles = [c.title for c in resp.context['continuations_list']]
-        self.assertIn('named continuation', titles)
+        self.assertTrue(resp.context['has_continuations'])
         self.assertContains(resp, 'Продолжения')
-        self.assertContains(resp, 'named continuation')
+        self.assertContains(resp, 'id="continuations-container"')
+        self.assertNotContains(resp, 'named continuation')
 
-    def test_anonymous_continuations_excluded_from_list(self):
+    def test_continuations_block_absent_when_only_anonymous_exist(self):
         Cartoon.objects.create(
             title='anon continuation', author=None,
             continuation_of=self.original)
         resp = self.client.get(reverse('detail', args=[self.original.pk]))
-        titles = [c.title for c in resp.context['continuations_list']]
-        self.assertNotIn('anon continuation', titles)
-        self.assertNotContains(resp, 'anon continuation')
+        self.assertFalse(resp.context['has_continuations'])
+        self.assertNotContains(resp, 'Продолжения')
 
     def test_second_level_continuation_original_is_first_level(self):
         drawer1 = User.objects.create_user('drawer6', password='x')
@@ -249,3 +253,83 @@ class DetailPageOriginalAndContinuationsTests(TestCase):
         self.assertIsNone(continuation.continuation_of_id)
         self.assertTrue(
             Cartoon.objects.filter(pk=continuation.pk).exists())
+
+
+class GetContinuationsEndpointTests(TestCase):
+    """AJAX-эндпоинт для блока "Продолжения" - отдельного от
+    рекомендаций, с той же пагинацией "Загрузить ещё" по 10 штук."""
+
+    def setUp(self):
+        self.drawer = User.objects.create_user('drawer9', password='x')
+        self.original = Cartoon.objects.create(
+            title='original', author=self.drawer)
+
+    def test_empty_when_no_continuations(self):
+        resp = self.client.get(
+            reverse('get_continuations', args=[self.original.pk]))
+        data = resp.json()
+        self.assertTrue(data['empty'])
+        self.assertFalse(data['has_next'])
+        self.assertEqual(data['html'], '')
+
+    def test_lists_named_continuation(self):
+        Cartoon.objects.create(
+            title='named continuation', author=self.drawer,
+            continuation_of=self.original)
+        resp = self.client.get(
+            reverse('get_continuations', args=[self.original.pk]))
+        data = resp.json()
+        self.assertFalse(data['empty'])
+        self.assertIn('named continuation', data['html'])
+
+    def test_anonymous_continuation_excluded(self):
+        Cartoon.objects.create(
+            title='anon continuation', author=None,
+            continuation_of=self.original)
+        resp = self.client.get(
+            reverse('get_continuations', args=[self.original.pk]))
+        data = resp.json()
+        self.assertTrue(data['empty'])
+        self.assertNotIn('anon continuation', data['html'])
+
+    def test_pagination_ten_per_page(self):
+        for i in range(15):
+            Cartoon.objects.create(
+                title=f'continuation {i}', author=self.drawer,
+                continuation_of=self.original)
+
+        resp1 = self.client.get(
+            reverse('get_continuations', args=[self.original.pk]),
+            {'page': 1})
+        data1 = resp1.json()
+        self.assertTrue(data1['has_next'])
+        self.assertEqual(data1['html'].count('compact-card-title'), 10)
+
+        resp2 = self.client.get(
+            reverse('get_continuations', args=[self.original.pk]),
+            {'page': 2})
+        data2 = resp2.json()
+        self.assertFalse(data2['has_next'])
+        self.assertEqual(data2['html'].count('compact-card-title'), 5)
+
+    def test_newest_continuation_first(self):
+        # Заголовки не должны быть подстроками друг друга или
+        # разметки карточки (например, "older" - подстрока класса
+        # "compact-card-placeholder", который есть у каждой карточки
+        # без превью) - иначе find() находит совпадение не там.
+        first = Cartoon.objects.create(
+            title='continuation alpha', author=self.drawer,
+            continuation_of=self.original)
+        first.created_at = timezone.now() - timedelta(hours=1)
+        first.save(update_fields=['created_at'])
+        second = Cartoon.objects.create(
+            title='continuation beta', author=self.drawer,
+            continuation_of=self.original)
+        resp = self.client.get(
+            reverse('get_continuations', args=[self.original.pk]))
+        html = resp.json()['html']
+        self.assertLess(html.index(second.title), html.index(first.title))
+
+    def test_unknown_cartoon_404s(self):
+        resp = self.client.get(reverse('get_continuations', args=[999999]))
+        self.assertEqual(resp.status_code, 404)

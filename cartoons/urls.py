@@ -98,6 +98,10 @@ urlpatterns = [
         views.get_recommendations,
         name='get_recommendations'),
     path(
+        'cartoon/<int:pk>/continuations/',
+        views.get_continuations,
+        name='get_continuations'),
+    path(
         'cartoon/<int:pk>/favorite/',
         views.toggle_favorite,
         name='toggle_favorite'),

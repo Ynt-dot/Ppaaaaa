@@ -302,16 +302,12 @@ def detail(request, pk):
         rec_author_filter = False
 
     # Продолжения показываются, кроме анонимных - для них нет ни
-    # автора, ни ссылки на профиль, показывать особо нечего. Один
-    # Count() тут безопасен (не даёт декартова произведения, в
-    # отличие от index()/get_recommendations() - см. там комментарий
-    # про несколько Count() в одном запросе).
-    continuations_list = list(
-        cartoon.continuations
-        .filter(author__isnull=False)
-        .select_related('author', 'author__preference')
-        .annotate(unique_views_count=Count('unique_views', distinct=True))
-        .order_by('-created_at')[:20])
+    # автора, ни ссылки на профиль, показывать особо нечего. Сам
+    # список подгружается отдельным AJAX-запросом (get_continuations,
+    # с пагинацией "Загрузить ещё" - как рекомендации), здесь нужно
+    # только знать, показывать ли блок вообще.
+    has_continuations = cartoon.continuations.filter(
+        author__isnull=False).exists()
 
     if cartoon.continuation_of:
         cartoon.continuation_of.unique_views_count = (
@@ -350,7 +346,7 @@ def detail(request, pk):
             else 'Мультфильм «{}» от {}'.format(
                 cartoon.title, _display_name(cartoon.author) or 'Аноним')),
         'continuation_original': cartoon.continuation_of,
-        'continuations_list': continuations_list,
+        'has_continuations': has_continuations,
     }
     if cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)
@@ -474,6 +470,45 @@ def get_recommendations(request, pk):
         render_to_string('cartoons/cartoon_card.html',
                          {'cartoon': c,
                           'show_author': show_author,
+                          'compact': True},
+                         request=request)
+        for c in page_qs
+    )
+
+    return JsonResponse({
+        'html': html,
+        'empty': (page == 1 and len(page_qs) == 0),
+        'has_next': has_next,
+    })
+
+
+@require_GET
+def get_continuations(request, pk):
+    """Продолжения этого мульта - отдельный блок на странице мульта,
+    между "Оригинал" и "Рекомендации", с пагинацией "Загрузить ещё"
+    как у рекомендаций (see get_recommendations)."""
+    get_object_or_404(Cartoon, pk=pk)
+    try:
+        page = max(1, int(request.GET.get('page', 1)))
+    except (TypeError, ValueError):
+        page = 1
+    per_page = 10
+
+    qs = (
+        Cartoon.objects.filter(continuation_of_id=pk, author__isnull=False)
+        .select_related('author', 'author__preference')
+        .annotate(unique_views_count=Count('unique_views', distinct=True))
+        .order_by('-created_at'))
+
+    start = (page - 1) * per_page
+    end = start + per_page
+    page_qs = list(qs[start:end + 1])
+    has_next = len(page_qs) > per_page
+    page_qs = page_qs[:per_page]
+
+    html = ''.join(
+        render_to_string('cartoons/cartoon_card.html',
+                         {'cartoon': c, 'show_author': True,
                           'compact': True},
                          request=request)
         for c in page_qs
