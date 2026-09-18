@@ -213,6 +213,59 @@ class SiteSettings(models.Model):
         super().save(*args, **kwargs)
 
 
+class AccountAccessLog(models.Model):
+    """Одна строка на пару (пользователь, IP), с которой он заходил
+    на сайт - помогает админу увидеть все IP конкретного аккаунта и,
+    наоборот, все аккаунты, заходившие с конкретного IP (мультиаккаунты,
+    обход бана). device_id - id из cookie-файла (см. middleware.py),
+    user_agent - строка браузера, обе сохраняются "как есть", без
+    попытки собрать из них надёжный отпечаток устройства."""
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='access_logs')
+    ip_address = models.GenericIPAddressField(verbose_name="IP-адрес")
+    device_id = models.CharField(max_length=36, blank=True, default='')
+    user_agent = models.CharField(max_length=255, blank=True, default='')
+    first_seen = models.DateTimeField(auto_now_add=True)
+    last_seen = models.DateTimeField(auto_now=True)
+    visit_count = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        unique_together = [('user', 'ip_address')]
+        verbose_name = "Запись о входе"
+        verbose_name_plural = "Записи о входах (IP/устройства)"
+
+    def __str__(self):
+        return f"{self.user.username} - {self.ip_address}"
+
+
+class BannedIdentifier(models.Model):
+    """IP-адрес или device_id (см. AccountAccessLog), забаненный
+    вручную в админке - блокирует доступ к сайту с этого
+    идентификатора (см. middleware.py), независимо от того, под
+    каким аккаунтом или вообще без входа пытаются зайти."""
+    KIND_IP = 'ip'
+    KIND_DEVICE = 'device'
+    KIND_CHOICES = [
+        (KIND_IP, 'IP-адрес'),
+        (KIND_DEVICE, 'Device ID (cookie)'),
+    ]
+    kind = models.CharField(max_length=10, choices=KIND_CHOICES)
+    value = models.CharField(max_length=100, verbose_name="Значение")
+    reason = models.CharField(
+        max_length=255, blank=True, verbose_name="Причина")
+    banned_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True)
+    banned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [('kind', 'value')]
+        verbose_name = "Бан по IP/устройству"
+        verbose_name_plural = "Баны по IP/устройствам"
+
+    def __str__(self):
+        return f"{self.get_kind_display()}: {self.value}"
+
+
 class Favorite(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE,
                              related_name='favorites')

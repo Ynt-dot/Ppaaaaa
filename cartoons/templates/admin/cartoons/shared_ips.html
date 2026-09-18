@@ -1,0 +1,52 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Главная</a>
+    &rsaquo; <a href="{% url 'admin:cartoons_accountaccesslog_changelist' %}">Записи о входах (IP/устройства)</a>
+    &rsaquo; IP с несколькими аккаунтами
+</div>
+{% endblock %}
+
+{% block content %}
+<p>
+    IP-адреса, с которых заходило больше одного аккаунта - возможные
+    мультиаккаунты или обход бана. Ссылка "Забанить IP" ведёт на форму
+    добавления бана с уже подставленным адресом.
+</p>
+
+{% if rows %}
+<table id="result_list">
+    <thead>
+        <tr>
+            <th>IP-адрес</th>
+            <th>Аккаунтов</th>
+            <th>Кто заходил</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.ip_address }}</td>
+            <td>{{ row.account_count }}</td>
+            <td>
+                {% for account in row.accounts %}
+                <a href="{% url 'admin:auth_user_change' account.pk %}">{{ account.username }}</a>{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </td>
+            <td>
+                {% if row.is_banned %}
+                <span style="color:#999;">уже забанен</span>
+                {% else %}
+                <a class="button" href="{% url 'admin:cartoons_bannedidentifier_add' %}?kind=ip&amp;value={{ row.ip_address }}">Забанить IP</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>Пока нет IP-адресов с несколькими аккаунтами.</p>
+{% endif %}
+{% endblock %}
