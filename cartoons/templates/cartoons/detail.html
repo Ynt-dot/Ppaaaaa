@@ -83,10 +83,10 @@
                             ★ Избранное
                         </button>
                         {% endif %}
+                        {% if user == cartoon.author or can_set_as_avatar or can_delete_cartoon %}
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" aria-expanded="false">⋯</button>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="{% url 'editor_create' %}?continue={{ cartoon.pk }}">✏ Продолжить</a></li>
                                 {% if user == cartoon.author and not is_used_as_avatar %}
                                 <li><a class="dropdown-item" href="{% url 'editor_edit' cartoon.pk %}">✏ Редактировать</a></li>
                                 {% endif %}
@@ -112,6 +112,7 @@
                                 {% endif %}
                             </ul>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -174,6 +175,10 @@
 
     <!-- Правая колонка: происхождение мульта + рекомендации -->
     <div class="col-md-4">
+        <a class="btn btn-black w-100 mb-3" href="{% url 'editor_create' %}?continue={{ cartoon.pk }}">
+            <i class="bi bi-pencil-fill"></i> Продолжить
+        </a>
+
         {% if continuation_original %}
         <div class="mb-3">
             <h6 class="fw-bold mb-2">Оригинал</h6>

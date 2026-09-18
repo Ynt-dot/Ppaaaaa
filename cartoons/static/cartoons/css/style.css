@@ -102,6 +102,16 @@ h1, h2, h3, h4, .btn {
     border-color: #FF0000;
     color: #fff !important;
 }
+.btn-black {
+    background-color: #fff;
+    border: 1px solid #212529;
+    color: #212529 !important;
+}
+.btn-black:hover {
+    background-color: #212529;
+    border-color: #212529;
+    color: #fff !important;
+}
 .btn-twitch {
     background-color: #fff;
     border: 1px solid #9146FF;
