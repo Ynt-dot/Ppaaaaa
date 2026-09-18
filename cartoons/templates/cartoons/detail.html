@@ -86,7 +86,7 @@
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" aria-expanded="false">⋯</button>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="{% url 'editor_create' %}?continue={{ cartoon.pk }}">➕ Продолжить</a></li>
+                                <li><a class="dropdown-item" href="{% url 'editor_create' %}?continue={{ cartoon.pk }}">✏ Продолжить</a></li>
                                 {% if user == cartoon.author and not is_used_as_avatar %}
                                 <li><a class="dropdown-item" href="{% url 'editor_edit' cartoon.pk %}">✏ Редактировать</a></li>
                                 {% endif %}
