@@ -191,9 +191,9 @@ class CartoonView(models.Model):
 
 
 class SiteSettings(models.Model):
-    """Singleton (always pk=1) holding sitewide admin-controlled
-    settings - currently just the default avatar shown for users who
-    haven't picked one of their own."""
+    """Синглтон (всегда pk=1) с общесайтовыми настройками, которые
+    задаёт админ - пока только аватар по умолчанию для пользователей,
+    которые не выбрали свой."""
     default_avatar_gif = models.ImageField(
         upload_to='avatars/', null=True, blank=True,
         verbose_name="Аватар по умолчанию")

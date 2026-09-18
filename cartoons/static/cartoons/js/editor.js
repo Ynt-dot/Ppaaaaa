@@ -446,7 +446,7 @@ confirmSave.addEventListener('click', () => {
     document.getElementById('editor-form').submit();
 });
 
-// ========== Undo ==========
+// ========== Отмена действия ==========
 
 let undoStack = [];
 const MAX_UNDO = 20; // ограничим глубину
@@ -460,7 +460,7 @@ function pushState() {
     }
 }
 
-// ========== Fullscreen ==========
+// ========== Полноэкранный режим ==========
 
 let isFullscreen = false;
 

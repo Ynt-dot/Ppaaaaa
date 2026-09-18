@@ -8,10 +8,11 @@ from cartoons.models import EmailVerificationToken
 
 
 class ResendVerificationEmailTests(TestCase):
-    """Regression test: resend_verification() used to call
-    send_verification_email() twice in a row (leftover from an
-    abandoned edit, never cleaned up), so every "resend" click sent
-    the user two identical emails."""
+    """Регрессионный тест: resend_verification() раньше вызывала
+    send_verification_email() дважды подряд (осталось от
+    незавершённой правки, которую забыли вычистить), из-за чего
+    каждый клик "отправить повторно" слал пользователю два
+    одинаковых письма."""
 
     def setUp(self):
         self.user = User.objects.create_user(

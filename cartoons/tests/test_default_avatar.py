@@ -39,9 +39,10 @@ class ExtractCartoonPkFromLinkTests(TestCase):
 
 
 class DefaultAvatarPermissionTests(TestCase):
-    """Only a superuser may set the sitewide default avatar - checked
-    must hold even if someone forges a request directly at the URL,
-    not just via a hidden admin button."""
+    """Задать общесайтовый аватар по умолчанию может только
+    суперпользователь - это должно соблюдаться, даже если кто-то
+    подделает запрос напрямую на URL, а не через скрытую кнопку в
+    админке."""
 
     def setUp(self):
         self.superuser = User.objects.create_superuser(
@@ -153,9 +154,10 @@ class DefaultAvatarEligibilityTests(TestCase):
 
 
 class DefaultAvatarFallbackTests(TestCase):
-    """Once a site default is set, users with no personal avatar of
-    their own should get it instead of the static placeholder - but a
-    user's own avatar still takes priority."""
+    """После того как задан общесайтовый аватар, пользователи без
+    своего личного аватара должны видеть его вместо статичной
+    заглушки - но свой собственный аватар пользователя всё равно в
+    приоритете."""
 
     def setUp(self):
         self.superuser = User.objects.create_superuser(

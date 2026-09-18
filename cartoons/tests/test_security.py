@@ -33,16 +33,16 @@ class CleanTagsTests(TestCase):
     def test_script_breakout_payload_survives_as_plain_text(self):
         payload = '</script><script>alert(1)</script>'
         result = _clean_tags([payload])
-        # It's kept as a string (truncated to 30 chars) - the actual
-        # XSS defense is json_script escaping it at render time, not
-        # stripping it here.
+        # Строка сохраняется как есть (обрезанная до 30 символов) -
+        # реальная защита от XSS - это экранирование через json_script
+        # в момент рендера, а не зачистка здесь.
         self.assertEqual(result, [payload[:30]])
 
 
 class AnonymousCartoonEditPermissionTests(TestCase):
-    """Regression test for the IDOR that let anyone edit/overwrite an
-    anonymously-created cartoon, which combined with unvalidated tags
-    used to allow stored XSS."""
+    """Регрессионный тест на IDOR, из-за которого кто угодно мог
+    редактировать/перезаписывать анонимно созданный мульт - в
+    сочетании с невалидированными тегами это давало stored XSS."""
 
     def setUp(self):
         self.owner = User.objects.create_user('owner', password='x')

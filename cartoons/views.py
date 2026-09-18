@@ -34,9 +34,10 @@ from django.templatetags.static import static
 
 
 def _get_user_avatar_url(user):
-    """Return avatar GIF URL for user, falling back to the sitewide
-    default avatar (SiteSettings, set by a superuser in the admin
-    panel) and finally to the static placeholder image."""
+    """Возвращает URL GIF-аватара пользователя, с откатом на
+    общесайтовый аватар по умолчанию (SiteSettings, задаётся
+    суперпользователем в админке), а в конце - на статичную
+    заглушку."""
     if user is not None:
         pref = getattr(user, 'preference', None)
         if pref and pref.avatar_gif:
@@ -54,10 +55,10 @@ def _get_user_avatar_url(user):
 
 
 def _profile_slug(user):
-    """The stable, independently-changeable profile URL segment for a
-    user - falls back to username if, somehow, no UserPreference row
-    exists yet (should not happen for real accounts; register()
-    always creates one)."""
+    """Стабильный, независимо изменяемый сегмент URL профиля
+    пользователя - откатывается на username, если по какой-то
+    причине ещё нет строки UserPreference (для настоящих аккаунтов
+    такого быть не должно; register() всегда её создаёт)."""
     pref = getattr(user, 'preference', None)
     return (pref.profile_slug if pref and pref.profile_slug
             else user.username)
@@ -68,11 +69,11 @@ def _profile_url(user):
 
 
 def _avatar_link_url(user):
-    """Where clicking a user's avatar image should go: the cartoon set
-    as their avatar (UserPreference.avatar), if they picked one -
-    otherwise their profile page, since there's no specific cartoon to
-    send the click to (this also covers the sitewide default avatar,
-    which isn't "their" cartoon)."""
+    """Куда должен вести клик по аватарке пользователя: на мульт,
+    выбранный в качестве аватара (UserPreference.avatar), если он
+    есть - иначе на страницу профиля, так как отправлять клик
+    некуда (это также покрывает общесайтовый аватар по умолчанию,
+    который не является "его" мультом)."""
     if user is None:
         return None
     pref = getattr(user, 'preference', None)
@@ -82,9 +83,9 @@ def _avatar_link_url(user):
 
 
 def _resolve_profile_user(slug):
-    """Find the user a profile-URL segment refers to: by profile_slug
-    first, falling back to username (see user_profile() for why the
-    fallback exists)."""
+    """Находит пользователя, на которого указывает сегмент URL
+    профиля: сначала по profile_slug, с откатом на username (см.
+    user_profile() - там объясняется, зачем нужен этот откат)."""
     user = User.objects.filter(preference__profile_slug=slug).first()
     if user is None:
         user = get_object_or_404(User, username=slug)
@@ -97,9 +98,10 @@ def _frames_count(cartoon):
 
 
 def _build_avatar_gif(cartoon, body):
-    """Crop cartoon.preview per body's normalized left/top/right/bottom
-    (each clamped to [0, 1]; malformed/missing values fall back to the
-    full frame) and return an avatar-sized ContentFile GIF."""
+    """Обрезает cartoon.preview по нормализованным
+    left/top/right/bottom из body (каждое кламп(з)ится в [0, 1];
+    некорректные/отсутствующие значения откатываются на весь кадр) и
+    возвращает ContentFile GIF размера аватара."""
     def _clamp(v, default):
         try:
             v = float(v)
@@ -116,12 +118,13 @@ def _build_avatar_gif(cartoon, body):
 
 
 def _count_descendant_comments(comment_id, created_after=None):
-    """Count all nested replies under a comment, at every depth level -
-    matches what the parent's CASCADE delete would remove.
+    """Считает все вложенные ответы под комментарием, на любой
+    глубине - соответствует тому, что удалит CASCADE-удаление
+    родителя.
 
-    With created_after given, counts only the subset created after that
-    moment (still across every depth level) - used for the "unread
-    replies" badge.
+    Если задан created_after, считает только те, что созданы после
+    этого момента (тоже на любой глубине) - используется для бейджа
+    "непрочитанные ответы".
     """
     total = 0
     current_ids = [comment_id]
@@ -136,9 +139,10 @@ def _count_descendant_comments(comment_id, created_after=None):
 
 
 def _clean_tags(tags):
-    """Validate and sanitize user-supplied tags: must end up as a list
-    of short plain strings, or parsing/validation fails silently to []
-    rather than storing arbitrary JSON that later gets rendered."""
+    """Проверяет и очищает присланные пользователем теги: на выходе
+    должен получиться список коротких простых строк, иначе
+    валидация молча откатывается на [] вместо сохранения
+    произвольного JSON, который потом попадёт в рендер."""
     if not isinstance(tags, list):
         return []
     cleaned = []
@@ -491,9 +495,9 @@ def toggle_cartoon_like(request, pk):
 
 
 def _get_seen_cutoff(request, cartoon):
-    """The cartoon author's "last seen comments" timestamp, but only
-    for the author themselves - anyone else gets None, meaning "don't
-    compute/show an unread-replies badge"."""
+    """Таймстамп "последнего просмотра комментариев" автора мульта,
+    но только для самого автора - все остальные получают None, то
+    есть "не считать/не показывать бейдж непрочитанных"."""
     if (request.user.is_authenticated
             and cartoon.author_id == request.user.id):
         return cartoon.author_last_seen_comments
@@ -503,14 +507,16 @@ def _get_seen_cutoff(request, cartoon):
 def _serialize_comment(comment, request, current_level=0,
                        max_inline_level=2, root_level=0,
                        cartoon_author_id=None, seen_cutoff=None):
-    """Serialize comment with nested replies up to max_inline_level.
+    """Сериализует комментарий с вложенными ответами до
+    max_inline_level.
 
-    seen_cutoff (a datetime, or None) is the cartoon author's
-    "last seen comments" timestamp captured at the start of this page
-    visit - used to compute new_replies_count (replies at any depth
-    created after that moment). Only meaningful/passed when the
-    current viewer is the cartoon's author; None means "don't show an
-    unread badge" for anyone else.
+    seen_cutoff (datetime или None) - таймстамп "последнего
+    просмотра комментариев" автора мульта, захваченный в начале
+    визита на эту страницу - используется для подсчёта
+    new_replies_count (ответы на любой глубине, созданные после
+    этого момента). Имеет смысл/передаётся только когда текущий
+    зритель - автор мульта; None означает "не показывать бейдж
+    непрочитанных" для всех остальных.
     """
     if request.user.is_authenticated:
         user_liked = comment.likes.filter(user=request.user).exists()
@@ -749,8 +755,8 @@ def get_replies(request, comment_pk):
 
 @require_GET
 def get_thread(request, comment_pk):
-    """Returns thread for modal: the root comment + paginated direct
-    replies deeply nested."""
+    """Возвращает ветку для модалки: корневой комментарий +
+    постраничные прямые ответы на большой глубине вложенности."""
     root = get_object_or_404(
         Comment.objects.select_related('cartoon'),
         pk=comment_pk)
@@ -873,10 +879,11 @@ def add_comment(request, pk):
 
 @require_POST
 def mark_comments_seen(request, pk):
-    """Called (via navigator.sendBeacon) when the cartoon's author
-    leaves the detail page - resets author_last_seen_comments so the
-    unread-replies badges and the personal-page "new comments" count
-    both start counting from this point forward, not before."""
+    """Вызывается (через navigator.sendBeacon), когда автор мульта
+    уходит со страницы мульта - сбрасывает author_last_seen_comments,
+    чтобы бейджи непрочитанных ответов и счётчик "новых комментариев"
+    на личной странице начинали считать заново от этого момента, а
+    не раньше."""
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'login_required'}, status=401)
     updated = Cartoon.objects.filter(
@@ -1444,10 +1451,11 @@ def delete_avatar(request):
 
 
 def _extract_cartoon_pk_from_link(link):
-    """Pull a cartoon pk out of admin-pasted input - a full detail-page
-    URL, a bare path, or just the number itself. Returns None (instead
-    of raising) for anything unrecognizable, so the caller can show a
-    friendly "broken link" error rather than a 500."""
+    """Достаёт pk мульта из вставленной админом строки - полной
+    ссылки на страницу мульта, голого пути или просто числа.
+    Возвращает None (а не выбрасывает исключение) для всего
+    нераспознанного, чтобы вызывающий код мог показать понятную
+    ошибку "битая ссылка" вместо 500-й."""
     link = (link or '').strip()
     if not link:
         return None
@@ -1468,12 +1476,12 @@ def _require_superuser(request):
 
 @login_required
 def admin_default_avatar_crop(request, pk):
-    """Superuser-only crop page for setting the sitewide default
-    avatar. Reachable from the SiteSettings admin change page (see
-    SiteSettingsAdmin.response_change), which is where the pasted
-    link is parsed and validated - this view re-checks permissions
-    and the cartoon's eligibility independently, since a URL alone is
-    trivially guessable/forgeable by anyone."""
+    """Страница обрезки общесайтового аватара по умолчанию, доступна
+    только суперпользователю. Открывается со страницы редактирования
+    SiteSettings в админке (см. SiteSettingsAdmin.response_change),
+    где вставленная ссылка разбирается и валидируется - эта вьюха
+    независимо перепроверяет права и пригодность мульта, поскольку
+    один лишь URL легко угадать/подделать кому угодно."""
     if not _require_superuser(request):
         return HttpResponseForbidden(
             'Только суперпользователь может это сделать.')
@@ -1623,9 +1631,10 @@ def resend_verification(request):
 
 
 def _resolve_user_by_identifier(raw):
-    """Resolve a UserBlock target from free-text input that may be a
-    bare username, a bare profile slug, or a pasted profile URL - the
-    user can add someone to their blocklist "по нику или ссылке"."""
+    """Находит цель для UserBlock по произвольному тексту - это
+    может быть голый ник, голый slug профиля или вставленная ссылка
+    на профиль: пользователь может добавить кого-то в чёрный список
+    "по нику или ссылке"."""
     raw = (raw or '').strip()
     if not raw:
         return None

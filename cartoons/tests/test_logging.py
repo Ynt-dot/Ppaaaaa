@@ -36,7 +36,7 @@ class DiscordLogHandlerTests(TestCase):
     @patch('cartoons.logging_handlers.requests.post',
            side_effect=Exception('network down'))
     def test_never_raises_when_discord_unreachable(self, mock_post):
-        # A logging handler failing must never break the app.
+        # Падение обработчика логирования никогда не должно ронять приложение.
         try:
             DiscordLogHandler().emit(_make_record())
         except Exception as e:

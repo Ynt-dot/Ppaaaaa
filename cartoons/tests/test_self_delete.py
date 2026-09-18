@@ -75,7 +75,7 @@ class DeleteOwnCommentTests(TestCase):
         self.comment.refresh_from_db()
         self.assertTrue(self.comment.is_deleted)
         self.assertEqual(self.comment.text, '')
-        # the row itself must still exist - not a hard delete
+        # сама строка должна остаться - это не жёсткое удаление
         self.assertTrue(Comment.objects.filter(pk=self.comment.pk).exists())
 
     def test_replies_survive_deletion(self):
@@ -120,7 +120,7 @@ class DeleteOwnCommentTests(TestCase):
         self.comment.is_deleted = True
         self.comment.text = ''
         self.comment.save(update_fields=['is_deleted', 'text'])
-        self.client.force_login(self.author)  # cartoon author
+        self.client.force_login(self.author)  # автор мульта
         resp = self.client.post(
             reverse('pin_comment', args=[self.comment.pk]))
         self.assertEqual(resp.status_code, 200)

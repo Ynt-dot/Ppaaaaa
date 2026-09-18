@@ -44,9 +44,9 @@ class AvatarLinkUrlTests(TestCase):
 
 
 class AvatarLinkInResponsesTests(TestCase):
-    """The four surfaces the user asked about: comments under a
-    cartoon, the cartoon's own author block, a profile's comments
-    tab, and the big avatar on someone's profile page."""
+    """Четыре места, про которые спрашивал пользователь: комментарии
+    под мультом, блок автора на самой странице мульта, вкладка
+    комментариев профиля и большая аватарка на странице профиля."""
 
     def setUp(self):
         self.author = User.objects.create_user('drawer', password='x')

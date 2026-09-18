@@ -5,16 +5,18 @@ from django.conf import settings
 
 
 class DiscordLogHandler(logging.Handler):
-    """Sends formatted log records to a Discord webhook.
+    """Отправляет отформатированные записи лога в Discord-вебхук.
 
-    Separate from the DISCORD_WEBHOOK_URL used for axes lockout alerts
-    (cartoons/signals.py) - reads its own DISCORD_LOG_WEBHOOK_URL, so
-    error logs can go to a different channel than lockout notices, or
-    be disabled independently by simply not setting it.
+    Отдельно от DISCORD_WEBHOOK_URL, который используется для алертов
+    о блокировке axes (cartoons/signals.py) - читает свой собственный
+    DISCORD_LOG_WEBHOOK_URL, поэтому логи ошибок могут идти в другой
+    канал, чем уведомления о блокировках, или быть отключены
+    независимо простым отсутствием этой переменной.
 
-    The webhook URL is read from settings on every call rather than
-    baked in at LOGGING-config time, since local_settings.py (where
-    it's actually set) is imported after LOGGING is defined.
+    URL вебхука читается из settings при каждом вызове, а не
+    запекается на момент настройки LOGGING, поскольку
+    local_settings.py (где он реально задаётся) импортируется уже
+    после определения LOGGING.
     """
 
     def emit(self, record):
@@ -42,6 +44,7 @@ class DiscordLogHandler(logging.Handler):
         try:
             requests.post(webhook_url, json=payload, timeout=5)
         except Exception:
-            # A logging handler must never be the reason a request
-            # fails - if Discord is unreachable, just drop the log.
+            # Обработчик логирования никогда не должен быть причиной
+            # падения запроса - если Discord недоступен, просто
+            # отбрасываем запись лога.
             pass

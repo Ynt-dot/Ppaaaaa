@@ -1,9 +1,9 @@
 """
-ASGI config for Ppaaaaa project.
+Конфигурация ASGI для проекта Ppaaaaa.
 
-It exposes the ASGI callable as a module-level variable named ``application``.
+Экспортирует ASGI-приложение как переменную модуля ``application``.
 
-For more information on this file, see
+Подробнее об этом файле см.
 https://docs.djangoproject.com/en/4.2/howto/deployment/asgi/
 """
 

@@ -28,7 +28,7 @@ class DeleteCartoonPermissionTests(TestCase):
         self.assertTrue(Cartoon.objects.filter(pk=self.cartoon.pk).exists())
 
     def test_author_alone_is_not_enough(self):
-        # Ownership does not grant delete rights - only is_staff does.
+        # Авторство не даёт права на удаление - только is_staff.
         self.client.force_login(self.author)
         resp = self.client.post(
             reverse('delete_cartoon', args=[self.cartoon.pk]))

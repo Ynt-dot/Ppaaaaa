@@ -8,8 +8,8 @@ from cartoons.models import Cartoon, CartoonLike, Comment, Favorite
 
 
 class AnonymousEngagementRejectedTests(TestCase):
-    """Likes, favorites and comments are authenticated-only actions -
-    there is no legitimate anonymous path to any of them."""
+    """Лайки, избранное и комментарии доступны только авторизованным -
+    легитимного анонимного пути ни к одному из этих действий нет."""
 
     def setUp(self):
         self.author = User.objects.create_user('eauthor', password='x')

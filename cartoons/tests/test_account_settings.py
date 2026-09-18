@@ -51,8 +51,8 @@ class BlockUserTests(TestCase):
         self.assertFalse(UserBlock.objects.exists())
 
     def test_blocking_bob_does_not_affect_other_users_blocklists(self):
-        # A forged/duplicate request cannot make it look like someone
-        # else did the blocking - the actor is always request.user.
+        # Поддельный/дублирующий запрос не может выдать блокировку
+        # за действие другого пользователя - актёр всегда request.user.
         self.client.force_login(self.alice)
         self.client.post(reverse('toggle_block_user', args=['bob']))
         self.assertFalse(
@@ -143,8 +143,9 @@ class CommentBlockEnforcementTests(TestCase):
 
 
 class CartoonAuthorModerationTests(TestCase):
-    """The cartoon author can soft-delete comments left on their own
-    cartoons (regular deletion), but nobody else can forge that."""
+    """Автор мульта может мягко удалять комментарии под своими же
+    мультами (обычное удаление), но никто другой не может подделать
+    это действие."""
 
     def setUp(self):
         self.author = User.objects.create_user('author', password='x')
@@ -374,11 +375,11 @@ class TrollFlagCommentVisibilityTests(TestCase):
 
 
 class BlockUrlConsistentAcrossCommentsTests(TestCase):
-    """The frontend updates every "block" label for an author on the
-    page in one go after a single block action, by matching on
-    block_url (see handleBlockUser in detail.html) - that only works
-    if every comment by the same author gets the exact same
-    block_url, which this locks in."""
+    """Фронтенд обновляет все надписи "заблокировать" для автора на
+    странице разом после одного действия блокировки, сопоставляя по
+    block_url (см. handleBlockUser в detail.html) - это работает,
+    только если у каждого комментария этого автора одинаковый
+    block_url, что и закрепляет этот тест."""
 
     def setUp(self):
         self.cartoon_author = User.objects.create_user('owner', password='x')

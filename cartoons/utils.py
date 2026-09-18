@@ -61,11 +61,12 @@ def create_gif_from_frames(frames_data, fps=12, max_frames=None):
 
 def create_avatar_gif(source_path, left_n, top_n, right_n, bottom_n, size=200):
     """
-    Crop each frame of source GIF to the specified normalized rectangle and
-    return a square ContentFile GIF of `size x size` pixels.
+    Обрезает каждый кадр исходного GIF по заданному нормализованному
+    прямоугольнику и возвращает квадратный ContentFile GIF размером
+    `size x size` пикселей.
 
-    left_n, top_n, right_n, bottom_n are in [0, 1] relative to image
-    dimensions.
+    left_n, top_n, right_n, bottom_n заданы в [0, 1] относительно
+    размеров изображения.
     """
     images = []
     durations = []

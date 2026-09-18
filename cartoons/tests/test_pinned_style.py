@@ -6,11 +6,11 @@ from cartoons.models import Cartoon, CartoonLike, Favorite, UserPreference
 
 
 class PinnedBorderScopeTests(TestCase):
-    """A pinned cartoon should only get the black-border treatment on
-    its own author's profile album tab - not on the index page, not
-    on someone's liked/favorites tabs. Regression test: the border
-    used to be driven by cartoon.is_pinned alone, with no regard for
-    where the card was being rendered."""
+    """Закреплённый мульт должен получать чёрную рамку только на
+    вкладке "Альбом" профиля своего автора - не на заглавной, не на
+    чужих вкладках "Понравившееся"/"Избранное". Регрессионный тест:
+    раньше рамка зависела только от cartoon.is_pinned, без учёта
+    того, где рендерилась карточка."""
 
     def setUp(self):
         self.author = User.objects.create_user('pinner', password='x')
@@ -18,11 +18,12 @@ class PinnedBorderScopeTests(TestCase):
         self.cartoon = Cartoon.objects.create(
             title='pinned one', author=self.author, is_pinned=True)
 
-    # NB: base.html's global pin-toggle script always contains the
-    # literal JS string 'cartoon-pinned' (single-quoted), regardless
-    # of whether any card is pinned on the page - so we look for the
-    # HTML class attribute specifically (double-quoted) rather than
-    # using assertContains/assertNotContains on the bare substring.
+    # Важно: глобальный скрипт переключения закрепа в base.html всегда
+    # содержит буквальную JS-строку 'cartoon-pinned' (в одинарных
+    # кавычках), независимо от того, закреплена ли какая-то карточка
+    # на странице - поэтому ищем именно HTML-атрибут class (в двойных
+    # кавычках), а не голую подстроку через assertContains/
+    # assertNotContains.
     @staticmethod
     def _has_pinned_class_in_html(resp):
         return 'cartoon-pinned"' in resp.content.decode()

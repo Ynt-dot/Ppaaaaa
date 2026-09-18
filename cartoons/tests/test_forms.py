@@ -37,8 +37,8 @@ class RegistrationFormTests(TestCase):
     @patch('cartoons.forms.requests.get',
            side_effect=requests.exceptions.RequestException)
     def test_valid_when_email_api_unreachable(self, mock_get):
-        # clean_email() must not hard-fail the whole registration just
-        # because the third-party verification API is down.
+        # clean_email() не должен полностью валить регистрацию просто
+        # из-за недоступности стороннего API проверки почты.
         form = CustomUserCreationForm(_valid_data())
         self.assertTrue(form.is_valid(), form.errors)
 

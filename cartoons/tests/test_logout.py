@@ -4,9 +4,9 @@ from django.urls import reverse
 
 
 class LogoutTests(TestCase):
-    """Django's built-in LogoutView only accepts POST as of Django 5.x
-    (GET support, deprecated since 4.1, was removed) - the template
-    must submit a form, not a plain <a href> link."""
+    """Встроенный LogoutView в Django принимает только POST начиная с
+    Django 5.x (поддержку GET, устаревшую с 4.1, убрали) - шаблон
+    должен отправлять форму, а не обычную ссылку <a href>."""
 
     def setUp(self):
         self.user = User.objects.create_user('logout_user', password='x')

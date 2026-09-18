@@ -49,10 +49,11 @@ class SiteSettingsForm(forms.ModelForm):
 
 
 class SiteSettingsAdmin(admin.ModelAdmin):
-    """Singleton settings row (always pk=1). Only a superuser can see
-    or touch this - not just hidden from staff in the UI, but refused
-    server-side on every permission check, since the thing it controls
-    (the default avatar shown for every user without one) is sitewide.
+    """Синглтон-строка настроек (всегда pk=1). Видеть и трогать её
+    может только суперпользователь - не просто скрыта от стаффа в
+    интерфейсе, а отклоняется на сервере при каждой проверке прав,
+    поскольку то, чем она управляет (аватар по умолчанию для всех
+    пользователей без своего), общесайтовое.
     """
     form = SiteSettingsForm
     fields = ('default_avatar_preview', 'default_avatar_link')

@@ -9,8 +9,8 @@ from cartoons.models import Cartoon, Comment
 
 
 class RepliesCountAllLevelsTests(TestCase):
-    """replies_count must include nested replies at every depth, not
-    just direct children."""
+    """replies_count должен включать вложенные ответы на любой
+    глубине, а не только прямых детей."""
 
     def setUp(self):
         self.author = User.objects.create_user('rc_author', password='x')
@@ -49,9 +49,10 @@ class UnreadRepliesBadgeTests(TestCase):
             cartoon=self.cartoon, author=self.stranger, text='root')
 
     def _add_reply(self, minutes_ago, parent=None):
-        # created_at is auto_now_add=True, which ignores any value
-        # passed to create() - it must be overridden with a separate
-        # save() after the row already exists.
+        # created_at имеет auto_now_add=True, поэтому игнорирует
+        # любое значение, переданное в create() - его нужно
+        # переопределить отдельным save() после того, как строка
+        # уже существует.
         reply = Comment.objects.create(
             cartoon=self.cartoon, author=self.stranger,
             parent=parent or self.root,
@@ -61,8 +62,8 @@ class UnreadRepliesBadgeTests(TestCase):
         return reply
 
     def test_owner_sees_new_replies_count(self):
-        self._add_reply(minutes_ago=30)  # after cutoff (1h ago) -> new
-        self._add_reply(minutes_ago=90)  # before cutoff -> not new
+        self._add_reply(minutes_ago=30)  # после cutoff (1ч назад) -> новый
+        self._add_reply(minutes_ago=90)  # до cutoff -> не новый
 
         self.client.force_login(self.author)
         resp = self.client.get(
@@ -142,11 +143,12 @@ class SeenTimestampResetTests(TestCase):
         self.assertEqual(resp.status_code, 401)
 
     def test_personal_page_badge_still_accurate_after_visiting_detail(self):
-        # Visiting the cartoon's own detail page must not silently mark
-        # comments as read (that used to happen immediately on GET) -
-        # the personal page's own "new comments" badge, computed from
-        # the same author_last_seen_comments field, must still count
-        # this reply until mark_comments_seen actually fires.
+        # Посещение страницы своего же мульта не должно молча
+        # помечать комментарии прочитанными (раньше это происходило
+        # сразу на GET) - бейдж "новых комментариев" на личной
+        # странице, посчитанный по тому же полю
+        # author_last_seen_comments, должен по-прежнему считать этот
+        # ответ, пока реально не сработает mark_comments_seen.
         Comment.objects.create(
             cartoon=self.cartoon, author=self.stranger, text='new one',
             created_at=timezone.now() - timedelta(hours=1))

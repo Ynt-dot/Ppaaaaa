@@ -9,14 +9,14 @@ from cartoons.models import Cartoon, CartoonLike, CartoonView
 
 
 class IndexSortTests(TestCase):
-    """Regression tests for the Subquery-based like/view counting in
-    index() - previously two Count() annotations joined to different
-    related tables in the same query caused a cartesian-product
-    fan-out that got dramatically slower as likes/views accumulated
-    (see get_recommendations() below for the same issue, benchmarked
-    at ~7s/query with 300 cartoons x 60 likes x 60 views vs ~30ms
-    after the fix). These tests only check correctness, not speed -
-    timing assertions are unreliable in CI."""
+    """Регрессионные тесты подсчёта лайков/просмотров через Subquery
+    в index() - раньше две аннотации Count() с join к разным
+    related-таблицам в одном запросе давали декартово произведение
+    строк, которое резко замедлялось по мере накопления лайков и
+    просмотров (см. get_recommendations() ниже - та же проблема,
+    замерено ~7с/запрос на 300 мультов x 60 лайков x 60 просмотров
+    против ~30мс после исправления). Эти тесты проверяют только
+    корректность, не скорость - замеры времени в CI ненадёжны."""
 
     def setUp(self):
         self.author = User.objects.create_user('feed_author', password='x')
@@ -61,9 +61,9 @@ class IndexSortTests(TestCase):
 
         resp = self.client.get(reverse('index'), {'sort': 'trending'})
         by_title = {c.title: c for c in resp.context['cartoons']}
-        # 'old but liked' has 2 recent likes (created just now),
-        # 'old like only' has a like from 30 days ago - trending
-        # (7-day window) should not count it.
+        # у 'old but liked' 2 свежих лайка (созданы только что),
+        # у 'old like only' лайк 30-дневной давности - тренды
+        # (окно 7 дней) не должны его засчитывать.
         self.assertEqual(by_title['old but liked'].recent_likes, 2)
         self.assertEqual(by_title['old like only'].recent_likes, 0)
 
@@ -120,7 +120,7 @@ class RecommendationsTests(TestCase):
     def test_pagination_across_pages(self):
         for i in range(15):
             Cartoon.objects.create(title=f'extra {i}', author=self.author)
-        # 15 extra + popular + plain = 17 candidates total
+        # 15 extra + popular + plain = 17 кандидатов всего
 
         resp1 = self.client.get(
             reverse('get_recommendations', args=[self.current.pk]),
