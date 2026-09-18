@@ -24,6 +24,12 @@ class Cartoon(models.Model):
     author_last_seen_comments = models.DateTimeField(null=True, blank=True)
     is_pinned = models.BooleanField(
         default=False, verbose_name="Закреплён на странице автора")
+    # Оригинал для этого мульта - если он сам является продолжением.
+    # SET_NULL, а не CASCADE: удаление оригинала не должно утаскивать
+    # за собой все продолжения.
+    continuation_of = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='continuations', verbose_name="Оригинал")
 
     class Meta:
         ordering = ['-created_at']  # сортировка по новизне

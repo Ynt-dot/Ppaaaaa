@@ -83,10 +83,10 @@
                             ★ Избранное
                         </button>
                         {% endif %}
-                        {% if user == cartoon.author or can_set_as_avatar or can_delete_cartoon %}
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" aria-expanded="false">⋯</button>
                             <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'editor_create' %}?continue={{ cartoon.pk }}">➕ Продолжить</a></li>
                                 {% if user == cartoon.author and not is_used_as_avatar %}
                                 <li><a class="dropdown-item" href="{% url 'editor_edit' cartoon.pk %}">✏ Редактировать</a></li>
                                 {% endif %}
@@ -112,7 +112,6 @@
                                 {% endif %}
                             </ul>
                         </div>
-                        {% endif %}
                     </div>
                 </div>
 
@@ -173,8 +172,28 @@
         </div>
     </div>
 
-    <!-- Рекомендации -->
+    <!-- Правая колонка: происхождение мульта + рекомендации -->
     <div class="col-md-4">
+        {% if continuation_original %}
+        <div class="mb-3">
+            <h6 class="fw-bold mb-2">Оригинал</h6>
+            <div class="d-flex flex-column gap-2">
+                {% include 'cartoons/cartoon_card.html' with cartoon=continuation_original compact=True show_author=True %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if continuations_list %}
+        <div class="mb-3">
+            <h6 class="fw-bold mb-2">Продолжения</h6>
+            <div class="d-flex flex-column gap-2">
+                {% for continuation in continuations_list %}
+                {% include 'cartoons/cartoon_card.html' with cartoon=continuation compact=True show_author=True %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <div class="d-flex align-items-center mb-2">
             <h6 class="fw-bold mb-0">Рекомендации</h6>
         </div>

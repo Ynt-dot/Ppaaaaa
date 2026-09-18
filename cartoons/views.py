@@ -248,7 +248,11 @@ def _get_comment_sort(request):
 
 
 def detail(request, pk):
-    cartoon = get_object_or_404(Cartoon, pk=pk)
+    cartoon = get_object_or_404(
+        Cartoon.objects.select_related(
+            'continuation_of', 'continuation_of__author',
+            'continuation_of__author__preference'),
+        pk=pk)
     Cartoon.objects.filter(pk=pk).update(views_count=F('views_count') + 1)
     cartoon.refresh_from_db(fields=['views_count'])
 
@@ -297,6 +301,22 @@ def detail(request, pk):
         rec_sort = 'trending'
         rec_author_filter = False
 
+    # Продолжения показываются, кроме анонимных - для них нет ни
+    # автора, ни ссылки на профиль, показывать особо нечего. Один
+    # Count() тут безопасен (не даёт декартова произведения, в
+    # отличие от index()/get_recommendations() - см. там комментарий
+    # про несколько Count() в одном запросе).
+    continuations_list = list(
+        cartoon.continuations
+        .filter(author__isnull=False)
+        .select_related('author', 'author__preference')
+        .annotate(unique_views_count=Count('unique_views', distinct=True))
+        .order_by('-created_at')[:20])
+
+    if cartoon.continuation_of:
+        cartoon.continuation_of.unique_views_count = (
+            cartoon.continuation_of.unique_views.count())
+
     context = {
         'cartoon': cartoon,
         'likes_count': likes_count,
@@ -329,6 +349,8 @@ def detail(request, pk):
             cartoon.description[:200] if cartoon.description
             else 'Мультфильм «{}» от {}'.format(
                 cartoon.title, _display_name(cartoon.author) or 'Аноним')),
+        'continuation_original': cartoon.continuation_of,
+        'continuations_list': continuations_list,
     }
     if cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)
@@ -1020,6 +1042,20 @@ def editor(request, pk=None):
     else:
         cartoon = None
 
+    # Продолжение чужого/своего мульта: GET .../new/?continue=<pk> -
+    # открывает редактор с кадрами исходного мульта, предзагруженными
+    # для продолжения. Доступно всем, даже анонимам, и не трогает
+    # исходный мульт - это создание нового мульта, а не его правка.
+    continuation_source = None
+    if not pk and request.method == 'GET':
+        try:
+            continuation_source = Cartoon.objects.get(
+                pk=int(request.GET.get('continue', 0)))
+        except (Cartoon.DoesNotExist, ValueError, TypeError):
+            continuation_source = None
+        if continuation_source and not continuation_source.frames_data:
+            continuation_source = None
+
     if request.method == 'POST':
         title = request.POST.get('title', '')[:100]
         fps_str = request.POST.get('fps', '10')
@@ -1073,16 +1109,34 @@ def editor(request, pk=None):
             if cartoon.preview:
                 cartoon.preview.delete(save=False)
         else:
+            # continuation_of проставляется только при первом
+            # создании мульта, не при последующем редактировании -
+            # его нельзя ни добавить, ни снять задним числом через
+            # обычную форму правки.
+            continuation_of_id = None
+            raw_continuation_of = request.POST.get(
+                'continuation_of', '').strip()
+            if raw_continuation_of.isdigit():
+                continuation_of_id = Cartoon.objects.filter(
+                    pk=raw_continuation_of).values_list(
+                    'pk', flat=True).first()
             cartoon = Cartoon(
                 title=title,
                 author=request.user if request.user.is_authenticated else None,
                 fps=fps,
                 frames_data=frames_data,
                 tags=tags,
-                description=description
+                description=description,
+                continuation_of_id=continuation_of_id,
             )
 
-        gif_content = create_gif_from_frames(frames_data, fps, max_frames=50)
+        if cartoon.continuation_of_id:
+            # В превью продолжения - последние 50 кадров (то новое,
+            # что дорисовали), а не первые 50, как у обычных мультов.
+            gif_content = create_gif_from_frames(frames_data[-50:], fps)
+        else:
+            gif_content = create_gif_from_frames(
+                frames_data, fps, max_frames=50)
         cartoon.preview.save(f'cartoon_{cartoon.pk or "new"}.gif', gif_content,
                              save=False)
         cartoon.save()
@@ -1092,6 +1146,11 @@ def editor(request, pk=None):
     context = {'cartoon': cartoon}
     if cartoon and cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)
+    elif continuation_source:
+        context['frames_json'] = json.dumps(
+            continuation_source.frames_data)
+        context['continuation_of'] = continuation_source.pk
+        context['continuation_of_title'] = continuation_source.title
 
     # Добавляем флаг для анонимов, чтобы показать модальное окно
     if not request.user.is_authenticated and not pk:
