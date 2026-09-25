@@ -25,10 +25,9 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <form id="search-form" class="d-flex flex-grow-1 mx-lg-3 my-2 my-lg-0" style="max-width:400px;" method="get" action="{% url 'search' %}" role="search">
                     <div id="search-bar" class="form-control p-0 d-flex align-items-stretch">
-                        <div id="search-chips" class="d-flex flex-wrap align-items-center flex-grow-1 gap-1">
+                        <div id="search-chips" class="d-flex flex-wrap align-items-center flex-grow-1 gap-1" data-default-mode="{{ request.user.preference.search_tag_mode|default:'and' }}">
                             <input type="text" id="search-text-input" name="q" class="border-0 flex-grow-1" placeholder="Поиск мультов..." value="{{ request.GET.q }}" autocomplete="off" aria-label="Поиск">
                         </div>
-                        <button type="button" id="search-mode-btn" data-mode="{{ request.user.preference.search_tag_mode|default:'and' }}"></button>
                     </div>
                 </form>
                 <ul class="navbar-nav ms-auto">

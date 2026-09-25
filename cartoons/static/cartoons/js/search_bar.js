@@ -25,46 +25,37 @@
         const form = document.getElementById('search-form');
         const textInput = document.getElementById('search-text-input');
         const chipsContainer = document.getElementById('search-chips');
-        const modeBtn = document.getElementById('search-mode-btn');
-        if (!bar || !textInput || !chipsContainer || !modeBtn) return;
+        if (!bar || !textInput || !chipsContainer) return;
 
-        state.mode = modeBtn.dataset.mode === 'or' ? 'or' : 'and';
-
-        function updateModeBtn() {
-            modeBtn.textContent = state.mode.toUpperCase();
-            modeBtn.title = state.mode === 'and'
-                ? 'И: показывать мульты, у которых есть ВСЕ выбранные теги. Нажмите, чтобы переключить на ИЛИ.'
-                : 'ИЛИ: показывать мульты, у которых есть хотя бы один из выбранных тегов. Нажмите, чтобы переключить на И.';
-        }
+        state.mode = chipsContainer.dataset.defaultMode === 'or' ? 'or' : 'and';
 
         // ── Редирект на страницу поиска с любой другой страницы ────────────
         if (!IS_SEARCH_PAGE) {
             textInput.addEventListener('focus', function () {
                 window.location.href = SEARCH_URL;
             });
-            bar.addEventListener('mousedown', function (e) {
-                if (e.target === modeBtn) return;
+            bar.addEventListener('mousedown', function () {
                 window.location.href = SEARCH_URL;
-            });
-            updateModeBtn();
-            modeBtn.addEventListener('click', function () {
-                state.mode = state.mode === 'and' ? 'or' : 'and';
-                updateModeBtn();
-                if (AUTHENTICATED) {
-                    fetch(SET_MODE_URL, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': getCsrf(),
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: 'mode=' + state.mode,
-                    });
-                }
             });
             return;
         }
 
         // ── Живой поиск на странице поиска ──────────────────────────────────
+        function modeTitle() {
+            return state.mode === 'and'
+                ? 'И: показывать мульты, у которых есть ВСЕ выбранные теги. Нажмите, чтобы переключить на ИЛИ.'
+                : 'ИЛИ: показывать мульты, у которых есть хотя бы один из выбранных тегов. Нажмите, чтобы переключить на И.';
+        }
+
+        function makeModeBtn() {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.id = 'search-mode-btn';
+            btn.textContent = state.mode.toUpperCase();
+            btn.title = modeTitle();
+            return btn;
+        }
+
         function makeChip(tag, exclude) {
             const span = document.createElement('span');
             span.className = 'search-chip' + (exclude ? ' search-chip-exclude' : '');
@@ -84,8 +75,14 @@
         }
 
         function renderChips() {
-            chipsContainer.querySelectorAll('.search-chip').forEach(el => el.remove());
+            chipsContainer.querySelectorAll('.search-chip, #search-mode-btn').forEach(el => el.remove());
             const frag = document.createDocumentFragment();
+            // Кнопка И/ИЛИ - отдельный объект от самих тегов-капсул, но
+            // живёт в начале той же строки, и только пока есть хотя бы
+            // один тег-фильтр (без тегов её нечего переключать).
+            if (state.tagsIn.length || state.tagsOut.length) {
+                frag.appendChild(makeModeBtn());
+            }
             state.tagsIn.forEach(t => frag.appendChild(makeChip(t, false)));
             state.tagsOut.forEach(t => frag.appendChild(makeChip(t, true)));
             chipsContainer.insertBefore(frag, textInput);
@@ -131,6 +128,20 @@
             runSearch();
         }
 
+        function setMode(mode) {
+            state.mode = mode;
+            if (AUTHENTICATED) {
+                fetch(SET_MODE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrf(),
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'mode=' + state.mode,
+                });
+            }
+        }
+
         // Начальное состояние - из query-строки текущего URL (сюда могли
         // прийти со страницы мульта с уже готовым тегом в капсуле).
         const initParams = new URLSearchParams(window.location.search);
@@ -141,7 +152,11 @@
         if (initMode === 'and' || initMode === 'or') state.mode = initMode;
         state.page = parseInt(initParams.get('page') || '1', 10) || 1;
         renderChips();
-        updateModeBtn();
+
+        // Строка поиска попадает в фокус сразу - иначе после перехода
+        // с другой страницы пользователю приходится кликать по ней ещё
+        // раз, чтобы начать печатать.
+        textInput.focus({ preventScroll: true });
 
         let debounceTimer = null;
         textInput.addEventListener('input', function () {
@@ -161,24 +176,14 @@
             form.addEventListener('submit', function (e) { e.preventDefault(); });
         }
 
-        modeBtn.addEventListener('click', function () {
-            state.mode = state.mode === 'and' ? 'or' : 'and';
-            state.page = 1;
-            updateModeBtn();
-            if (AUTHENTICATED) {
-                fetch(SET_MODE_URL, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': getCsrf(),
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'mode=' + state.mode,
-                });
-            }
-            runSearch();
-        });
-
         chipsContainer.addEventListener('click', function (e) {
+            if (e.target.closest('#search-mode-btn')) {
+                setMode(state.mode === 'and' ? 'or' : 'and');
+                state.page = 1;
+                renderChips();
+                runSearch();
+                return;
+            }
             const btn = e.target.closest('.search-chip-remove');
             if (!btn) return;
             const chip = btn.closest('.search-chip');

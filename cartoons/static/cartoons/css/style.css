@@ -351,21 +351,6 @@ a.tag-pill-x:hover {
     outline: none;
     padding: 2px 0;
 }
-#search-mode-btn {
-    border: none;
-    border-left: 1px solid #dee2e6;
-    background: #fff;
-    color: #212529;
-    font-size: 0.68rem;
-    font-weight: bold;
-    padding: 0 10px;
-    flex-shrink: 0;
-}
-#search-mode-btn:hover {
-    background: #212529;
-    color: #fff;
-}
-
 /* === Капсулы-фильтры внутри поисковой строки === */
 .search-chip {
     display: inline-flex;
@@ -376,6 +361,20 @@ a.tag-pill-x:hover {
     font-size: 0.76rem;
     padding: 1px 4px 1px 8px;
     white-space: nowrap;
+}
+#search-mode-btn {
+    border: none;
+    background-color: #212529;
+    color: #fff;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: bold;
+    line-height: 1;
+    padding: 3px 9px;
+    flex-shrink: 0;
+}
+#search-mode-btn:hover {
+    background-color: #495057;
 }
 .search-chip-exclude {
     background-color: #dc3545;
