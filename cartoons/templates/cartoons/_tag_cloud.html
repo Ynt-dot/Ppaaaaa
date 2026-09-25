@@ -1,0 +1,11 @@
+{% comment %}
+Строка тегов над результатами поиска - по встречаемости среди
+текущей выдачи, всегда одна строка (лишние теги просто не
+передаются с сервера - см. tag_counter.most_common(40) в search()),
+без кнопки "развернуть".
+{% endcomment %}
+{% if tag_cloud %}
+<div id="search-tag-cloud-row" class="mb-3 d-flex flex-nowrap overflow-hidden gap-1">
+    {% for tag in tag_cloud %}{% include 'cartoons/_tag_pill.html' %}{% endfor %}
+</div>
+{% endif %}

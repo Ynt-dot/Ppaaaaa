@@ -23,8 +23,13 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <form class="d-flex flex-grow-1 mx-lg-3 my-2 my-lg-0" style="max-width:400px;" method="get" action="{% url 'search' %}" role="search">
-                    <input type="search" name="q" class="form-control" placeholder="Поиск мультов..." value="{{ request.GET.q }}" aria-label="Поиск">
+                <form id="search-form" class="d-flex flex-grow-1 mx-lg-3 my-2 my-lg-0" style="max-width:400px;" method="get" action="{% url 'search' %}" role="search">
+                    <div id="search-bar" class="form-control p-0 d-flex align-items-stretch">
+                        <div id="search-chips" class="d-flex flex-wrap align-items-center flex-grow-1 gap-1">
+                            <input type="text" id="search-text-input" name="q" class="border-0 flex-grow-1" placeholder="Поиск мультов..." value="{{ request.GET.q }}" autocomplete="off" aria-label="Поиск">
+                        </div>
+                        <button type="button" id="search-mode-btn" data-mode="{{ request.user.preference.search_tag_mode|default:'and' }}"></button>
+                    </div>
                 </form>
                 <ul class="navbar-nav ms-auto">
                     <!-- Кнопка создания мульта для всех -->
@@ -317,6 +322,7 @@
             });
         })();
     </script>
+    <script src="{% static 'cartoons/js/search_bar.js' %}" data-search-url="{% url 'search' %}" data-set-mode-url="{% url 'set_search_tag_mode' %}" data-authenticated="{{ user.is_authenticated|yesno:'1,0' }}"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

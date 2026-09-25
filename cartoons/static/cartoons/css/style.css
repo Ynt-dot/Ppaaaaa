@@ -296,7 +296,7 @@ input[type="password"]::-ms-clear {
 /* === Clamp (теги / описание) === */
 .tags-clamp {
     display: -webkit-box;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -304,14 +304,94 @@ input[type="password"]::-ms-clear {
     display: block;
     overflow: visible;
 }
-.tag-link,
-a.tag-link {
-    color: #6c757d;
-    text-decoration: underline;
+.tag-pill-row {
+    line-height: 2.1;
 }
-.tag-link:hover,
-a.tag-link:hover {
-    color: #adb5bd;
+
+/* === Капсула тега (страница мульта, облако тегов на поиске) === */
+.tag-pill {
+    display: inline-flex;
+    align-items: center;
+    background-color: #e9ecef;
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 0 2px 2px 0;
+    vertical-align: middle;
+}
+.tag-pill-label,
+a.tag-pill-label {
+    color: #495057 !important;
+    text-decoration: none !important;
+    font-size: 0.78rem;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+.tag-pill-label:hover,
+a.tag-pill-label:hover {
+    background-color: #dee2e6;
+}
+.tag-pill-x,
+a.tag-pill-x {
+    color: #dc3545 !important;
+    text-decoration: none !important;
+    font-size: 0.78rem;
+    line-height: 1;
+    padding: 2px 7px 2px 4px;
+}
+.tag-pill-x:hover,
+a.tag-pill-x:hover {
+    background-color: #f5c2c7;
+}
+
+/* === Поисковая строка (шапка) === */
+#search-bar {
+    padding: 0;
+}
+#search-text-input {
+    outline: none;
+    padding: 2px 0;
+}
+#search-mode-btn {
+    border: none;
+    border-left: 1px solid #dee2e6;
+    background: #fff;
+    color: #212529;
+    font-size: 0.68rem;
+    font-weight: bold;
+    padding: 0 10px;
+    flex-shrink: 0;
+}
+#search-mode-btn:hover {
+    background: #212529;
+    color: #fff;
+}
+
+/* === Капсулы-фильтры внутри поисковой строки === */
+.search-chip {
+    display: inline-flex;
+    align-items: center;
+    background-color: #6c757d;
+    color: #fff;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    padding: 1px 4px 1px 8px;
+    white-space: nowrap;
+}
+.search-chip-exclude {
+    background-color: #dc3545;
+}
+.search-chip-remove {
+    border: none;
+    background: transparent;
+    color: #fff;
+    line-height: 1;
+    padding: 0 4px;
+    margin-left: 2px;
+}
+
+/* === Облако тегов над результатами поиска === */
+#search-tag-cloud-row {
+    line-height: 2.1;
 }
 .comment-item {
     position: relative;

@@ -6,6 +6,8 @@ from django.conf.urls import include
 urlpatterns = [
     path('', views.index, name='index'),
     path('search/', views.search, name='search'),
+    path('search/set-tag-mode/', views.set_search_tag_mode,
+         name='set_search_tag_mode'),
     path('new/', views.editor, name='editor_create'),
     path('edit/<int:pk>/', views.editor, name='editor_edit'),
     path('cartoon/<int:pk>/', views.detail, name='detail'),

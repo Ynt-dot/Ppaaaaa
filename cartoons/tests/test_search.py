@@ -123,3 +123,97 @@ class SearchBarRenderTests(TestCase):
     def test_query_value_prefilled_on_search_page(self):
         resp = self.client.get(reverse('search'), {'q': 'мой запрос'})
         self.assertContains(resp, 'value="мой запрос"')
+
+
+class SearchTagFilterTests(TestCase):
+    def setUp(self):
+        self.author = User.objects.create_user('tag_author', password='x')
+
+    def test_single_tag_filters_without_query(self):
+        Cartoon.objects.create(
+            title='a', author=self.author, tags=['кот', 'смешной'])
+        Cartoon.objects.create(
+            title='b', author=self.author, tags=['собака'])
+        resp = self.client.get(reverse('search'), {'tag': 'кот'})
+        self.assertEqual(len(resp.context['cartoons']), 1)
+
+    def test_tag_matches_exactly_not_as_substring(self):
+        Cartoon.objects.create(
+            title='a', author=self.author, tags=['котёнок'])
+        resp = self.client.get(reverse('search'), {'tag': 'кот'})
+        self.assertEqual(len(resp.context['cartoons']), 0)
+
+    def test_multiple_tags_and_mode_requires_all(self):
+        both = Cartoon.objects.create(
+            title='a', author=self.author, tags=['кот', 'смешной'])
+        Cartoon.objects.create(
+            title='b', author=self.author, tags=['кот'])
+        resp = self.client.get(
+            reverse('search'),
+            {'tag': ['кот', 'смешной'], 'mode': 'and'})
+        results = list(resp.context['cartoons'])
+        self.assertEqual(results, [both])
+
+    def test_multiple_tags_or_mode_requires_any(self):
+        Cartoon.objects.create(title='a', author=self.author, tags=['кот'])
+        Cartoon.objects.create(
+            title='b', author=self.author, tags=['собака'])
+        Cartoon.objects.create(title='c', author=self.author, tags=['лев'])
+        resp = self.client.get(
+            reverse('search'),
+            {'tag': ['кот', 'собака'], 'mode': 'or'})
+        self.assertEqual(len(resp.context['cartoons']), 2)
+
+    def test_extag_excludes_matching_cartoons(self):
+        Cartoon.objects.create(title='a', author=self.author, tags=['кот'])
+        Cartoon.objects.create(title='b', author=self.author, tags=['лев'])
+        resp = self.client.get(
+            reverse('search'), {'q': '', 'extag': 'кот'})
+        # без q, но с extag - тоже валидная выдача (всё, кроме
+        # исключённого тега)
+        titles = [c.title for c in resp.context['cartoons']]
+        self.assertEqual(titles, ['b'])
+
+    def test_ajax_search_returns_json_fragments(self):
+        Cartoon.objects.create(title='a', author=self.author, tags=['кот'])
+        resp = self.client.get(
+            reverse('search'), {'tag': 'кот', 'ajax': '1'})
+        data = resp.json()
+        self.assertIn('results_html', data)
+        self.assertIn('tags_html', data)
+
+    def test_tag_cloud_excludes_already_selected_tags(self):
+        Cartoon.objects.create(
+            title='a', author=self.author, tags=['кот', 'смешной'])
+        resp = self.client.get(reverse('search'), {'tag': 'кот'})
+        self.assertNotIn('кот', resp.context['tag_cloud'])
+        self.assertIn('смешной', resp.context['tag_cloud'])
+
+    def test_authenticated_user_mode_choice_is_saved(self):
+        self.client.force_login(self.author)
+        self.client.get(
+            reverse('search'), {'q': 'что-то', 'mode': 'or'})
+        pref = UserPreference.objects.get(user=self.author)
+        self.assertEqual(pref.search_tag_mode, 'or')
+
+    def test_set_search_tag_mode_requires_login(self):
+        resp = self.client.post(
+            reverse('set_search_tag_mode'), {'mode': 'or'})
+        self.assertEqual(resp.status_code, 401)
+
+    def test_set_search_tag_mode_persists_for_user(self):
+        self.client.force_login(self.author)
+        resp = self.client.post(
+            reverse('set_search_tag_mode'), {'mode': 'or'})
+        self.assertEqual(resp.status_code, 200)
+        pref = UserPreference.objects.get(user=self.author)
+        self.assertEqual(pref.search_tag_mode, 'or')
+
+    def test_detail_page_renders_tags_as_pills_alphabetically(self):
+        cartoon = Cartoon.objects.create(
+            title='a', author=self.author, tags=['яблоко', 'арбуз'])
+        resp = self.client.get(reverse('detail', args=[cartoon.pk]))
+        content = resp.content.decode()
+        self.assertLess(
+            content.index('data-tag="арбуз"'),
+            content.index('data-tag="яблоко"'))

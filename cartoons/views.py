@@ -5,6 +5,7 @@ from .models import (
 )
 import json
 import re
+from collections import Counter
 from .utils import create_gif_from_frames, create_avatar_gif
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
@@ -18,7 +19,7 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 import os
 from django.conf import settings
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponseForbidden, QueryDict
 from django.views.decorators.http import require_POST, require_GET
 from django.db.models import (
     Count, Q, F, Case, When, Value, IntegerField, OuterRef, Subquery,
@@ -238,6 +239,28 @@ def index(request):
     })
 
 
+def _tag_contains_q(tag):
+    """Q-условие "мульт содержит именно такой тег". JSONField
+    lookup'ы contains/contained_by у Django не поддерживаются ни на
+    SQLite, ни на MySQL - поэтому ищем не по структуре JSON, а по
+    сериализованному тексту поля, требуя точные кавычки вокруг тега
+    (`"тег"`), а не голую подстроку - иначе тег "кот" совпал бы с
+    тегом "котёнок"."""
+    return Q(tags__icontains='"' + tag + '"')
+
+
+def _search_tag_mode(request):
+    mode = request.GET.get('mode')
+    if mode in ('and', 'or'):
+        return mode
+    if request.user.is_authenticated:
+        try:
+            return request.user.preference.search_tag_mode
+        except UserPreference.DoesNotExist:
+            pass
+    return 'and'
+
+
 def search(request):
     """Ищет по названию, описанию, тегам, нику/отображаемому имени
     автора и тексту (неудалённых) комментариев - одним OR-запросом по
@@ -245,15 +268,33 @@ def search(request):
     и быстрее - не плодит JOIN'ы на каждое слово). Совпадение в
     названии поднимает мульт наверх выдачи, дальше - по свежести.
 
+    Дополнительно фильтрует по тегам-капсулам из поисковой строки:
+    "tag" - мульт должен содержать (режим И/ИЛИ, см. _search_tag_mode),
+    "extag" - мульт не должен содержать ни один из них. Список тегов
+    без q тоже валиден - тогда выдача строится только по тегам.
+
     JOIN на комментарии даёт по строке на каждый подходящий
     комментарий - убирается через distinct(). На объёмах одного сайта
     (не миллионы записей) укладывается в доли секунды без отдельного
     полнотекстового движка."""
     query = request.GET.get('q', '').strip()[:100]
+    tags_in = [t.strip() for t in request.GET.getlist('tag')][:20]
+    tags_in = [t for t in tags_in if t]
+    tags_out = [t.strip() for t in request.GET.getlist('extag')][:20]
+    tags_out = [t for t in tags_out if t]
+    mode = _search_tag_mode(request)
 
-    if query:
-        cartoon_list = (
-            Cartoon.objects.filter(
+    if request.user.is_authenticated and request.GET.get('mode') in (
+            'and', 'or'):
+        pref, _ = UserPreference.objects.get_or_create(user=request.user)
+        if pref.search_tag_mode != mode:
+            pref.search_tag_mode = mode
+            pref.save(update_fields=['search_tag_mode'])
+
+    if query or tags_in or tags_out:
+        cartoon_list = Cartoon.objects.all()
+        if query:
+            cartoon_list = cartoon_list.filter(
                 Q(title__icontains=query)
                 | Q(description__icontains=query)
                 | Q(tags__icontains=query)
@@ -262,6 +303,20 @@ def search(request):
                 | Q(comments__is_deleted=False,
                     comments__text__icontains=query)
             )
+        if tags_in:
+            if mode == 'or':
+                tag_q = Q()
+                for t in tags_in:
+                    tag_q |= _tag_contains_q(t)
+                cartoon_list = cartoon_list.filter(tag_q)
+            else:
+                for t in tags_in:
+                    cartoon_list = cartoon_list.filter(_tag_contains_q(t))
+        for t in tags_out:
+            cartoon_list = cartoon_list.exclude(_tag_contains_q(t))
+
+        cartoon_list = (
+            cartoon_list
             .select_related('author', 'author__preference')
             .annotate(
                 title_match=Case(
@@ -274,13 +329,65 @@ def search(request):
     else:
         cartoon_list = Cartoon.objects.none()
 
+    tag_cloud = []
+    if query or tags_in or tags_out:
+        tag_counter = Counter()
+        for taglist in cartoon_list.values_list('tags', flat=True):
+            if isinstance(taglist, list):
+                for t in taglist:
+                    if isinstance(t, str) and t and t not in tags_in \
+                            and t not in tags_out:
+                        tag_counter[t] += 1
+        tag_cloud = [t for t, _ in tag_counter.most_common(40)]
+
     paginator = Paginator(cartoon_list, 16)
     cartoons = paginator.get_page(request.GET.get('page'))
 
-    return render(request, 'cartoons/search.html', {
+    search_qd = QueryDict(mutable=True)
+    if query:
+        search_qd['q'] = query
+    for t in tags_in:
+        search_qd.appendlist('tag', t)
+    for t in tags_out:
+        search_qd.appendlist('extag', t)
+    search_qd['mode'] = mode
+
+    context = {
         'cartoons': cartoons,
         'query': query,
-    })
+        'tags_in': tags_in,
+        'tags_out': tags_out,
+        'tag_cloud': tag_cloud,
+        'search_tag_mode': mode,
+        'search_qs': search_qd.urlencode(),
+    }
+
+    if request.GET.get('ajax') == '1':
+        return JsonResponse({
+            'results_html': render_to_string(
+                'cartoons/_search_results.html', context, request=request),
+            'tags_html': render_to_string(
+                'cartoons/_tag_cloud.html', context, request=request),
+        })
+
+    return render(request, 'cartoons/search.html', context)
+
+
+@require_POST
+def set_search_tag_mode(request):
+    """Отдельная ручка для сохранения режима И/ИЛИ без запуска
+    поиска - нужна на страницах, отличных от страницы поиска, где
+    кнопка переключения режима видна (она часть общей поисковой
+    строки в шапке), но результатов для повторного поиска нет."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'login_required'}, status=401)
+    mode = request.POST.get('mode')
+    if mode not in ('and', 'or'):
+        return JsonResponse({'error': 'bad_mode'}, status=400)
+    pref, _ = UserPreference.objects.get_or_create(user=request.user)
+    pref.search_tag_mode = mode
+    pref.save(update_fields=['search_tag_mode'])
+    return JsonResponse({'ok': True})
 
 
 def _get_comment_sort(request):

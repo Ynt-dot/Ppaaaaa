@@ -178,6 +178,13 @@ class UserPreference(models.Model):
         default=False, verbose_name="Тролль",
         help_text="Комментарии показываются с кнопкой \"заблокировать\" "
                   "всем, а не только автору мульта.")
+    # Режим комбинирования тегов-фильтров в поиске: И (нужны все теги)
+    # или ИЛИ (достаточно любого). Переключается кнопкой в поисковой
+    # строке, запоминается за авторизованным пользователем.
+    search_tag_mode = models.CharField(
+        max_length=3, default='and',
+        choices=[('and', 'И'), ('or', 'ИЛИ')],
+        verbose_name="Режим сочетания тегов в поиске")
 
 
 class UserBlock(models.Model):
