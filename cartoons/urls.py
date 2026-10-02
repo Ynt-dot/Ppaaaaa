@@ -5,31 +5,126 @@ from django.conf.urls import include
 
 urlpatterns = [
     path('', views.index, name='index'),
+    path('search/', views.search, name='search'),
+    path('search/set-tag-mode/', views.set_search_tag_mode,
+         name='set_search_tag_mode'),
     path('new/', views.editor, name='editor_create'),
     path('edit/<int:pk>/', views.editor, name='editor_edit'),
     path('cartoon/<int:pk>/', views.detail, name='detail'),
+    path(
+        'cartoon/<int:pk>/delete/',
+        views.delete_cartoon,
+        name='delete_cartoon'),
+    path(
+        'cartoon/<int:pk>/delete-own/',
+        views.delete_own_cartoon,
+        name='delete_own_cartoon'),
     path('cartoon/<int:pk>/like/', views.toggle_cartoon_like,
          name='toggle_cartoon_like'),
-    path('cartoon/<int:pk>/comments/', views.get_comments, name='get_comments'),
+    path(
+        'cartoon/<int:pk>/mark-comments-seen/',
+        views.mark_comments_seen,
+        name='mark_comments_seen'),
+    path(
+        'cartoon/<int:pk>/comments/',
+        views.get_comments,
+        name='get_comments'),
     path('cartoon/<int:pk>/comments/add/', views.add_comment,
          name='add_comment'),
-    path('comment/<int:comment_pk>/edit/', views.edit_comment, name='edit_comment'),
-    path('comment/<int:comment_pk>/pin/', views.pin_comment, name='pin_comment'),
+    path(
+        'comment/<int:comment_pk>/edit/',
+        views.edit_comment,
+        name='edit_comment'),
+    path(
+        'comment/<int:comment_pk>/delete/',
+        views.delete_comment,
+        name='delete_comment'),
+    path(
+        'comment/<int:comment_pk>/delete-own/',
+        views.delete_own_comment,
+        name='delete_own_comment'),
+    path(
+        'comment/<int:comment_pk>/descendants-count/',
+        views.get_comment_descendants_count,
+        name='get_comment_descendants_count'),
+    path(
+        'comment/<int:comment_pk>/pin/',
+        views.pin_comment,
+        name='pin_comment'),
     path('comment/<int:comment_pk>/like/', views.toggle_comment_like,
          name='toggle_comment_like'),
-    path('comment/<int:comment_pk>/replies/', views.get_replies, name='get_replies'),
-    path('comment/<int:comment_pk>/thread/', views.get_thread, name='get_thread'),
+    path('comment/<int:comment_pk>/replies/',
+         views.get_replies, name='get_replies'),
+    path('comment/<int:comment_pk>/thread/',
+         views.get_thread, name='get_thread'),
     path('set-comment-sort/', views.set_comment_sort, name='set_comment_sort'),
     path('register/', views.register, name='register'),
+    path('privacy-policy/', views.privacy_policy, name='privacy_policy'),
     path('user/<str:username>/', views.user_profile, name='user_profile'),
     path('user/<str:username>/comments/', views.get_user_profile_comments,
          name='user_profile_comments'),
-    path('user/<str:username>/note/', views.save_user_note, name='save_user_note'),
-    path('cartoon/<int:pk>/recommendations/', views.get_recommendations, name='get_recommendations'),
-    path('cartoon/<int:pk>/favorite/', views.toggle_favorite, name='toggle_favorite'),
-    path('cartoon/<int:pk>/set-as-avatar/', views.set_as_avatar, name='set_as_avatar'),
-    path('my-avatar-cartoons/', views.get_avatar_cartoons, name='get_avatar_cartoons'),
+    path(
+        'user/<str:username>/note/',
+        views.save_user_note,
+        name='save_user_note'),
+    path(
+        'user/<str:username>/block/',
+        views.toggle_block_user,
+        name='toggle_block_user'),
+    path(
+        'cartoon/<int:pk>/pin/',
+        views.toggle_cartoon_pin,
+        name='toggle_cartoon_pin'),
+    path('settings/', views.account_settings, name='account_settings'),
+    path(
+        'settings/password/',
+        views.change_password,
+        name='change_password'),
+    path(
+        'settings/username/',
+        views.update_username,
+        name='update_username'),
+    path(
+        'settings/display-name/',
+        views.update_display_name,
+        name='update_display_name'),
+    path(
+        'settings/description/',
+        views.update_description,
+        name='update_description'),
+    path(
+        'settings/blocklist/add/',
+        views.blocklist_add,
+        name='blocklist_add'),
+    path(
+        'cartoon/<int:pk>/recommendations/',
+        views.get_recommendations,
+        name='get_recommendations'),
+    path(
+        'cartoon/<int:pk>/continuations/',
+        views.get_continuations,
+        name='get_continuations'),
+    path(
+        'cartoon/<int:pk>/favorite/',
+        views.toggle_favorite,
+        name='toggle_favorite'),
+    path(
+        'cartoon/<int:pk>/set-as-avatar/',
+        views.set_as_avatar,
+        name='set_as_avatar'),
+    path(
+        'my-avatar-cartoons/',
+        views.get_avatar_cartoons,
+        name='get_avatar_cartoons'),
     path('delete-avatar/', views.delete_avatar, name='delete_avatar'),
+    path(
+        'admin-default-avatar/<int:pk>/crop/',
+        views.admin_default_avatar_crop,
+        name='admin_default_avatar_crop'),
+    path(
+        'admin-default-avatar/<int:pk>/save/',
+        views.set_default_avatar,
+        name='set_default_avatar'),
     path('verify/<uuid:token>/', views.verify_email, name='verify_email'),
     path(
         'verification-sent/',

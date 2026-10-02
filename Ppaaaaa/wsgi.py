@@ -1,9 +1,9 @@
 """
-WSGI config for Ppaaaaa project.
+Конфигурация WSGI для проекта Ppaaaaa.
 
-It exposes the WSGI callable as a module-level variable named ``application``.
+Экспортирует WSGI-приложение как переменную модуля ``application``.
 
-For more information on this file, see
+Подробнее об этом файле см.
 https://docs.djangoproject.com/en/4.2/howto/deployment/wsgi/
 """
 

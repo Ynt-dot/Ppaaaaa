@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load static cartoon_tags %}
+
+{% block title %}Поиск{% if query %}: {{ query }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div id="search-tag-cloud">
+            {% include 'cartoons/_tag_cloud.html' %}
+        </div>
+
+        <div id="search-results-wrap">
+            {% include 'cartoons/_search_results.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}

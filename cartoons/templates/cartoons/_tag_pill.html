@@ -1,0 +1,15 @@
+{% comment %}
+Капсула тега: клик по подписи - добавить как фильтр "включить" (или
+перейти на страницу поиска с ним), клик по крестику - как фильтр
+"исключить". На странице поиска перехватывается JS (search_bar.js)
+без перезагрузки, на остальных страницах - обычный переход по
+ссылке.
+{% endcomment %}
+<span class="tag-pill">
+    <a href="{% url 'search' %}?tag={{ tag|urlencode }}"
+       class="tag-pill-label" data-tag="{{ tag }}">{{ tag }}</a><a
+       href="{% url 'search' %}?extag={{ tag|urlencode }}"
+       class="tag-pill-x" data-tag="{{ tag }}"
+       aria-label="Исключить «{{ tag }}»"
+       title="Исключить «{{ tag }}»">×</a>
+</span>

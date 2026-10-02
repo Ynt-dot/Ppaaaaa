@@ -12,10 +12,27 @@ class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, label='Email',
                              widget=forms.EmailInput(attrs={'class': 'form-con\
 trol'}))
+    agree_to_terms = forms.BooleanField(
+        required=True,
+        label='Я согласен с условиями обработки персональных данных',
+        error_messages={
+            'required': (
+                'Необходимо согласиться с условиями обработки '
+                'персональных данных.'
+            ),
+        },
+    )
 
     class Meta:
         model = User
         fields = ('username', 'email', 'password1', 'password2')
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username', '')
+        if len(username) > 15:
+            raise ValidationError(
+                'C-key не может быть длиннее 15 символов.')
+        return username
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -51,12 +68,19 @@ l={email}"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['username'].widget.attrs.update({'class': 'form-control', 'maxlength': 15})
-        self.fields['username'].max_length = 15
+        self.fields['username'].widget.attrs.update(
+            {'class': 'form-control', 'maxlength': 15})
         self.fields['password1'].widget.attrs.update({'class': 'form-control'})
         self.fields['password2'].widget.attrs.update({'class': 'form-control'})
-        self.fields['username'].help_text = 'Обязательное поле. Не более 15 символов. Только буквы, цифры и символы @/./+/-/_.'
+        self.fields['username'].label = 'C-key'
+        self.fields['username'].help_text = (
+            'Используется для входа на сайт и в ссылке на профиль. '
+            'Обязательное поле. Не более 15 символов. Только буквы, '
+            'цифры и символы @/./+/-/_.'
+        )
         self.fields['password1'].help_text = 'Пароль должен содержать минимум \
 8 символов и не может быть слишком простым или состоять только из цифр.'
         self.fields['password2'].help_text = 'Введите тот же пароль для подтве\
 рждения.'
+        self.fields['agree_to_terms'].widget.attrs.update(
+            {'class': 'form-check-input'})

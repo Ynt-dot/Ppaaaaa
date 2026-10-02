@@ -7,3 +7,4 @@ class CartoonsConfig(AppConfig):
 
     def ready(self):
         import cartoons.signals # noqa
+        import cartoons.sqlite_unicode # noqa

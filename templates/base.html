@@ -1,4 +1,4 @@
-{% load static %}
+{% load static cartoon_tags %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -23,6 +23,13 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
+                <form id="search-form" class="d-flex flex-grow-1 mx-lg-3 my-2 my-lg-0" style="max-width:400px;" method="get" action="{% url 'search' %}" role="search">
+                    <div id="search-bar" class="form-control p-0 d-flex align-items-stretch">
+                        <div id="search-chips" class="d-flex flex-wrap align-items-center flex-grow-1 gap-1" data-default-mode="{{ request.user.preference.search_tag_mode|default:'and' }}">
+                            <input type="text" id="search-text-input" name="q" class="border-0 flex-grow-1" placeholder="Поиск мультов..." value="{{ request.GET.q }}" autocomplete="off" aria-label="Поиск">
+                        </div>
+                    </div>
+                </form>
                 <ul class="navbar-nav ms-auto">
                     <!-- Кнопка создания мульта для всех -->
                     <li class="nav-item">
@@ -35,12 +42,18 @@
                         <!-- Выпадающее меню авторизованного пользователя -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                {{ user.username }}
+                                {{ user|display_name }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                                 <li><a class="dropdown-item" href="{% url 'user_profile' username=user.username %}">Личная страница</a></li>
+                                <li><a class="dropdown-item" href="{% url 'account_settings' %}">Настройки</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'logout' %}">Выйти</a></li>
+                                <li>
+                                    <form method="post" action="{% url 'logout' %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item">Выйти</button>
+                                    </form>
+                                </li>
                             </ul>
                         </li>
                     {% else %}
@@ -91,6 +104,49 @@
             </div>
         </div>
     </div>
+
+    <!-- Уведомление об использовании cookie -->
+    <div id="cookieBanner" class="cookie-banner" style="display:none;">
+        <div class="cookie-banner-inner">
+            <span>Мы используем cookie-файлы. Продолжая пользоваться сайтом вы соглашаетесь с этим.</span>
+            <button type="button" id="cookieBannerOk" class="btn btn-sm btn-light">OK</button>
+        </div>
+    </div>
+    <style>
+        .cookie-banner {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1080;
+            background: #212529;
+            color: #fff;
+            padding: 12px 16px;
+        }
+        .cookie-banner-inner {
+            max-width: 960px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+    </style>
+    <script>
+        (function () {
+            try {
+                if (!localStorage.getItem('cookieBannerSeen')) {
+                    var banner = document.getElementById('cookieBanner');
+                    banner.style.display = 'block';
+                    document.getElementById('cookieBannerOk').addEventListener('click', function () {
+                        try { localStorage.setItem('cookieBannerSeen', '1'); } catch (e) {}
+                        banner.style.display = 'none';
+                    });
+                }
+            } catch (e) {}
+        })();
+    </script>
 
     <script src="{% static 'cartoons/js/bootstrap.bundle.min.js' %}"></script>
     <script>
@@ -231,6 +287,41 @@
         });
         // Для поля color не добавляем form-control, оно само стилизуется
     </script>
+    <script>
+        // Закреп мульта на странице автора (кнопка поверх превью)
+        (function () {
+            function getCsrf() {
+                for (const c of document.cookie.split(';')) {
+                    const t = c.trim();
+                    if (t.startsWith('csrftoken=')) return decodeURIComponent(t.slice('csrftoken='.length));
+                }
+                return '';
+            }
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('.cartoon-pin-toggle');
+                if (!btn) return;
+                e.preventDefault();
+                e.stopPropagation();
+                if (btn.disabled) return;
+                btn.disabled = true;
+                fetch(btn.dataset.pinUrl, {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': getCsrf()},
+                })
+                    .then(r => r.json())
+                    .then(() => {
+                        // Порядок мультов на странице (закреплённые
+                        // первыми) считает сервер при рендере - после
+                        // закрепления/открепления перезагружаем
+                        // страницу, чтобы порядок сразу стал верным,
+                        // а не только после ручного обновления.
+                        window.location.reload();
+                    })
+                    .catch(() => { btn.disabled = false; });
+            });
+        })();
+    </script>
+    <script src="{% static 'cartoons/js/search_bar.js' %}" data-search-url="{% url 'search' %}" data-set-mode-url="{% url 'set_search_tag_mode' %}" data-authenticated="{{ user.is_authenticated|yesno:'1,0' }}"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

@@ -1,7 +1,25 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static cartoon_tags %}
 
 {% block title %}{{ cartoon.title }}{% endblock %}
+
+{% block extra_head %}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Ппааааа">
+<meta property="og:title" content="{{ cartoon.title }}">
+<meta property="og:description" content="{{ og_description }}">
+<meta property="og:url" content="{{ og_url }}">
+{% if og_image_url %}
+<meta property="og:image" content="{{ og_image_url }}">
+<meta property="og:image:type" content="image/gif">
+{% endif %}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ cartoon.title }}">
+<meta name="twitter:description" content="{{ og_description }}">
+{% if og_image_url %}
+<meta name="twitter:image" content="{{ og_image_url }}">
+{% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -37,11 +55,11 @@
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div class="d-flex align-items-center gap-2">
                         {% if cartoon.author %}
-                        <a href="{% url 'user_profile' username=cartoon.author.username %}">
-                            <img id="author-avatar-img" src="{{ author_avatar_url }}" class="user-avatar-md" alt="{{ cartoon.author.username }}">
+                        <a href="{{ author_avatar_link_url }}">
+                            <img id="author-avatar-img" src="{{ author_avatar_url }}" class="user-avatar-md" alt="{{ cartoon.author|display_name }}">
                         </a>
                         <div>
-                            <a href="{% url 'user_profile' username=cartoon.author.username %}" class="username-link fs-5 d-block lh-1">{{ cartoon.author.username }}</a>
+                            <a href="{{ author_profile_url }}" class="username-link fs-5 d-block lh-1">{{ cartoon.author|display_name }}</a>
                             <small class="text-muted">{{ cartoon.created_at|date:"d.m.Y H:i" }}, {{ cartoon.fps }} FPS</small>
                         </div>
                         {% else %}
@@ -65,7 +83,7 @@
                             ★ Избранное
                         </button>
                         {% endif %}
-                        {% if user == cartoon.author and not is_used_as_avatar or can_set_as_avatar %}
+                        {% if user == cartoon.author or can_set_as_avatar or can_delete_cartoon %}
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" aria-expanded="false">⋯</button>
                             <ul class="dropdown-menu dropdown-menu-end">
@@ -76,6 +94,19 @@
                                 <li>
                                     <button class="dropdown-item" id="set-avatar-btn" data-url="{% url 'set_as_avatar' cartoon.pk %}">
                                         🖼 Установить аватар
+                                    </button>
+                                </li>
+                                {% endif %}
+                                {% if can_delete_cartoon %}
+                                <li>
+                                    <button class="dropdown-item text-danger" id="delete-cartoon-btn" data-url="{% url 'delete_cartoon' cartoon.pk %}">
+                                        🗑 Удалить мульт
+                                    </button>
+                                </li>
+                                {% elif user == cartoon.author %}
+                                <li>
+                                    <button class="dropdown-item text-danger" id="delete-cartoon-btn" data-url="{% url 'delete_own_cartoon' cartoon.pk %}">
+                                        🗑 Удалить мульт
                                     </button>
                                 </li>
                                 {% endif %}
@@ -90,7 +121,7 @@
                 {% if cartoon.tags %}
                 <div class="small mb-1">
                     <strong>Теги:</strong>
-                    <span id="tags-text" class="tags-clamp">{{ sorted_tags|join:", " }}</span>
+                    <span id="tags-text" class="tags-clamp tag-pill-row">{% for tag in sorted_tags %}{% include 'cartoons/_tag_pill.html' %}{% endfor %}</span>
                     <button id="tags-toggle" class="btn btn-link btn-sm p-0 d-none" style="font-size:0.78rem; vertical-align:baseline;">ещё</button>
                 </div>
                 {% endif %}
@@ -142,8 +173,34 @@
         </div>
     </div>
 
-    <!-- Рекомендации -->
+    <!-- Правая колонка: происхождение мульта + рекомендации -->
     <div class="col-md-4">
+        <a class="btn btn-black w-100 mb-3" href="{% url 'editor_create' %}?continue={{ cartoon.pk }}">
+            <i class="bi bi-pencil-fill"></i> Продолжить
+        </a>
+
+        {% if continuation_original %}
+        <div class="mb-3">
+            <h6 class="fw-bold mb-2">Оригинал</h6>
+            <div class="d-flex flex-column gap-2">
+                {% include 'cartoons/cartoon_card.html' with cartoon=continuation_original compact=True show_author=True %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if has_continuations %}
+        <div class="mb-3">
+            <h6 class="fw-bold mb-2">Продолжения</h6>
+            <div id="continuations-container" class="d-flex flex-column gap-2"></div>
+            <div class="text-center mt-2" id="continuations-load-more-container" style="display:none;">
+                <button id="continuations-load-more-btn" class="btn btn-sm btn-outline-secondary">Загрузить ещё</button>
+            </div>
+            <div id="continuations-loading" class="text-center py-2">
+                <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="d-flex align-items-center mb-2">
             <h6 class="fw-bold mb-0">Рекомендации</h6>
         </div>
@@ -151,7 +208,7 @@
             <select id="rec-filter-select" class="form-select form-select-sm">
                 <option value="all" {% if not rec_author_filter %}selected{% endif %}>Все мульты</option>
                 {% if cartoon.author %}
-                <option value="author" {% if rec_author_filter %}selected{% endif %}>Автор: {{ cartoon.author.username }}</option>
+                <option value="author" {% if rec_author_filter %}selected{% endif %}>Автор: {{ cartoon.author|display_name }}</option>
                 {% endif %}
             </select>
             <select id="rec-sort-select" class="form-select form-select-sm">
@@ -161,8 +218,11 @@
                 <option value="popular" {% if rec_sort == 'popular' %}selected{% endif %}>Популярные</option>
             </select>
         </div>
-        <div id="rec-container" class="row row-cols-1 g-2"></div>
+        <div id="rec-container" class="d-flex flex-column gap-2"></div>
         <p id="rec-empty" class="text-muted text-center small mt-2" style="display:none;">Мультов не найдено</p>
+        <div class="text-center mt-2" id="rec-load-more-container" style="display:none;">
+            <button id="rec-load-more-btn" class="btn btn-sm btn-outline-secondary">Загрузить ещё</button>
+        </div>
         <div id="rec-loading" class="text-center py-3">
             <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
         </div>
@@ -201,8 +261,14 @@
     const ADD_COMMENT_URL = "{% url 'add_comment' cartoon.pk %}";
     const SET_SORT_URL    = "{% url 'set_comment_sort' %}";
     const REC_URL         = "{% url 'get_recommendations' cartoon.pk %}";
+    const CONTINUATIONS_URL = "{% url 'get_continuations' cartoon.pk %}";
+    const INDEX_URL       = "{% url 'index' %}";
+    const DEFAULT_AVATAR_URL = "{% static 'cartoons/images/default_avatar.png' %}";
+    const MARK_COMMENTS_SEEN_URL = "{% url 'mark_comments_seen' cartoon.pk %}";
+    const IS_OWN_CARTOON  = {% if user == cartoon.author %}true{% else %}false{% endif %};
     const IS_AUTH         = {{ user.is_authenticated|yesno:'true,false' }};
-    const MY_PROFILE_URL  = "{% if user.is_authenticated %}{% url 'user_profile' username=request.user.username %}{% endif %}";
+    const MY_PROFILE_URL  = "{{ my_profile_url|default:'' }}";
+    const CAN_MODERATE_COMMENTS = {{ can_moderate_comments|yesno:'true,false' }};
     let myCurrentAvatarSrc = null;
 
     function getCsrf() {
@@ -212,6 +278,18 @@
         }
         return '';
     }
+    // Сброс "непрочитанных ответов" при уходе со страницы (не раньше -
+    // иначе зелёные бейджи "новых ответов" обнулятся ещё до того, как
+    // автор мульта успеет их увидеть). sendBeacon надёжно срабатывает
+    // даже при закрытии вкладки, в отличие от обычного fetch.
+    if (IS_OWN_CARTOON && navigator.sendBeacon) {
+        window.addEventListener('pagehide', function() {
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', getCsrf());
+            navigator.sendBeacon(MARK_COMMENTS_SEEN_URL, formData);
+        });
+    }
+
     function postJson(url, data) {
         return fetch(url, {
             method: 'POST',
@@ -252,6 +330,26 @@
             }
         } finally { liking = false; }
     });
+
+    // ── Удаление мульта (администратором или автором) ───────────────────────────
+    const deleteCartoonBtn = document.getElementById('delete-cartoon-btn');
+    if (deleteCartoonBtn) {
+        let deletingCartoon = false;
+        deleteCartoonBtn.addEventListener('click', async () => {
+            if (deletingCartoon) return;
+            if (!confirm('Удалить этот мульт без возможности восстановления?')) return;
+            deletingCartoon = true;
+            try {
+                const resp = await postJson(deleteCartoonBtn.dataset.url, {});
+                if (resp.ok) {
+                    const d = await resp.json();
+                    window.location.href = d.redirect_url || INDEX_URL;
+                } else {
+                    alert('Не удалось удалить мульт.');
+                }
+            } finally { deletingCartoon = false; }
+        });
+    }
 
     // ── Избранное ─────────────────────────────────────────────────────────────
     const favBtn = document.getElementById('cartoon-favorite-btn');
@@ -296,25 +394,68 @@
         });
     }
 
-    // ── Рекомендации ─────────────────────────────────────────────────────────
-    const recContainer     = document.getElementById('rec-container');
-    const recEmpty         = document.getElementById('rec-empty');
-    const recLoading       = document.getElementById('rec-loading');
-    const recFilterSelect  = document.getElementById('rec-filter-select');
-    const recSortSelect    = document.getElementById('rec-sort-select');
+    // ── Блок с продолжениями мульта ──────────────────────────────────────────
+    const continuationsContainer = document.getElementById('continuations-container');
+    if (continuationsContainer) {
+        const continuationsLoading           = document.getElementById('continuations-loading');
+        const continuationsLoadMoreContainer = document.getElementById('continuations-load-more-container');
+        const continuationsLoadMoreBtn       = document.getElementById('continuations-load-more-btn');
 
-    async function loadRecommendations() {
-        recLoading.style.display = 'block'; recContainer.innerHTML = ''; recEmpty.style.display = 'none';
-        try {
-            const resp = await fetch(REC_URL + '?filter=' + recFilterSelect.value + '&sort=' + recSortSelect.value);
-            const data = await resp.json();
-            recContainer.innerHTML = data.html;
-            recEmpty.style.display = data.empty ? 'block' : 'none';
-        } finally { recLoading.style.display = 'none'; }
+        let currentContinuationsPage = 1;
+        let continuationsLoading_    = false;
+
+        async function loadContinuations() {
+            if (continuationsLoading_) return;
+            continuationsLoading_ = true;
+            continuationsLoading.style.display = 'block';
+            try {
+                const resp = await fetch(CONTINUATIONS_URL + '?page=' + currentContinuationsPage);
+                const data = await resp.json();
+                continuationsContainer.insertAdjacentHTML('beforeend', data.html);
+                continuationsLoadMoreContainer.style.display = data.has_next ? 'block' : 'none';
+                currentContinuationsPage++;
+            } finally { continuationsLoading.style.display = 'none'; continuationsLoading_ = false; }
+        }
+        continuationsLoadMoreBtn.addEventListener('click', function() { loadContinuations(); });
+        loadContinuations();
     }
-    recFilterSelect.addEventListener('change', loadRecommendations);
-    recSortSelect.addEventListener('change', loadRecommendations);
-    loadRecommendations();
+
+    // ── Рекомендации ─────────────────────────────────────────────────────────
+    const recContainer         = document.getElementById('rec-container');
+    const recEmpty             = document.getElementById('rec-empty');
+    const recLoading           = document.getElementById('rec-loading');
+    const recFilterSelect      = document.getElementById('rec-filter-select');
+    const recSortSelect        = document.getElementById('rec-sort-select');
+    const recLoadMoreContainer = document.getElementById('rec-load-more-container');
+    const recLoadMoreBtn       = document.getElementById('rec-load-more-btn');
+
+    let currentRecPage = 1;
+    let recLoading_    = false;
+
+    async function loadRecommendations(reset) {
+        if (recLoading_) return;
+        recLoading_ = true;
+        if (reset) {
+            currentRecPage = 1;
+            recContainer.innerHTML = '';
+            recLoadMoreContainer.style.display = 'none';
+            recEmpty.style.display = 'none';
+        }
+        recLoading.style.display = 'block';
+        try {
+            const resp = await fetch(REC_URL + '?filter=' + recFilterSelect.value +
+                '&sort=' + recSortSelect.value + '&page=' + currentRecPage);
+            const data = await resp.json();
+            recContainer.insertAdjacentHTML('beforeend', data.html);
+            recLoadMoreContainer.style.display = data.has_next ? 'block' : 'none';
+            if (currentRecPage === 1 && data.empty) recEmpty.style.display = 'block';
+            currentRecPage++;
+        } finally { recLoading.style.display = 'none'; recLoading_ = false; }
+    }
+    recFilterSelect.addEventListener('change', function() { loadRecommendations(true); });
+    recSortSelect.addEventListener('change', function() { loadRecommendations(true); });
+    recLoadMoreBtn.addEventListener('click', function() { loadRecommendations(false); });
+    loadRecommendations(true);
 
     // ── Теги / описание ──────────────────────────────────────────────────────
     function initClamp(textEl, toggleBtn) {
@@ -358,12 +499,26 @@
         return 'url("data:image/svg+xml;base64,' + btoa(makeBarSvg(color)) + '")';
     }
 
-    function pluralReplies(n) {
+    function repliesWord(n) {
         const m10 = n % 10, m100 = n % 100;
-        if (m100 >= 11 && m100 <= 14) return n + ' ответов';
-        if (m10 === 1) return n + ' ответ';
-        if (m10 >= 2 && m10 <= 4) return n + ' ответа';
-        return n + ' ответов';
+        if (m100 >= 11 && m100 <= 14) return 'ответов';
+        if (m10 === 1) return 'ответ';
+        if (m10 >= 2 && m10 <= 4) return 'ответа';
+        return 'ответов';
+    }
+    function pluralReplies(n) {
+        return n + ' ' + repliesWord(n);
+    }
+    // "2 (1) ответа" - (1) зелёным, число непрочитанных ответов на
+    // всех уровнях вложенности; без скобок, если непрочитанных нет.
+    function repliesLabelHTML(c) {
+        const word = repliesWord(c.replies_count);
+        if (c.new_replies_count > 0) {
+            return c.replies_count +
+                ' <span style="color:#28a745;">(' + c.new_replies_count + ')</span> ' +
+                word;
+        }
+        return c.replies_count + ' ' + word;
     }
 
     function initCommentClamp(commentDiv) {
@@ -382,24 +537,31 @@
         if (maxRelLevel === undefined) maxRelLevel = 9;
         const relLevel       = Math.max(0, c.level - baseLevel);
         const likeColorClass = c.user_liked ? 'text-danger' : 'text-secondary';
-        const authorHTML     = c.author_url
+        const authorHTML     = c.is_deleted ? '' : (c.author_url
             ? '<a href="' + escapeHtml(c.author_url) + '" class="username-link">' + escapeHtml(c.author) + '</a>'
-            : escapeHtml(c.author);
+            : escapeHtml(c.author));
         const avatarImgHTML  = '<img src="' + escapeHtml(c.avatar_url) + '" class="user-avatar-sm" alt="" data-author-url="' + escapeHtml(c.author_url || '') + '">';
-        const avatarLink     = c.author_url ? '<a href="' + escapeHtml(c.author_url) + '">' + avatarImgHTML + '</a>' : avatarImgHTML;
+        const avatarLink     = c.avatar_link_url ? '<a href="' + escapeHtml(c.avatar_link_url) + '">' + avatarImgHTML + '</a>' : avatarImgHTML;
 
-        const editedMark  = c.is_edited ? '<small class="text-muted edited-mark ms-1" style="font-size:0.72rem;">изм.</small>' : '';
+        const editedMark  = (!c.is_deleted && c.is_edited) ? '<small class="text-muted edited-mark ms-1" style="font-size:0.72rem;">изм.</small>' : '';
         const pinnedBadge = '<i class="bi bi-pin-fill pin-badge ms-1" style="font-size:0.72rem;' + (c.is_pinned ? '' : 'display:none;') + '"></i>';
         const replyBtnHTML = IS_AUTH
             ? '<button class="reply-btn btn btn-link btn-sm p-0" style="font-size:0.72rem;" data-comment-id="' + c.id + '">Ответить</button>'
             : '';
-        const dropdownHTML = (c.is_own || c.can_pin)
+        const dropdownHTML = (c.is_own || c.can_pin || c.can_delete || c.can_delete_own)
             ? '<div class="dropdown ms-2 flex-shrink-0">' +
               '<button class="btn btn-link btn-sm p-0 text-secondary" data-bs-toggle="dropdown" aria-expanded="false" style="font-size:1.1rem;line-height:1;text-decoration:none;">⋮</button>' +
               '<ul class="dropdown-menu dropdown-menu-end py-1">' +
               (c.is_own ? '<li><button class="dropdown-item edit-btn py-1" data-comment-id="' + c.id + '" style="font-size:0.88rem;">Редактировать</button></li>' : '') +
               (c.can_pin ? '<li><button class="dropdown-item pin-btn py-1" data-comment-id="' + c.id + '" style="font-size:0.88rem;">' + (c.is_pinned ? 'Открепить' : 'Закрепить') + '</button></li>' : '') +
+              (c.can_delete_own ? '<li><button class="dropdown-item delete-own-comment-btn py-1 text-danger" data-comment-id="' + c.id + '" style="font-size:0.88rem;">Удалить</button></li>' : '') +
+              (c.can_delete ? '<li><button class="dropdown-item delete-comment-btn py-1 text-danger" data-comment-id="' + c.id + '" style="font-size:0.88rem;">Удалить (админ)</button></li>' : '') +
               '</ul></div>'
+            : '';
+        const blockLabelHTML = c.show_block_label
+            ? (c.is_blocked_author
+                ? '<span class="comment-block-label text-dark fw-bold flex-shrink-0" style="font-size:0.72rem;">пользователь заблокирован</span>'
+                : '<button class="comment-block-label block-user-btn btn btn-link btn-sm p-0 text-secondary flex-shrink-0" data-comment-id="' + c.id + '" data-block-url="' + escapeHtml(c.block_url) + '" style="font-size:0.72rem;">заблокировать</button>')
             : '';
         const replyFormHTML = IS_AUTH
             ? '<div class="reply-form mt-2" data-form-id="' + c.id + '" style="display:none;">' +
@@ -427,10 +589,10 @@
         let showRepliesHTML = '';
         if (c.replies_count > 0) {
             if (relLevel >= maxRelLevel) {
-                // Слишком глубоко — открыть в модале
-                showRepliesHTML = '<button class="view-thread-btn btn btn-link btn-sm p-0" data-comment-id="' + c.id + '" data-replies-count="' + c.replies_count + '" style="font-size:0.8rem;color:#888;text-decoration:none;">↳ ' + pluralReplies(c.replies_count) + ' →</button>';
+                // Слишком глубоко - открыть в модале
+                showRepliesHTML = '<button class="view-thread-btn btn btn-link btn-sm p-0" data-comment-id="' + c.id + '" data-replies-count="' + c.replies_count + '" style="font-size:0.8rem;color:#888;text-decoration:none;">↳ ' + repliesLabelHTML(c) + ' →</button>';
             } else {
-                showRepliesHTML = '<button class="show-replies-btn btn btn-link btn-sm p-0" data-comment-id="' + c.id + '" style="font-size:0.8rem;color:#888;text-decoration:none;">↳ ' + pluralReplies(c.replies_count) + '</button>';
+                showRepliesHTML = '<button class="show-replies-btn btn btn-link btn-sm p-0" data-comment-id="' + c.id + '" style="font-size:0.8rem;color:#888;text-decoration:none;">↳ ' + repliesLabelHTML(c) + '</button>';
             }
         }
 
@@ -446,12 +608,16 @@
             '<div class="d-flex justify-content-between align-items-start">' +
             '<div><span class="fw-bold" style="font-size:0.9rem;">' + authorHTML + '</span>' +
             '<small class="text-muted ms-2 comment-date">' + escapeHtml(c.created_at) + '</small>' + editedMark + pinnedBadge + '</div>' +
-            dropdownHTML + '</div>' +
+            '<div class="d-flex align-items-center gap-2 flex-shrink-0">' + blockLabelHTML + dropdownHTML + '</div></div>' +
             '<div class="comment-text-wrap">' +
-            '<p class="mb-0 desc-clamp comment-text-clamp" style="white-space:pre-wrap;margin-top:-3px;">' + escapeHtml(c.text) + '</p>' +
+            '<p class="mb-0 desc-clamp comment-text-clamp" style="white-space:pre-wrap;margin-top:-3px;">' +
+            (c.is_deleted ? '<em class="text-muted">Комментарий удалён</em>' : escapeHtml(c.text)) +
+            '</p>' +
+            '</div>' +
+            '<div class="comment-expand-row">' +
+            '<button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.72rem;">развернуть</button>' +
             '</div>' + editFormHTML +
             '<div class="d-flex align-items-center gap-2 comment-meta-row">' +
-            '<button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.72rem;">развернуть</button>' +
             '<button class="btn btn-link btn-sm p-0 ' + likeColorClass + ' comment-like-btn" data-comment-id="' + c.id + '" style="font-size:0.72rem;">❤ <span class="comment-likes-count">' + c.likes_count + '</span></button>' +
             replyBtnHTML + '</div>' + replyFormHTML +
             '</div></div></div>' +
@@ -462,7 +628,7 @@
         if (myCurrentAvatarSrc && MY_PROFILE_URL)
             commentDiv.querySelectorAll('[data-author-url="' + MY_PROFILE_URL + '"]').forEach(function(img) { img.src = myCurrentAvatarSrc; });
 
-        // Полоска — единый элемент на весь replies-container этого комментария
+        // Полоска - единый элемент на весь replies-container этого комментария
         const childRelLevel = relLevel + 1;
         if (childRelLevel >= 1 && childRelLevel <= maxRelLevel) {
             const color = REPLY_BAR_COLOR;
@@ -618,6 +784,7 @@
                 editForm.style.display = opening ? 'block' : 'none';
                 if (commentEl) {
                     commentEl.querySelector('.comment-text-wrap').style.display = opening ? 'none' : '';
+                    commentEl.querySelector('.comment-expand-row').style.display = opening ? 'none' : '';
                     commentEl.querySelector('.comment-meta-row').style.display  = opening ? 'none' : '';
                 }
                 if (opening) editForm.querySelector('.edit-textarea').focus();
@@ -638,6 +805,7 @@
                     const textEl = commentEl.querySelector('.comment-text-clamp');
                     editForm.querySelector('.edit-textarea').value = textEl ? textEl.textContent : '';
                     commentEl.querySelector('.comment-text-wrap').style.display = '';
+                    commentEl.querySelector('.comment-expand-row').style.display = '';
                     commentEl.querySelector('.comment-meta-row').style.display  = '';
                 }
             }
@@ -651,11 +819,23 @@
         // Закрепить/открепить
         const pinBtn = e.target.closest('.pin-btn');
         if (pinBtn) { handlePinComment(pinBtn, root); return; }
+
+        // Удалить (только администратор) - полное удаление вместе с ответами
+        const deleteCommentBtn = e.target.closest('.delete-comment-btn');
+        if (deleteCommentBtn) { handleDeleteComment(deleteCommentBtn, root); return; }
+
+        // Удалить свой комментарий - ответы под ним остаются
+        const deleteOwnCommentBtn = e.target.closest('.delete-own-comment-btn');
+        if (deleteOwnCommentBtn) { handleDeleteOwnComment(deleteOwnCommentBtn, root); return; }
+
+        // Заблокировать автора комментария
+        const blockUserBtn = e.target.closest('.block-user-btn');
+        if (blockUserBtn) { handleBlockUser(blockUserBtn, root); return; }
     }
 
     commentsList.addEventListener('click', function(e) { handleCommentClick(e, commentsList); });
 
-    // При наведении на полоску — все полоски того же уровня темнеют
+    // При наведении на полоску - все полоски того же уровня темнеют
     function setupBarHoverHighlight(root) {
         root.addEventListener('mouseover', function(e) {
             const bar = e.target.closest('.replies-bar');
@@ -711,7 +891,7 @@
                 form.style.display = 'none'; textarea.value = '';
                 const newRelLevel = Math.max(0, d.level - baseLevel);
                 if (newRelLevel > maxRelLevel) {
-                    // Ответ глубже maxRelLevel — не показывать инлайн, обновить кнопку счётчика
+                    // Ответ глубже maxRelLevel - не показывать инлайн, обновить кнопку счётчика
                     const parentEl = root.querySelector('.comment-item[data-comment-id="' + commentId + '"]');
                     if (parentEl) {
                         let bottomDiv = parentEl.querySelector(':scope > .bottom-btns');
@@ -764,6 +944,118 @@
         } finally { delete pinBtn.dataset.loading; }
     }
 
+    function replaceWithBlockedLabel(blockBtn) {
+        const label = document.createElement('span');
+        label.className = 'comment-block-label text-dark fw-bold flex-shrink-0';
+        label.style.fontSize = '0.72rem';
+        label.textContent = 'пользователь заблокирован';
+        blockBtn.replaceWith(label);
+    }
+
+    async function handleBlockUser(blockBtn, root) {
+        if (blockBtn.dataset.loading) return;
+        blockBtn.dataset.loading = '1';
+        try {
+            const blockUrl = blockBtn.dataset.blockUrl;
+            const resp = await postJson(blockUrl, {});
+            if (!resp.ok) { alert('Не удалось заблокировать пользователя.'); return; }
+            const d = await resp.json();
+            if (!d.blocked) return;
+            // Кнопка "заблокировать" под другими комментариями этого
+            // же автора на этой странице (data-block-url одинаковый
+            // для всех его комментариев) - меняем сразу все, а не
+            // только ту, по которой кликнули.
+            document.querySelectorAll(
+                '.block-user-btn[data-block-url="' + CSS.escape(blockUrl) + '"]'
+            ).forEach(replaceWithBlockedLabel);
+        } finally { delete blockBtn.dataset.loading; }
+    }
+
+    async function handleDeleteComment(deleteBtn, root) {
+        if (deleteBtn.dataset.loading) return;
+        deleteBtn.dataset.loading = '1';
+        try {
+            const commentId = deleteBtn.dataset.commentId;
+
+            let confirmMessage = 'Удалить этот комментарий?';
+            try {
+                const countResp = await fetch('/comment/' + commentId + '/descendants-count/');
+                if (countResp.ok) {
+                    const d = await countResp.json();
+                    if (d.count > 0) {
+                        confirmMessage = 'Удалить этот комментарий вместе с ' +
+                            pluralReplies(d.count) + ' на него?';
+                    }
+                }
+            } catch (e) { /* если не получилось узнать число ответов - покажем обычный вопрос */ }
+
+            if (!confirm(confirmMessage)) return;
+
+            const resp = await postJson('/comment/' + commentId + '/delete/', {});
+            if (resp.ok) {
+                const commentEl = root.querySelector('.comment-item[data-comment-id="' + commentId + '"]');
+                if (commentEl) commentEl.remove();
+            } else {
+                alert('Не удалось удалить комментарий.');
+            }
+        } finally { delete deleteBtn.dataset.loading; }
+    }
+
+    // Удаление собственного комментария: сама запись не удаляется
+    // (иначе пропали бы ответы под ней), поэтому вместо удаления
+    // DOM-элемента просто подменяем его содержимое на плашку.
+    async function handleDeleteOwnComment(deleteBtn, root) {
+        if (deleteBtn.dataset.loading) return;
+        if (!confirm('Удалить этот комментарий? Ответы на него останутся.')) return;
+        deleteBtn.dataset.loading = '1';
+        try {
+            const commentId = deleteBtn.dataset.commentId;
+            const resp = await postJson('/comment/' + commentId + '/delete-own/', {});
+            if (resp.ok) {
+                const commentEl = root.querySelector('.comment-item[data-comment-id="' + commentId + '"]');
+                if (commentEl) applyDeletedCommentUI(commentEl);
+            } else {
+                const d = await resp.json().catch(function() { return {}; });
+                alert(d.error || 'Не удалось удалить комментарий.');
+            }
+        } finally { delete deleteBtn.dataset.loading; }
+    }
+
+    function applyDeletedCommentUI(commentEl) {
+        const cBody = commentEl.querySelector('.c-body');
+        if (!cBody) return;
+
+        const avatarImg = commentEl.querySelector('.user-avatar-sm');
+        if (avatarImg) {
+            avatarImg.src = DEFAULT_AVATAR_URL;
+            avatarImg.removeAttribute('data-author-url');
+            const avatarLink = avatarImg.closest('a');
+            if (avatarLink) avatarLink.replaceWith(avatarImg);
+        }
+
+        const authorSpan = cBody.querySelector('.fw-bold');
+        if (authorSpan) authorSpan.innerHTML = '';
+
+        const editedMark = cBody.querySelector('.edited-mark');
+        if (editedMark) editedMark.remove();
+
+        const textEl = cBody.querySelector('.comment-text-clamp');
+        if (textEl) {
+            textEl.innerHTML = '<em class="text-muted">Комментарий удалён</em>';
+            textEl.classList.remove('expanded');
+        }
+        const expandBtn = cBody.querySelector('.comment-expand-btn');
+        if (expandBtn) expandBtn.classList.add('d-none');
+
+        const editForm = cBody.querySelector('.edit-form');
+        if (editForm) editForm.remove();
+
+        const editBtn = cBody.querySelector('.edit-btn');
+        if (editBtn && editBtn.closest('li')) editBtn.closest('li').remove();
+        const deleteOwnBtn = cBody.querySelector('.delete-own-comment-btn');
+        if (deleteOwnBtn && deleteOwnBtn.closest('li')) deleteOwnBtn.closest('li').remove();
+    }
+
     async function handleSubmitEdit(submitBtn, root) {
         const commentId = submitBtn.dataset.commentId;
         const editForm  = root.querySelector('.edit-form[data-edit-form-id="' + commentId + '"]');
@@ -786,6 +1078,7 @@
                     if (textEl) { textEl.textContent = d.text; textEl.classList.remove('expanded'); }
                     textarea.value = d.text;
                     cBody.querySelector('.comment-text-wrap').style.display = '';
+                    cBody.querySelector('.comment-expand-row').style.display = '';
                     cBody.querySelector('.comment-meta-row').style.display  = '';
                     const dateEl = cBody.querySelector('.comment-date');
                     if (dateEl && !cBody.querySelector('.edited-mark')) {

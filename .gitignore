@@ -29,8 +29,12 @@ __pycache__/
 # Статика
 /static/
 
+# Логи (создаются автоматически, см. Ppaaaaa/settings.py)
+/logs/
+
 # Скомпилированные файлы Python
 __pycache__/
 *.pyc
 
 data/news.html
+data/announcement.html
