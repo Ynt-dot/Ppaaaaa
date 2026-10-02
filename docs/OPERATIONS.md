@@ -19,7 +19,7 @@
 | БД | SQLite | MySQL |
 | `DEBUG` | `True` | `False` |
 | Веб-сервер | `manage.py runserver` | Phusion Passenger (`passenger_wsgi.py`) |
-| venv | `venv/` | `~/djangoenv` (имя может отличаться - проверьте `ls ~`) |
+| venv | `venv/` | `~/djangoenv` (имя может отличаться - проверьте `ls ~`; если их несколько, например после смены версии Python, свериться - `python --version` после активации) |
 
 Оба окружения настраиваются через `Ppaaaaa/local_settings.py` (не в
 git). Актуальный список нужных ключей и их смысл - в
