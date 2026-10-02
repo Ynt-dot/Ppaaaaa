@@ -1655,8 +1655,7 @@ def set_as_avatar(request, pk):
         pref.avatar_gif.delete(save=False)
     pref.avatar = cartoon
     pref.avatar_gif.save(
-        f'avatar_{
-            request.user.id}.gif',
+        f'avatar_{request.user.id}.gif',
         avatar_content,
         save=False)
     pref.save()
