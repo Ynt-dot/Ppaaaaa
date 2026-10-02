@@ -24,29 +24,27 @@
 
 Для написания использовалась [аналогичная инструкция с Рег.ру](https://help.reg.ru/support/hosting/php-asp-net-i-skripty/kak-ustanovit-django-na-hosting#1), но инструкция в этом файле полезнее, потому что она специализирована для данного проекта.  
 
+**Важно:** проекту нужен **Python 3.10 или новее** - это минимальная версия, которую поддерживает `Django==5.2.17` из `requirements-prod.txt` (на более старых версиях, например 3.9, `pip install` для Django попросту не найдёт подходящего дистрибутива). Проверьте на шаге 3, что в панели вообще есть версия 3.10+ - если нет, уточните у хостинга.
+
 1. [Войдите в панель управления хостингом](https://help.reg.ru/support/hosting/dostupy-i-podklyucheniye-panel-upravleniya-ftp-ssh/kak-voyti-v-panel-upravleniya-hostingom) (ispmanager)!
 2. Перейдите в раздел **Сайты**, выберите домен, для которого вы хотите установить сайт, и нажмите **Изменить**!
-3. В разделе "Дополнительные возможности" включите **CGI-скрипты**, **Python**, выберите **Версию Python** (Я использую 3.9.0) и нажмите **Ok**!
+3. В разделе "Дополнительные возможности" включите **CGI-скрипты**, **Python**, выберите **Версию Python** (не ниже 3.10, например 3.10.1) и нажмите **Ok**!
 4. Зайдите в Shell-клиент!
 5. Перейдите в каталог вашего пользователя с помощью команды `cd ~`!  
     Убедитесь, что вы в нужном каталоге, выполнив команду `pwd`!  
     Должно выдать строчку, похожую на `/var/www/u0000006/data` (вместо `u0000006` имя вашего пользователя).
-6. Создайте виртуальное окружение (По идее можно использовать произвольное имя)! Виртуальное окружение необходимо создать для версии Python, которой вы планируете пользоваться для вашего проекта. Она должна совпадать с версией в шаге 3. Чтобы узнать доступные версии Python, выполните команду:  
+6. Создайте виртуальное окружение (По идее можно использовать произвольное имя)! Виртуальное окружение необходимо создать для версии Python, которой вы планируете пользоваться для вашего проекта (не ниже 3.10). Она должна совпадать с версией в шаге 3. Чтобы узнать доступные версии Python, выполните команду:  
     `ls -la /opt/python/*/bin/python`!  
     Для создания виртуального окружения выполните команду:  
-    `/opt/python/python-3.7.6/bin/python -m venv djangoenv`,  
+    `/opt/python/python-3.10.1/bin/python -m venv djangoenv`,  
     где:  
-    - python-3.7.6 - ваша версия Python,  
+    - python-3.10.1 - ваша версия Python (не ниже 3.10),  
     - djangoenv - название вашего виртуального окружения!
 7. Активируйте ваше виртуальное окружение с помощью команды:  
     `source djangoenv/bin/activate`,  
     где **djangoenv** - название вашего виртуального окружения!  
     Если слева от строки ввода команды появилось название вашего виртуального окружения, значит, оно активировалось.  
-8. Обновите pip, установите пакеты Django и mysqlclient с помощью команды:  
-    - если вы используете Python 3.7.6 и ниже:  
-        `pip install --upgrade pip && pip install django && CFLAGS="-std=c99" pip install mysqlclient`,  
-    - если вы используете версию Python 3.8.6 и выше:  
-        `pip install --upgrade pip && pip install django==4.1.10 && CFLAGS="-std=c99" pip install mysqlclient`!  
+8. Обновите pip командой `pip install --upgrade pip`! Сами пакеты (Django, mysqlclient и т.д.) ставить вручную не нужно - версии уже зафиксированы в `requirements-prod.txt` и ставятся все разом на шаге 11, незачем дублировать и тем более переопределять их отдельной командой.
 9. Перейдите в корневой каталог вашего сайта с помощью команды:  
     `cd www/ppaaaaa.ru`,  
     где ppaaaaa.ru - название вашего каталога!  
@@ -55,7 +53,8 @@
     Должно выдать строчку, похожую на `/var/www/u0000006/data/www/ppaaaaa.ru` (вместо `u0000006` имя вашего пользователя).
 10. **Важно:** перед созданием проекта удалите все файлы и папки из каталога вашего сайта!  
     Склонируйте репозиторий командой: `git clone https://github.com/Ynt-dot/Ppaaaaa.git .` (Не забудьте точку в конце!)!
-11. `pip install -r requirements-prod.txt`
+11. `CFLAGS="-std=c99" pip install -r requirements-prod.txt`  
+    (`CFLAGS="-std=c99"` нужен для сборки `mysqlclient` - без него сборка его C-расширения может упасть на некоторых системах.)
 12. Скопируйте Ppaaaaa/local_settings.py.example в Ppaaaaa/local_settings.py и отредактируйте под своё окружение (Укажите параметры базы данных, секретный ключ и т.д.!)!
     1. Для хостинга обычно используется MySQL. Вам нужно создать базу данных и пользователя в панели ISPManager (раздел "Базы данных"). Полученные данные (имя БД, пользователь, пароль) пропишите в Ppaaaaa/local_settings.py!  
     Убедитесь, что в Ppaaaaa/local_settings.py указаны правильные настройки для продакшена:
@@ -88,15 +87,15 @@
     # -*- coding: utf-8 -*-
     import os, sys
     sys.path.insert(0, '/var/www/u0000006/data/www/faq-reg.ru/project_name')
-    sys.path.insert(1, '/var/www/u0000006/data/djangoenv/lib/python3.7/site-packages')
+    sys.path.insert(1, '/var/www/u0000006/data/djangoenv/lib/python3.10/site-packages')
     os.environ['DJANGO_SETTINGS_MODULE'] = 'project_name.settings'
     from django.core.wsgi import get_wsgi_application
     application = get_wsgi_application()
     ```
 
 16. В строке **sys.path.insert(0, '/var/www/u0000006/data/www/faq-reg.ru/project_name')** измените путь к вашему проекту. Вместо u0000006 используйте логин вашей услуги хостинга: [Как узнать логин хостинга](https://help.reg.ru/support/hosting/dostupy-i-podklyucheniye-panel-upravleniya-ftp-ssh/paroli-dlya-dostupa-k-hostingu-serveru-ftp-i-mysql).
-17. В строке **sys.path.insert(1, '/var/www/u0000006/data/djangoenv/lib/python3.7/site-packages')** укажите:  
-    - вместо python3.7, версию python, которую вы выбрали на шаге 3 и 6 (Я использую 3.9);
+17. В строке **sys.path.insert(1, '/var/www/u0000006/data/djangoenv/lib/python3.10/site-packages')** укажите:  
+    - вместо python3.10, версию python, которую вы выбрали на шаге 3 и 6 (не ниже 3.10);
     - вместо u0000006, логин вашей услуги хостинга: [Как узнать логин хостинга](https://help.reg.ru/support/hosting/dostupy-i-podklyucheniye-panel-upravleniya-ftp-ssh/paroli-dlya-dostupa-k-hostingu-serveru-ftp-i-mysql);
     - а также путь до каталога вашего виртуального окружения!
 18. В строке **os.environ['DJANGO_SETTINGS_MODULE'] = 'project_name.settings'** измените **project_name** на **Ppaaaaa**!
@@ -114,7 +113,7 @@
     2. Сохранить себе куда-нибудь эти изменения.
     3. Откатить изменения к состоянию репозитория (`git checkout -- [путь изменённого файла]`).
     4. Теперь можно спокойно выполнить `git pull`.
-3. После обновления убедитесь, что проект работает (Выполните миграции и т.д.)! Для этого повторите пункты 8, 11, 13 и 14 предыдущей инструкции!
+3. После обновления убедитесь, что проект работает (Выполните миграции и т.д.)! Для этого повторите пункты 11, 13 и 14 предыдущей инструкции (`CFLAGS="-std=c99" pip install -r requirements-prod.txt`, `collectstatic`, `migrate`)!
     1. Бонусом можно прописать `touch passenger_wsgi.py`.
 4. Не забудье обновить `Ppaaaaa\local_settings.py` на основе `Ppaaaaa\local_settings.py.example`!
 5. Чтобы увидеть изменения, вам необходимо перезапустить проект. Для этого создайте файл **.restart-app** в корневой директории вашего сайта (`touch .restart-app`). После перезапуска проекта файл будет удалён автоматически.
