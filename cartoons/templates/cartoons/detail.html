@@ -515,7 +515,7 @@
         const word = repliesWord(c.replies_count);
         if (c.new_replies_count > 0) {
             return c.replies_count +
-                ' <span style="color:#28a745;">(' + c.new_replies_count + ')</span> ' +
+                ' <span class="badge-slime">(' + c.new_replies_count + ')</span> ' +
                 word;
         }
         return c.replies_count + ' ' + word;

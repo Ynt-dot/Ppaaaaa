@@ -62,9 +62,9 @@
                 {% endif %}
                 <div class="card-stats d-flex gap-1 text-muted flex-wrap" style="font-size:0.78rem">
                     <span title="Кадры"><i class="bi bi-film"></i> {{ cartoon.frames_data|length }}</span>
-                    <span title="Лайки"><i class="bi bi-heart-fill text-danger"></i> {{ cartoon.likes.count }}</span>
+                    <span title="Лайки"><i class="bi bi-heart-fill like-icon"></i> {{ cartoon.likes.count }}</span>
                     <span title="Комментарии"><i class="bi bi-chat-fill"></i> {{ cartoon.comments.count }}</span>
-                    {% if cartoon.new_comments_count %}<span title="Новые комментарии" style="color:#28a745"><i class="bi bi-chat-fill"></i> {{ cartoon.new_comments_count }}</span>{% endif %}
+                    {% if cartoon.new_comments_count %}<span title="Новые комментарии" class="badge-slime"><i class="bi bi-chat-fill"></i> {{ cartoon.new_comments_count }}</span>{% endif %}
                     <span class="views-tooltip" data-tooltip="Уникальных: {{ cartoon.unique_views_count }} / Всего: {{ cartoon.views_count }}"><i class="bi bi-eye-fill"></i> {{ cartoon.unique_views_count }}</span>
                     <span class="ms-auto" title="{{ cartoon.created_at|date:'d.m.Y H:i' }}">{{ cartoon.created_at|time_ago }}</span>
                 </div>

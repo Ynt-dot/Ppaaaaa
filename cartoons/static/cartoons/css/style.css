@@ -8,32 +8,76 @@ h1, h2, h3, h4, .btn {
 
 /* === Colour tokens === */
 :root {
-    --bs-primary: #FF0000;
-    --bs-primary-hover: #6c757d;
-    --bs-link-color: #28a745;
-    --bs-link-hover-color: #218838;
-    --bs-success: #28a745;
-    --bs-success-rgb: 40, 167, 69;
+    /* Хэллоуинская палитра */
+    --hw-pumpkin: #FF7518;        /* кнопки, ссылки */
+    --hw-pumpkin-hover: #E0600A;
+    --hw-pumpkin-active: #C25208;
+    --hw-poison: #6B2D8C;         /* акценты */
+    --hw-poison-hover: #4E1F66;
+    --hw-slime: #7FFF00;          /* лайки, бейджи (фон) */
+    --hw-slime-ink: #3F8F00;      /* тот же слайм для текста на белом -
+                                     чистый #7FFF00 на белом не читается */
+    --hw-slime-text: #1a1024;     /* текст поверх слаймового фона */
+
+    --bs-primary: var(--hw-poison);
+    --bs-primary-hover: var(--hw-poison-hover);
+    --bs-link-color: var(--hw-pumpkin);
+    --bs-link-hover-color: var(--hw-pumpkin-hover);
+    --bs-success: var(--hw-pumpkin);
+    --bs-success-rgb: 255, 117, 24;
 }
 
 .bg-success {
-    background-color: #28a745 !important;
+    background-color: var(--hw-pumpkin) !important;
 }
 .btn-success {
-    --bs-btn-bg: #28a745;
-    --bs-btn-border-color: #28a745;
-    --bs-btn-hover-bg: #218838;
-    --bs-btn-hover-border-color: #1e7e34;
-    --bs-btn-active-bg: #1e7e34;
-    --bs-btn-active-border-color: #1c7430;
+    --bs-btn-bg: var(--hw-pumpkin);
+    --bs-btn-border-color: var(--hw-pumpkin);
+    --bs-btn-hover-bg: var(--hw-pumpkin-hover);
+    --bs-btn-hover-border-color: var(--hw-pumpkin-hover);
+    --bs-btn-active-bg: var(--hw-pumpkin-active);
+    --bs-btn-active-border-color: var(--hw-pumpkin-active);
+    --bs-btn-disabled-bg: var(--hw-pumpkin);
+    --bs-btn-disabled-border-color: var(--hw-pumpkin);
 }
 .btn-outline-success {
-    --bs-btn-color: #28a745;
-    --bs-btn-border-color: #28a745;
-    --bs-btn-hover-bg: #28a745;
-    --bs-btn-hover-border-color: #28a745;
-    --bs-btn-active-bg: #28a745;
-    --bs-btn-active-border-color: #28a745;
+    --bs-btn-color: var(--hw-pumpkin);
+    --bs-btn-border-color: var(--hw-pumpkin);
+    --bs-btn-hover-bg: var(--hw-pumpkin);
+    --bs-btn-hover-border-color: var(--hw-pumpkin);
+    --bs-btn-active-bg: var(--hw-pumpkin-active);
+    --bs-btn-active-border-color: var(--hw-pumpkin-active);
+}
+
+/* === Лайки (слайм) ===
+   Лайки размечены как btn-danger / text-danger, но те же классы стоят
+   на настоящих опасных кнопках (удалить, заблокировать) - поэтому
+   перекрашиваем по селекторам лайков, а не сам danger. */
+#cartoon-like-btn.btn-danger,
+.comment-like-btn.btn-danger {
+    background-color: var(--hw-slime) !important;
+    border-color: var(--hw-slime) !important;
+    color: var(--hw-slime-text) !important;
+}
+#cartoon-like-btn.btn-outline-danger,
+.comment-like-btn.btn-outline-danger {
+    background-color: transparent !important;
+    border-color: var(--hw-slime-ink) !important;
+    color: var(--hw-slime-ink) !important;
+}
+#cartoon-like-btn.btn-outline-danger:hover,
+.comment-like-btn.btn-outline-danger:hover {
+    background-color: var(--hw-slime) !important;
+    border-color: var(--hw-slime) !important;
+    color: var(--hw-slime-text) !important;
+}
+.comment-like-btn.text-danger,
+.like-icon {
+    color: var(--hw-slime-ink) !important;
+}
+.badge-slime {
+    color: var(--hw-slime-ink) !important;
+    font-weight: bold;
 }
 
 /* === Buttons === */
@@ -147,11 +191,11 @@ a:not(.username-link):not(.navbar-brand) {
 }
 .username-link,
 a.username-link {
-    color: #28a745 !important;
+    color: var(--hw-pumpkin) !important;
     font-weight: bold;
 }
 .username-link:hover {
-    color: #218838 !important;
+    color: var(--hw-pumpkin-hover) !important;
 }
 
 /* === Navbar === */
@@ -188,8 +232,8 @@ a.username-link {
     border-color: #dee2e6;
 }
 .page-item.active .page-link {
-    background-color: #FF0000;
-    border-color: #FF0000;
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
     color: #fff;
 }
 
@@ -524,10 +568,10 @@ a.tag-pill-x:hover {
     transition: border-color 0.15s;
 }
 .avatar-selector-item:hover {
-    border-color: #28a745 !important;
+    border-color: var(--hw-pumpkin) !important;
 }
 .avatar-selector-item.selected {
-    border-color: #28a745 !important;
+    border-color: var(--hw-pumpkin) !important;
     border-width: 2px !important;
 }
 
