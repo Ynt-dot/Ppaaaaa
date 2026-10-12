@@ -163,8 +163,9 @@
                 <div class="text-center mt-3" id="load-more-container" style="display:none;">
                     <button id="load-more-btn" class="btn btn-outline-secondary">Загрузить ещё</button>
                 </div>
-                <div id="no-comments-msg" class="text-muted text-center py-3" style="display:none;">
-                    Комментариев пока нет. Будьте первым!
+                <div id="no-comments-msg" class="hw-empty" style="display:none;">
+                    {% include 'cartoons/_ghost_empty.html' %}
+                    <p class="hw-empty-hint">Комментариев пока нет. Будьте первым!</p>
                 </div>
                 <div id="comments-loading" class="text-center py-3">
                     <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>

@@ -162,8 +162,9 @@
             {% for cartoon in cartoons %}
             {% include 'cartoons/cartoon_card.html' with show_author=False show_pin=is_own_profile pinned_style=True %}
             {% empty %}
-            <div class="col-12">
-                <p class="text-center py-4">У этого пользователя пока нет мультов.</p>
+            <div class="col-12 hw-empty">
+                {% include 'cartoons/_ghost_empty.html' %}
+                <p class="hw-empty-hint">У этого пользователя пока нет мультов.</p>
             </div>
             {% endfor %}
         </div>
@@ -267,8 +268,9 @@
             {% for cartoon in cartoons %}
             {% include 'cartoons/cartoon_card.html' with show_author=True %}
             {% empty %}
-            <div class="col-12">
-                <p class="text-center py-4">Нет понравившихся мультов.</p>
+            <div class="col-12 hw-empty">
+                {% include 'cartoons/_ghost_empty.html' %}
+                <p class="hw-empty-hint">Нет понравившихся мультов.</p>
             </div>
             {% endfor %}
         </div>
@@ -339,8 +341,9 @@
             {% for cartoon in cartoons %}
             {% include 'cartoons/cartoon_card.html' with show_author=True %}
             {% empty %}
-            <div class="col-12">
-                <p class="text-center py-4">Нет мультов в избранном.</p>
+            <div class="col-12 hw-empty">
+                {% include 'cartoons/_ghost_empty.html' %}
+                <p class="hw-empty-hint">Нет мультов в избранном.</p>
             </div>
             {% endfor %}
         </div>
