@@ -923,6 +923,57 @@ a.tag-pill-x:hover {
         transform: none;
     }
 }
+
+/* === Ивент #хэллоуин (фильтр is_halloween_event) ===
+   Оранжевая рамка по форме надгробия, постоянное мягкое свечение и
+   значок-тыква с горящим лицом на стыке превью и подписи. */
+.hw-event-card {
+    --bs-card-border-color: var(--hw-pumpkin);
+    --bs-card-border-width: 2px;
+    box-shadow: 0 0 14px rgba(255, 117, 24, 0.3) !important;
+}
+.cartoon-card .card-body {
+    position: relative;
+}
+.hw-event-card .card-title {
+    padding-right: 34px;  /* не залезать под значок */
+}
+.hw-event-badge {
+    position: absolute;
+    top: 0;
+    right: 12px;
+    transform: translateY(-50%);
+    z-index: 1;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--hw-night);
+    border: 2px solid var(--hw-pumpkin);
+    box-shadow: 0 0 10px rgba(255, 117, 24, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+.hw-event-badge .hw-pumpkin,
+.hw-event-mark .hw-pumpkin {
+    filter: drop-shadow(0 0 3px rgba(255, 200, 0, 0.75));
+}
+.hw-event-badge .hw-pumpkin {
+    vertical-align: 0;
+}
+/* лицо тыквы горит и мерцает, как у лайкнутой */
+.hw-event-badge .hw-pumpkin-face,
+.hw-event-mark .hw-pumpkin-face {
+    fill: #ffe45c;
+    animation: hw-pumpkin-flicker 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    .hw-event-badge .hw-pumpkin-face,
+    .hw-event-mark .hw-pumpkin-face {
+        animation: none;
+    }
+}
 .cartoon-pin-btn {
     position: absolute;
     /* по центру вершины арки - левый верхний угол карточки срезан */

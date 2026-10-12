@@ -21,6 +21,21 @@ def static_v(path):
     return f'{url}?v={int(os.path.getmtime(full_path))}'
 
 
+# Тег хэллоуинского ивента и его частые варианты написания; сравниваем
+# без регистра и без ведущей решётки.
+HALLOWEEN_TAGS = {'хэллоуин', 'хеллоуин', 'halloween'}
+
+
+@register.filter
+def is_halloween_event(cartoon):
+    """Мульт участвует в ивенте #хэллоуин - для подсветки карточки."""
+    tags = getattr(cartoon, 'tags', None)
+    if not isinstance(tags, list):
+        return False
+    return any(isinstance(t, str) and t.strip().lstrip('#').lower()
+               in HALLOWEEN_TAGS for t in tags)
+
+
 @register.filter
 def display_name(user):
     if not user:
