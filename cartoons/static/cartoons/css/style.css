@@ -602,6 +602,18 @@ nav.navbar::after {
     color: var(--bs-secondary-color);
     margin: 0;
 }
+/* Страница 404 (templates/404.html) - тот же призрак, крупнее */
+.hw-404 {
+    padding: 48px 0;
+}
+.hw-404 .hw-ghost {
+    width: 110px;
+    height: 132px;
+}
+.hw-404-title {
+    font-size: 1.8rem;
+    margin: 22px 0 8px;
+}
 @keyframes hw-ghost-float {
     0%, 100% { transform: translateY(0) rotate(-3deg); }
     50%      { transform: translateY(-10px) rotate(3deg); }
