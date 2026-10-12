@@ -260,10 +260,25 @@ a.username-link {
 /* === Navbar === */
 .navbar-brand img {
     width: auto;
-    /* Logo.png - чёрное на непрозрачном белом: инвертируем и
-       "screen" убирает получившийся чёрный фон */
-    filter: invert(1);
-    mix-blend-mode: screen;
+}
+
+/* === Капающая слизь под шапкой ===
+   Полоса во всю ширину с подтёками разной длины; тайл 160px повторяется
+   по горизонтали. Свисает на верхний отступ main, клики не перехватывает. */
+nav.navbar {
+    position: relative;
+}
+nav.navbar::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 28px;
+    z-index: 1;
+    pointer-events: none;
+    background: repeat-x top left / 160px 28px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 28'%3E%3Cpath fill='%237FFF00' d='M0 0H160V7C150 7 148 9 147 14C146 20 140 20 139 14C138 9 134 7 128 7H102C97 7 95 10 95 17C95 26 86 26 86 17C86 10 83 7 78 7H52C48 7 47 9 46 11C45 14 41 14 40 11C39 9 37 7 33 7H16C12 7 11 9 11 12C11 22 4 22 4 12C4 9 3 7 0 7Z'/%3E%3Ccircle fill='%237FFF00' cx='143' cy='24' r='2.5'/%3E%3Cpath fill='%23fff' fill-opacity='.35' d='M90 12C90 9 91 8 92 8V16C91 16 90 15 90 12Z'/%3E%3C/svg%3E");
+    filter: drop-shadow(0 0 6px rgba(127, 255, 0, 0.35));
 }
 @media (max-width: 768px) {
     .navbar-brand img {
