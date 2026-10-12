@@ -527,10 +527,40 @@ a.tag-pill-x:hover {
 .card.cartoon-pinned {
     outline: 2px solid var(--hw-poison);
 }
+
+/* === Карточка мульта-надгробие ===
+   Верх - эллиптическая арка высотой 60px, низ - обычные скругления.
+   overflow: hidden обрезает превью по арке; box-shadow и outline
+   (закреп) повторяют форму. */
+.cartoon-card {
+    border-radius: 50% 50% 10px 10px / 60px 60px 10px 10px;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.cartoon-card .card-img-top {
+    border-radius: 0;
+}
+.cartoon-card:hover,
+.cartoon-card:focus-within {
+    box-shadow: 0 0 0 1px var(--hw-pumpkin),
+                0 0 18px rgba(255, 117, 24, 0.55),
+                0 0 42px rgba(255, 117, 24, 0.25) !important;
+    transform: translateY(-3px);
+}
+@media (prefers-reduced-motion: reduce) {
+    .cartoon-card,
+    .cartoon-card:hover,
+    .cartoon-card:focus-within {
+        transition: none;
+        transform: none;
+    }
+}
 .cartoon-pin-btn {
     position: absolute;
+    /* по центру вершины арки - левый верхний угол карточки срезан */
     top: 8px;
-    left: 8px;
+    left: 50%;
+    transform: translateX(-50%);
     width: 32px;
     height: 32px;
     border-radius: 50%;
