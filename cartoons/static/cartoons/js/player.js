@@ -1,6 +1,8 @@
 // player.js
 document.addEventListener('DOMContentLoaded', function() {
     const framesData = window.framesData;
+    // фон каждого кадра (кадры прозрачные); нет значения - белый
+    const frameBackgrounds = window.frameBackgrounds || [];
     if (!framesData || framesData.length === 0) {
         console.log('Нет данных кадров');
         return;
@@ -33,6 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (index < 0 || index >= totalFrames) return;
         currentFrame = index;
         frameImg.src = framesData[index];
+        frameImg.style.backgroundColor = frameBackgrounds[index] || '#ffffff';
         if (frameSlider) frameSlider.value = index;
         if (frameCounter) frameCounter.textContent = `${index+1} / ${totalFrames}`;
     }

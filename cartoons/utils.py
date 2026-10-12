@@ -1,5 +1,5 @@
 import base64
-from PIL import Image
+from PIL import Image, ImageColor
 from io import BytesIO
 from django.core.files.base import ContentFile
 from django.core.mail import send_mail
@@ -18,28 +18,34 @@ except UnicodeEncodeError:
     DNS_NAME._fqdn = 'localhost'
 
 
-def create_gif_from_frames(frames_data, fps=12, max_frames=None):
+def create_gif_from_frames(frames_data, fps=12, max_frames=None,
+                           backgrounds=None):
     """
     frames_data: список строк dataURL (base64)
     fps: кадров в секунду
     max_frames: максимальное количество кадров для GIF (None = все)
+    backgrounds: фоны кадров (#rrggbb), параллельно frames_data - кадры
+        прозрачные, это их подложка; нет значения для кадра - белый
     возвращает ContentFile с GIF
     """
     if max_frames is not None:
         frames_data = frames_data[:max_frames]
+    backgrounds = list(backgrounds or [])
 
     GIF_SIZE = (600, 400)
 
     images = []
-    for data_url in frames_data:
+    for i, data_url in enumerate(frames_data):
+        bg_rgb = ImageColor.getrgb(
+            backgrounds[i] if i < len(backgrounds) else '#ffffff')
         format, imgstr = data_url.split(';base64,')
         image_data = base64.b64decode(imgstr)
         img = Image.open(BytesIO(image_data)).convert('RGBA')
-        white_bg = Image.new('RGB', img.size, (255, 255, 255))
-        white_bg.paste(img, (0, 0), img)
-        if white_bg.size != GIF_SIZE:
-            white_bg = white_bg.resize(GIF_SIZE, Image.LANCZOS)
-        images.append(white_bg)
+        canvas = Image.new('RGB', img.size, bg_rgb)
+        canvas.paste(img, (0, 0), img)
+        if canvas.size != GIF_SIZE:
+            canvas = canvas.resize(GIF_SIZE, Image.LANCZOS)
+        images.append(canvas)
 
     if not images:
         return None

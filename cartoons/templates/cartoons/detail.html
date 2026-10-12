@@ -247,11 +247,14 @@
 
 {% block extra_scripts %}
 {% if frames_json %}
+{{ frame_backgrounds|json_script:"frame-backgrounds-data" }}
 <script>
     window.framesData = {{ frames_json|safe }};
+    window.frameBackgrounds = JSON.parse(
+        document.getElementById('frame-backgrounds-data').textContent);
     window.fps = {{ cartoon.fps }};
 </script>
-<script src="{% static 'cartoons/js/player.js' %}"></script>
+<script src="{% static_v 'cartoons/js/player.js' %}"></script>
 {% endif %}
 
 <script>

@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from .models import (
     Cartoon, CartoonLike, Comment, CommentLike, UserPreference, UserNote,
     Favorite, CartoonView, UserBlock, SiteSettings,
+    BACKGROUND_BLACK, BACKGROUND_WHITE, normalize_frame_backgrounds,
 )
 import json
 import re
@@ -502,6 +503,7 @@ def detail(request, pk):
     }
     if cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)
+        context['frame_backgrounds'] = cartoon.frame_backgrounds_full()
     if isinstance(cartoon.tags, list) and cartoon.tags:
         context['sorted_tags'] = sorted(
             t for t in cartoon.tags if isinstance(t, str))
@@ -1249,6 +1251,14 @@ def editor(request, pk=None):
         frames_json = request.POST.get('frames')
         tags_json = request.POST.get('tags', '[]')
         description = request.POST.get('description', '')[:1000]
+        # Фоны кадров (JSON-список). Нет поля или мусор - None: у правки
+        # останутся прежние фоны, у нового мульта - белые, как у всех
+        # мультов до появления фонов.
+        try:
+            raw_backgrounds = json.loads(
+                request.POST.get('frame_backgrounds', ''))
+        except json.JSONDecodeError:
+            raw_backgrounds = None
 
         try:
             fps = int(fps_str)
@@ -1293,6 +1303,8 @@ def editor(request, pk=None):
             cartoon.frames_data = frames_data
             cartoon.tags = tags
             cartoon.description = description
+            if raw_backgrounds is None:
+                raw_backgrounds = cartoon.frame_backgrounds
             if cartoon.preview:
                 cartoon.preview.delete(save=False)
         else:
@@ -1316,21 +1328,43 @@ def editor(request, pk=None):
                 description=description,
                 continuation_of_id=continuation_of_id,
             )
+        cartoon.frame_backgrounds = normalize_frame_backgrounds(
+            raw_backgrounds, len(frames_data))
+        backgrounds = cartoon.frame_backgrounds
 
         if cartoon.continuation_of_id:
             # В превью продолжения - последние 50 кадров (то новое,
             # что дорисовали), а не первые 50, как у обычных мультов.
-            gif_content = create_gif_from_frames(frames_data[-50:], fps)
+            gif_content = create_gif_from_frames(
+                frames_data[-50:], fps, backgrounds=backgrounds[-50:])
         else:
             gif_content = create_gif_from_frames(
-                frames_data, fps, max_frames=50)
+                frames_data, fps, max_frames=50, backgrounds=backgrounds)
         cartoon.preview.save(f'cartoon_{cartoon.pk or "new"}.gif', gif_content,
                              save=False)
         cartoon.save()
 
         return redirect('detail', pk=cartoon.pk)
 
-    context = {'cartoon': cartoon}
+    # Фоны кадров при открытии редактора: у правки - свои, у
+    # продолжения - как у оригинала (его кадры нарисованы под те фоны),
+    # у нового мульта единственный пустой кадр - чёрный.
+    if cartoon and cartoon.frames_data:
+        frame_backgrounds = cartoon.frame_backgrounds_full()
+    elif continuation_source:
+        frame_backgrounds = continuation_source.frame_backgrounds_full()
+    else:
+        frame_backgrounds = [BACKGROUND_BLACK]
+    # Цвет "чернил" в палитре - контрастный к фону первого кадра;
+    # рендерится сразу выбранным, чтобы не зависеть от JS.
+    initial_ink = (BACKGROUND_WHITE if frame_backgrounds[0] == BACKGROUND_BLACK
+                   else BACKGROUND_BLACK)
+
+    context = {
+        'cartoon': cartoon,
+        'frame_backgrounds': frame_backgrounds,
+        'initial_ink': initial_ink,
+    }
     if cartoon and cartoon.frames_data:
         context['frames_json'] = json.dumps(cartoon.frames_data)
     elif continuation_source:

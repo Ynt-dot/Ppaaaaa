@@ -1,8 +1,24 @@
+import os
+
 from django import template
+from django.contrib.staticfiles import finders
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
 
 register = template.Library()
+
+
+@register.simple_tag
+def static_v(path):
+    """{% static %} с версией ?v=<mtime файла>. У нашей статики нет хэшей
+    в именах, и браузер мог держать старый JS при новом шаблоне - с
+    версией адрес меняется при каждом изменении файла."""
+    url = static(path)
+    full_path = finders.find(path)
+    if not full_path:
+        return url
+    return f'{url}?v={int(os.path.getmtime(full_path))}'
 
 
 @register.filter

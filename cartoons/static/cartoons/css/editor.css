@@ -2,9 +2,10 @@
     max-width: 1000px;
     margin: 0 auto;
 }
+/* --canvas-bg ставит editor.js (фон текущего кадра: чёрный или белый) */
 canvas {
     display: block;
-    background: white;
+    background: var(--canvas-bg, #fff);
     border: 2px solid var(--bs-border-color);
     border-radius: 8px;
     touch-action: none;
@@ -33,7 +34,7 @@ canvas {
     align-items: center;
     border: 1px solid var(--bs-border-color);
     width: 100%;
-    max-width: 600px;
+    max-width: 700px;
     margin-left: 0;
     margin-right: 0;
 }
@@ -78,14 +79,13 @@ canvas {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    border: 2px solid transparent;
+    /* одинаковая тонкая обводка у всех образцов - тёмные иначе теряются
+       на тёмной панели */
+    border: 2px solid #6c5a80;
     padding: 0;
 }
-.color-btn.black {
-    background: #212529;
-    /* чёрный кружок иначе сливается с тёмной панелью */
-    border-color: #6c5a80;
-}
+/* "Чернила" (белый на чёрном фоне, чёрный на белом): цвет образца
+   ставят шаблон и editor.js inline-стилем */
 .color-btn.red {
     background: #ff0000;
 }
@@ -95,14 +95,12 @@ canvas {
 }
 .color-btn.hw-poison-color {
     background: #6b2d8c;
-    border-color: #6c5a80;  /* тёмный образец иначе теряется на панели */
 }
 .color-btn.hw-acid-color {
     background: #7fff00;
 }
 .color-btn.hw-blood-color {
     background: #8a0303;
-    border-color: #6c5a80;
 }
 .color-btn.active {
     border-color: var(--hw-pumpkin);
@@ -116,7 +114,7 @@ canvas {
     margin-top: 10px;
     border-top: 1px solid var(--bs-border-color);
     width: 100%;
-    max-width: 600px;
+    max-width: 700px;
     margin-left: 0;
     margin-right: 0;
 }
@@ -128,7 +126,7 @@ canvas {
     border-radius: 4px;
     cursor: pointer;
     transition: 0.2s;
-    /* миниатюры прозрачные - подкладываем белый лист, как у холста */
+    /* миниатюры прозрачные - фон своего кадра ставит editor.js */
     background: #fff;
 }
 .frame-thumb:hover {
@@ -201,7 +199,7 @@ canvas {
     left: 0;
     border: 2px solid var(--bs-border-color);
     border-radius: 8px;
-    background: white;
+    background: var(--canvas-bg, #fff);
 }
 #cursor-canvas {
     position: absolute;

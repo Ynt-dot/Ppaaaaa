@@ -32,8 +32,82 @@ const framesStrip = document.getElementById('frames-strip');
 const saveModal = new bootstrap.Modal(document.getElementById('saveModal'));
 const confirmSave = document.getElementById('confirm-save');
 const modalTitleInput = document.getElementById('modal-title');
+const frameBackgroundsInput = document.getElementById('frame-backgrounds-input');
+const bgToggleBtn = document.getElementById('bg-toggle');
+const inkBtn = document.querySelector('.color-btn.ink-color');
+
+// Фон каждого кадра (#000000 / #ffffff), параллельно frames. Кадры
+// прозрачные - фон только подкладывается под них (холст, миниатюры, а на
+// сервере - сборка GIF). Начальные фоны - из json_script в editor.html,
+// на сервер уходят через скрытое поле формы.
+const BLACK = '#000000';
+const WHITE = '#ffffff';
+let frameBgs = [];
 
 // ========== Вспомогательные функции ==========
+
+// Цвет "чернил", который виден на данном фоне
+function contrastColor(bg) {
+    return bg === BLACK ? WHITE : BLACK;
+}
+
+function currentBg() {
+    return frameBgs[currentFrameIndex] || WHITE;
+}
+
+function selectColor(color) {
+    colorBtns.forEach(b => b.classList.toggle('active', b.dataset.color === color));
+    currentColor = color;
+}
+
+// Фоны из json_script: ровно count штук, неизвестные и недостающие -
+// fallback (белый для готовых мультов - так они рисовались до появления
+// фонов; чёрный для нового мульта)
+function readFrameBackgrounds(count, fallback) {
+    let seed = [];
+    try {
+        seed = JSON.parse(document.getElementById('frame-backgrounds-data').textContent);
+    } catch (e) { /* страница ошибки сохранения - фонов нет */ }
+    if (!Array.isArray(seed)) seed = [];
+    const result = [];
+    for (let i = 0; i < count; i++) {
+        result.push(seed[i] === BLACK || seed[i] === WHITE ? seed[i] : fallback);
+    }
+    return result;
+}
+
+// Показать фон текущего кадра: подложка холста (CSS-переменная в
+// editor.css) и кнопка "чернил" в палитре - контрастный к фону цвет. Если
+// кисть рисовала чернилами прошлого фона, она переходит на новые.
+function applyBackground() {
+    const bg = currentBg();
+    const ink = contrastColor(bg);
+    const oldInk = inkBtn.dataset.color;
+    document.documentElement.style.setProperty('--canvas-bg', bg);
+    inkBtn.dataset.color = ink;
+    inkBtn.style.background = ink;
+    inkBtn.title = ink === WHITE ? 'Белый' : 'Чёрный';
+    selectColor(currentColor === oldInk || currentColor === bg ? ink : currentColor);
+}
+
+// Перекрасить чернила текущего кадра (from -> to, чёрное <-> белое) при
+// смене его фона, чтобы рисунок остался виден. Цветные штрихи не трогаем;
+// сглаженные края чернил - тот же RGB с меньшей альфой, их тоже красим.
+function recolorInk(from, to) {
+    const fromV = from === BLACK ? 0 : 255;
+    const toV = to === BLACK ? 0 : 255;
+    const image = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
+    const d = image.data;
+    for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3] !== 0 &&
+            Math.abs(d[i] - fromV) <= 8 &&
+            Math.abs(d[i + 1] - fromV) <= 8 &&
+            Math.abs(d[i + 2] - fromV) <= 8) {
+            d[i] = d[i + 1] = d[i + 2] = toV;
+        }
+    }
+    drawCtx.putImageData(image, 0, 0);
+}
 
 function loadImage(src) {
     return new Promise((resolve) => {
@@ -55,6 +129,7 @@ function updateCurrentThumbnail() {
     const thumb = document.querySelector(`.frame-thumb[data-index="${currentFrameIndex}"]`);
     if (thumb) {
         thumb.src = frames[currentFrameIndex];
+        thumb.style.background = currentBg();
     }
 }
 
@@ -72,6 +147,7 @@ function updateFramesUI() {
         let img = document.createElement('img');
         img.src = frame;
         img.className = 'frame-thumb';
+        img.style.background = frameBgs[index];
         img.dataset.index = index;
         if (index === currentFrameIndex) img.classList.add('current');
 
@@ -142,8 +218,10 @@ function adjustHistoryAfterDelete(deleteIdx) {
 // ========== Работа с фоновыми слоями (луковая шелуха) ==========
 
 async function drawOnionSkin() {
+    // вызывается после любой смены текущего кадра - заодно показываем его фон
+    applyBackground();
     bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
-    bgCtx.fillStyle = '#ffffff';
+    bgCtx.fillStyle = currentBg();
     bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
 
     // Рисуем кадры из истории с нужной прозрачностью
@@ -173,8 +251,11 @@ async function loadCurrentFrame() {
 async function initFrames() {
     undoStack = [];
     history = [];
+    // кисть по умолчанию - чернила первого кадра (в шаблоне уже выбраны)
+    currentColor = inkBtn.dataset.color;
     if (typeof framesData !== 'undefined' && framesData.length > 0) {
         frames = framesData;
+        frameBgs = readFrameBackgrounds(frames.length, WHITE);
         currentFrameIndex = 0;
         await loadCurrentFrame();
         await drawOnionSkin();
@@ -183,8 +264,9 @@ async function initFrames() {
         // Создаём первый пустой кадр (прозрачный)
         drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
         frames.push(drawCanvas.toDataURL());
+        frameBgs = readFrameBackgrounds(1, BLACK);
         currentFrameIndex = 0;
-        await drawOnionSkin();  // пока нет предыдущих, просто белый фон
+        await drawOnionSkin();  // пока нет предыдущих, просто фон
         updateFramesUI();
     }
     pushState();
@@ -272,10 +354,12 @@ addFrameBtn.addEventListener('click', async (e) => {
     drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
     const emptyFrame = drawCanvas.toDataURL();
     const oldIdx = currentFrameIndex;
+    const newBg = currentBg();  // новый кадр - на фоне текущего
 
     if (e.ctrlKey) {
         // Вставить перед текущим кадром (Ctrl)
         frames.splice(oldIdx, 0, emptyFrame);
+        frameBgs.splice(oldIdx, 0, newBg);
         adjustHistoryAfterInsert(oldIdx); // сдвигаем индексы в истории
         // Добавляем старый кадр (теперь он на позиции oldIdx+1) в историю
         history.unshift(oldIdx + 1);
@@ -286,6 +370,7 @@ addFrameBtn.addEventListener('click', async (e) => {
     } else {
         // Вставить после текущего кадра
         frames.splice(oldIdx + 1, 0, emptyFrame);
+        frameBgs.splice(oldIdx + 1, 0, newBg);
         adjustHistoryAfterInsert(oldIdx); // сдвигаем индексы в истории
         // Добавляем старый кадр (он остаётся на позиции oldIdx) в историю
         history.unshift(oldIdx);
@@ -308,6 +393,7 @@ deleteFrameBtn.addEventListener('click', async () => {
     saveCurrentFrame();
     const oldIdx = currentFrameIndex;
     frames.splice(oldIdx, 1);
+    frameBgs.splice(oldIdx, 1);
     if (currentFrameIndex >= frames.length) {
         currentFrameIndex = frames.length - 1;
     }
@@ -323,9 +409,9 @@ async function drawPreviewFrame(index) {
     const img = await loadImage(frames[index]);
     drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
     drawCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
-    // Скрываем шелуху, очистив bgCanvas и нарисовав белый фон
+    // Скрываем шелуху, очистив bgCanvas и залив его фоном этого кадра
     bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
-    bgCtx.fillStyle = '#ffffff';
+    bgCtx.fillStyle = frameBgs[index];
     bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
 }
 
@@ -394,11 +480,21 @@ sizeBtns.forEach(btn => {
 });
 
 colorBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        colorBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentColor = btn.dataset.color;
-    });
+    btn.addEventListener('click', () => selectColor(btn.dataset.color));
+});
+
+// Переключение фона текущего кадра чёрный <-> белый. Остальные кадры не
+// меняются; чернила кадра перекрашиваются вместе с фоном (чёрное на белом
+// становится белым на чёрном).
+bgToggleBtn.addEventListener('click', async () => {
+    if (playing) return;
+    pushState();
+    const oldBg = currentBg();
+    recolorInk(contrastColor(oldBg), oldBg);
+    frameBgs[currentFrameIndex] = contrastColor(oldBg);
+    saveCurrentFrame();
+    updateCurrentThumbnail();
+    await drawOnionSkin();
 });
 
 // ========== Сохранение ==========
@@ -441,6 +537,7 @@ confirmSave.addEventListener('click', () => {
     document.getElementById('tags-input').value = JSON.stringify(tags);
     document.getElementById('description-input').value = description;
     document.getElementById('frames-input').value = JSON.stringify(frames);
+    frameBackgroundsInput.value = JSON.stringify(frameBgs);
     formChanged = false;
     exitFullscreen();
     document.getElementById('editor-form').submit();
@@ -452,8 +549,8 @@ let undoStack = [];
 const MAX_UNDO = 20; // ограничим глубину
 
 function pushState() {
-    // Сохраняем копию frames (глубокое копирование)
-    const state = frames.map(frame => frame); // копия массива строк
+    // Сохраняем копии frames и их фонов (массивы строк)
+    const state = { frames: frames.slice(), bgs: frameBgs.slice() };
     undoStack.push(state);
     if (undoStack.length > MAX_UNDO) {
         undoStack.shift();
@@ -551,7 +648,10 @@ document.addEventListener('keydown', (e) => {
 
 function undo() {
     if (undoStack.length === 0) return;
-    frames = undoStack.pop().map(frame => frame); // восстанавливаем предыдущее состояние
+    const state = undoStack.pop(); // восстанавливаем предыдущее состояние
+    frames = state.frames.slice();
+    frameBgs = state.bgs.slice();
+    if (currentFrameIndex >= frames.length) currentFrameIndex = frames.length - 1;
     loadCurrentFrame().then(() => {
         drawOnionSkin();
         updateCurrentThumbnail();
@@ -566,7 +666,7 @@ let copiedFrame = null;
 
 function copyFrame() {
     if (currentFrameIndex < 0 || currentFrameIndex >= frames.length) return;
-    copiedFrame = frames[currentFrameIndex];
+    copiedFrame = { image: frames[currentFrameIndex], bg: currentBg() };
     // Можно добавить визуальный фидбек (например, всплывающее сообщение или изменение цвета кнопки)
     console.log('Кадр скопирован');
 }
@@ -585,8 +685,9 @@ function pasteFrame() {
     // Сохраняем состояние для отмены
     pushState();
 
-    // Заменяем текущий кадр скопированным
-    frames[currentFrameIndex] = copiedFrame;
+    // Заменяем текущий кадр скопированным (вместе с его фоном)
+    frames[currentFrameIndex] = copiedFrame.image;
+    frameBgs[currentFrameIndex] = copiedFrame.bg;
 
     // Перезагружаем интерфейс
     loadCurrentFrame().then(() => {
@@ -675,6 +776,7 @@ pencilTool.addEventListener('click', markChanged);
 eraserTool.addEventListener('click', markChanged);
 sizeBtns.forEach(btn => btn.addEventListener('click', markChanged));
 colorBtns.forEach(btn => btn.addEventListener('click', markChanged));
+bgToggleBtn.addEventListener('click', markChanged);
 
 const originalSaveCurrentFrame = saveCurrentFrame;
 saveCurrentFrame = function() {
