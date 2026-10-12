@@ -286,6 +286,87 @@ nav.navbar::after {
     }
 }
 
+/* === Паук на нитке ===
+   Висит из правого верхнего угла шапки, в поле за пределами .container,
+   ниже строки ссылок и выше полосы слизи.
+   При загрузке спускается (hw-spider-drop), дальше нитка слегка
+   "дышит" (hw-spider-bob), весь паук качается маятником вокруг точки
+   крепления (hw-spider-swing), лапки шевелятся. */
+.hw-spider {
+    position: absolute;
+    top: 0;
+    right: 20px;
+    z-index: 2;
+    width: 34px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    transform-origin: top center;
+    animation: hw-spider-swing 3.6s ease-in-out infinite alternate;
+}
+.hw-spider-thread {
+    width: 1px;
+    height: 52px;
+    background: linear-gradient(rgba(232, 224, 240, 0.15), rgba(232, 224, 240, 0.7));
+    animation: hw-spider-drop 2.4s cubic-bezier(.3, 1.4, .6, 1) both,
+               hw-spider-bob 7s ease-in-out 2.4s infinite;
+}
+.hw-spider-body {
+    display: block;
+    margin-top: -3px;
+    filter: drop-shadow(0 0 3px rgba(255, 117, 24, 0.35));
+}
+.hw-spider-torso {
+    fill: #0b0610;
+    stroke: rgba(232, 224, 240, 0.55);
+    stroke-width: 0.8;
+}
+.hw-spider-legs {
+    stroke: #c9bcd8;
+    transform-box: view-box;
+    animation: hw-spider-legs 0.5s ease-in-out infinite alternate;
+}
+.hw-spider-legs-l {
+    transform-origin: 16px 18px;
+}
+.hw-spider-legs-r {
+    transform-origin: 24px 18px;
+    animation-delay: -0.25s;
+}
+.hw-spider-eye {
+    fill: var(--hw-pumpkin);
+}
+@keyframes hw-spider-drop {
+    from { height: 0; }
+    to   { height: 52px; }
+}
+@keyframes hw-spider-bob {
+    0%, 100% { height: 52px; }
+    50%      { height: 40px; }
+}
+@keyframes hw-spider-swing {
+    from { transform: rotate(-7deg); }
+    to   { transform: rotate(7deg); }
+}
+@keyframes hw-spider-legs {
+    from { transform: rotate(-6deg); }
+    to   { transform: rotate(6deg); }
+}
+/* Уже ~1200px поле у контейнера слишком узкое - паук лёг бы на кнопки */
+@media (max-width: 1199.98px) {
+    .hw-spider {
+        display: none;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hw-spider,
+    .hw-spider-thread,
+    .hw-spider-legs {
+        animation: none;
+    }
+}
+
 /* === Navigation === */
 .nav-link.active {
     color: var(--bs-primary) !important;

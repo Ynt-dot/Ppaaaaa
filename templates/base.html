@@ -15,6 +15,22 @@
 </head>
 <body>
     <nav class="navbar navbar-expand-lg pb-0">
+        <!-- Хэллоуинский паук на нитке (анимация в style.css) -->
+        <div class="hw-spider" aria-hidden="true">
+            <div class="hw-spider-thread"></div>
+            <svg class="hw-spider-body" viewBox="0 0 40 36" width="34" height="31">
+                <g class="hw-spider-legs hw-spider-legs-l" fill="none" stroke-width="1.6" stroke-linecap="round">
+                    <path d="M16 14Q8 6 3 10M15 17Q6 13 1 18M15 20Q6 21 2 27M16 23Q9 27 6 34"/>
+                </g>
+                <g class="hw-spider-legs hw-spider-legs-r" fill="none" stroke-width="1.6" stroke-linecap="round">
+                    <path d="M24 14Q32 6 37 10M25 17Q34 13 39 18M25 20Q34 21 38 27M24 23Q31 27 34 34"/>
+                </g>
+                <ellipse class="hw-spider-torso" cx="20" cy="22" rx="6.5" ry="7.5"/>
+                <circle class="hw-spider-torso" cx="20" cy="12" r="4.5"/>
+                <circle class="hw-spider-eye" cx="18.3" cy="12" r="1.1"/>
+                <circle class="hw-spider-eye" cx="21.7" cy="12" r="1.1"/>
+            </svg>
+        </div>
         <div class="container pb-2">
             <a class="navbar-brand" href="{% url 'index' %}">
                 <img src="{% static 'cartoons/images/Logo-halloween.png' %}" alt="Logo" height="70">
