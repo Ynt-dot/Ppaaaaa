@@ -185,7 +185,7 @@
     fetch('https://discord.com/', { mode: 'no-cors', signal: controller.signal })
         .then(function () {
             clearTimeout(timer);
-            iframe.src = 'https://discord.com/widget?id=' + GUILD_ID + '&theme=light';
+            iframe.src = 'https://discord.com/widget?id=' + GUILD_ID + '&theme=dark';
             section.classList.remove('d-none');
         })
         .catch(function () {});

@@ -640,6 +640,15 @@ a.tag-pill-x:hover {
 }
 
 /* === Discord widget === */
+/* Страница в color-scheme: dark, а документ виджета - нет; при таком
+   несовпадении браузер подкладывает под iframe непрозрачный белый фон,
+   и он торчит в скруглённых углах виджета. Совпадающая схема на самом
+   iframe делает подложку прозрачной, радиус - страховка. */
+#discord-iframe {
+    color-scheme: light;
+    border-radius: 6px;
+    display: block;
+}
 .discord-icon {
     font-size: 3rem;
     color: #FF0000;
