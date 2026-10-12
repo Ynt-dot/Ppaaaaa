@@ -619,6 +619,57 @@ nav.navbar::after {
     50%      { transform: translateY(-10px) rotate(3deg); }
 }
 
+/* === Пасхалка "boo" (js/halloween_boo.js) ===
+   Призрак пролетает через экран волной, проявляясь и растворяясь;
+   внутри он ещё и покачивается (анимация .hw-ghost). */
+.hw-boo {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1017;
+}
+.hw-boo-ghost {
+    position: absolute;
+    top: 0;
+    left: 0;
+    animation: hw-boo-fly 3.6s ease-in-out forwards;
+}
+.hw-boo-ghost .hw-ghost {
+    width: 110px;
+    height: 132px;
+}
+.hw-boo-text {
+    position: absolute;
+    top: -6px;
+    right: -38px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.6rem;
+    color: #e8e0f0;
+    text-shadow: 0 0 8px rgba(200, 160, 255, 0.8);
+    transform: rotate(12deg);
+}
+@keyframes hw-boo-fly {
+    0%   { transform: translate(-160px, 55vh); opacity: 0; }
+    10%  { opacity: 0.95; }
+    35%  { transform: translate(30vw, 28vh); }
+    65%  { transform: translate(62vw, 48vh); }
+    90%  { opacity: 0.95; }
+    100% { transform: translate(calc(100vw + 60px), 22vh); opacity: 0; }
+}
+@keyframes hw-boo-appear {
+    0%, 100% { opacity: 0; }
+    25%, 75% { opacity: 0.95; }
+}
+@media (prefers-reduced-motion: reduce) {
+    /* без полёта: проявляется и растворяется посреди экрана */
+    .hw-boo-ghost {
+        top: 35vh;
+        left: calc(50vw - 55px);
+        animation: hw-boo-appear 2.4s ease-in-out forwards;
+    }
+}
+
 /* === Загрузка: призрак вместо крутящегося кольца ===
    Переопределяем .spinner-border глобально - так подхватываются и
    спиннеры, которые создаёт JS. Призрак не крутится, а парит. */
