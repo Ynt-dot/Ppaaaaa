@@ -367,6 +367,107 @@ nav.navbar::after {
     }
 }
 
+/* === Летучие мыши ===
+   Слой во весь экран (fixed + overflow: hidden, поэтому мышь за краем не
+   даёт прокрутки). Каждая мышь пролетает за 10-18% своего цикла, остальное
+   время ждёт за краем экрана; циклы разной длины, так что пролёты не
+   синхронны и выглядят случайными. */
+.hw-bats {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1015;
+}
+.hw-bat {
+    position: absolute;
+    top: 0;
+    left: 0;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-fill-mode: both;
+}
+.hw-bat svg {
+    display: block;
+    fill: #0b0610;
+    filter: drop-shadow(0 0 3px rgba(200, 160, 255, 0.55));
+}
+.hw-bat-wing {
+    transform-box: view-box;
+    animation: hw-bat-flap-l 0.16s ease-in-out infinite alternate;
+}
+.hw-bat-wing-l {
+    transform-origin: 28px 12px;
+}
+.hw-bat-wing-r {
+    transform-origin: 32px 12px;
+    animation-name: hw-bat-flap-r;
+}
+.hw-bat-eye {
+    fill: var(--hw-pumpkin);
+}
+.hw-bat-1 {
+    animation-name: hw-bat-path-1;
+    animation-duration: 23s;
+    animation-delay: 3s;
+}
+.hw-bat-2 {
+    animation-name: hw-bat-path-2;
+    animation-duration: 31s;
+    animation-delay: 11s;
+}
+.hw-bat-2 svg {
+    transform: scale(0.7);
+}
+.hw-bat-2 .hw-bat-wing {
+    animation-duration: 0.13s;
+}
+.hw-bat-3 {
+    animation-name: hw-bat-path-3;
+    animation-duration: 41s;
+    animation-delay: 20s;
+}
+.hw-bat-3 svg {
+    transform: scale(1.25);
+}
+.hw-bat-3 .hw-bat-wing {
+    animation-duration: 0.2s;
+}
+/* слева направо, волной в верхней части экрана */
+@keyframes hw-bat-path-1 {
+    0%   { transform: translate(-80px, 22vh); }
+    4%   { transform: translate(35vw, 12vh); }
+    8%   { transform: translate(70vw, 24vh); }
+    12%, 100% { transform: translate(calc(100vw + 80px), 10vh); }
+}
+/* справа налево, повыше */
+@keyframes hw-bat-path-2 {
+    0%   { transform: translate(calc(100vw + 80px), 8vh); }
+    5%   { transform: translate(60vw, 17vh); }
+    10%  { transform: translate(25vw, 5vh); }
+    15%, 100% { transform: translate(-80px, 14vh); }
+}
+/* по диагонали снизу вверх */
+@keyframes hw-bat-path-3 {
+    0%   { transform: translate(-80px, 60vh); }
+    6%   { transform: translate(30vw, 42vh); }
+    12%  { transform: translate(65vw, 34vh); }
+    18%, 100% { transform: translate(calc(100vw + 80px), 16vh); }
+}
+@keyframes hw-bat-flap-l {
+    from { transform: rotate(-22deg); }
+    to   { transform: rotate(28deg); }
+}
+@keyframes hw-bat-flap-r {
+    from { transform: rotate(22deg); }
+    to   { transform: rotate(-28deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hw-bats {
+        display: none;
+    }
+}
+
 /* === Navigation === */
 .nav-link.active {
     color: var(--bs-primary) !important;

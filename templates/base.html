@@ -86,6 +86,25 @@
         </div>
     </nav>
 
+    {% block hw_bats %}
+    <!-- Хэллоуинские летучие мыши (анимация в style.css); в редакторе
+         блок переопределён пустым, чтобы не мешали рисовать -->
+    <div class="hw-bats" aria-hidden="true">
+        {% for i in "123" %}
+        <div class="hw-bat hw-bat-{{ i }}">
+            <svg viewBox="0 0 60 30" width="60" height="30">
+                <path class="hw-bat-wing hw-bat-wing-l" d="M30 12C24 4 14 2 2 6C7 9 8 13 6 17C10 15 14 16 16 20C19 16 24 16 27 18Z"/>
+                <path class="hw-bat-wing hw-bat-wing-r" d="M30 12C36 4 46 2 58 6C53 9 52 13 54 17C50 15 46 16 44 20C41 16 36 16 33 18Z"/>
+                <path d="M26.5 11L27 5.5L29 9.5ZM33.5 11L33 5.5L31 9.5Z"/>
+                <ellipse cx="30" cy="15" rx="4" ry="6"/>
+                <circle class="hw-bat-eye" cx="28.6" cy="12.5" r="0.8"/>
+                <circle class="hw-bat-eye" cx="31.4" cy="12.5" r="0.8"/>
+            </svg>
+        </div>
+        {% endfor %}
+    </div>
+    {% endblock %}
+
     <main class="container my-4">
         {% block content %}
         {% endblock %}
