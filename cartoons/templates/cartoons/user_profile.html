@@ -460,6 +460,8 @@
     {% if active_tab == 'comments' %}
     const COMMENTS_API = "{% url 'user_profile_comments' profile_user.username %}";
     const IS_AUTHENTICATED = {{ user.is_authenticated|yesno:'true,false' }};
+    // SVG-тыква вместо сердечка лайка (общий шаблон _pumpkin_icon.html)
+    const PUMPKIN_ICON = '{% filter escapejs %}{% include 'cartoons/_pumpkin_icon.html' %}{% endfilter %}';
 
     const commentsList = document.getElementById('profile-comments-list');
     const loadMoreContainer = document.getElementById('profile-load-more-container');
@@ -488,8 +490,8 @@
             ? '<a href="' + escapeHtml(c.avatar_link_url) + '">' + avatarImg + '</a>'
             : avatarImg;
         const likeHTML = IS_AUTHENTICATED
-            ? '<button class="btn btn-sm ' + likedClass + ' comment-like-btn" data-comment-id="' + c.id + '">❤ <span class="comment-likes-count">' + c.likes_count + '</span></button>'
-            : '<span class="text-muted small">❤ ' + c.likes_count + '</span>';
+            ? '<button class="btn btn-sm ' + likedClass + ' comment-like-btn" data-comment-id="' + c.id + '">' + PUMPKIN_ICON + ' <span class="comment-likes-count">' + c.likes_count + '</span></button>'
+            : '<span class="text-muted small">' + PUMPKIN_ICON + ' ' + c.likes_count + '</span>';
         return '<div class="comment-item border-bottom py-2" data-comment-id="' + c.id + '">' +
             '<div class="d-flex gap-2 align-items-start">' +
             '<div class="flex-shrink-0">' + avatarLink + '</div>' +

@@ -74,7 +74,7 @@
                         <button id="cartoon-like-btn"
                                 class="btn btn-sm {% if user_liked %}btn-danger{% else %}btn-outline-danger{% endif %}"
                                 data-liked="{{ user_liked|yesno:'true,false' }}">
-                            ❤ <span id="cartoon-likes-count">{{ likes_count }}</span>
+                            {% include 'cartoons/_pumpkin_icon.html' %} <span id="cartoon-likes-count">{{ likes_count }}</span>
                         </button>
                         {% if user.is_authenticated %}
                         <button id="cartoon-favorite-btn"
@@ -267,6 +267,8 @@
     const MARK_COMMENTS_SEEN_URL = "{% url 'mark_comments_seen' cartoon.pk %}";
     const IS_OWN_CARTOON  = {% if user == cartoon.author %}true{% else %}false{% endif %};
     const IS_AUTH         = {{ user.is_authenticated|yesno:'true,false' }};
+    // SVG-тыква вместо сердечка лайка (общий шаблон _pumpkin_icon.html)
+    const PUMPKIN_ICON = '{% filter escapejs %}{% include 'cartoons/_pumpkin_icon.html' %}{% endfilter %}';
     const MY_PROFILE_URL  = "{{ my_profile_url|default:'' }}";
     const CAN_MODERATE_COMMENTS = {{ can_moderate_comments|yesno:'true,false' }};
     let myCurrentAvatarSrc = null;
@@ -618,7 +620,7 @@
             '<button class="comment-expand-btn btn btn-link btn-sm p-0 d-none" style="font-size:0.72rem;">развернуть</button>' +
             '</div>' + editFormHTML +
             '<div class="d-flex align-items-center gap-2 comment-meta-row">' +
-            '<button class="btn btn-link btn-sm p-0 ' + likeColorClass + ' comment-like-btn" data-comment-id="' + c.id + '" style="font-size:0.72rem;">❤ <span class="comment-likes-count">' + c.likes_count + '</span></button>' +
+            '<button class="btn btn-link btn-sm p-0 ' + likeColorClass + ' comment-like-btn" data-comment-id="' + c.id + '" style="font-size:0.72rem;">' + PUMPKIN_ICON + ' <span class="comment-likes-count">' + c.likes_count + '</span></button>' +
             replyBtnHTML + '</div>' + replyFormHTML +
             '</div></div></div>' +
             '<div class="replies-container mt-1" data-parent-id="' + c.id + '"></div>' +

@@ -17,7 +17,6 @@ h1, h2, h3, h4, .btn {
     --hw-slime: #7FFF00;          /* лайки, бейджи (фон) */
     --hw-slime-ink: #3F8F00;      /* тот же слайм для текста на белом -
                                      чистый #7FFF00 на белом не читается */
-    --hw-slime-text: #1a1024;     /* текст поверх слаймового фона */
     --hw-night: #1a1024;          /* фон страницы */
 
     --bs-primary: var(--hw-poison);
@@ -112,11 +111,13 @@ body::after {
    Лайки размечены как btn-danger / text-danger, но те же классы стоят
    на настоящих опасных кнопках (удалить, заблокировать) - поэтому
    перекрашиваем по селекторам лайков, а не сам danger. */
+/* Лайкнуто - не заливка, а тёмная кнопка с яркой слаймовой рамкой:
+   на сплошном слайме не было бы видно, как загорается тыква. */
 #cartoon-like-btn.btn-danger,
 .comment-like-btn.btn-danger {
-    background-color: var(--hw-slime) !important;
+    background-color: rgba(127, 255, 0, 0.12) !important;
     border-color: var(--hw-slime) !important;
-    color: var(--hw-slime-text) !important;
+    color: var(--hw-slime) !important;
 }
 #cartoon-like-btn.btn-outline-danger,
 .comment-like-btn.btn-outline-danger {
@@ -126,13 +127,75 @@ body::after {
 }
 #cartoon-like-btn.btn-outline-danger:hover,
 .comment-like-btn.btn-outline-danger:hover {
-    background-color: var(--hw-slime) !important;
+    background-color: rgba(127, 255, 0, 0.06) !important;
     border-color: var(--hw-slime) !important;
-    color: var(--hw-slime-text) !important;
+    color: var(--hw-slime) !important;
 }
-.comment-like-btn.text-danger,
-.like-icon {
+.comment-like-btn.text-danger {
     color: var(--hw-slime-ink) !important;
+}
+
+/* === Тыква вместо сердечка (_pumpkin_icon.html) ===
+   Не лайкнуто - вырезанное лицо тёмное. Лайкнуто (те же классы, что
+   красят кнопку выше) - глаза и рот загораются: вспышка при клике,
+   дальше ровное свечение с лёгким мерцанием, как от свечи. Анимация
+   стартует сама, когда кнопке ставят класс лайка. */
+.hw-pumpkin {
+    width: 1.2em;
+    height: 1.2em;
+    vertical-align: -0.22em;
+    overflow: visible;
+}
+.hw-pumpkin-stem {
+    fill: #6b8e23;
+}
+.hw-pumpkin-body {
+    fill: var(--hw-pumpkin);
+    stroke: #7a2e00;
+    stroke-width: 0.7;
+}
+.hw-pumpkin-face {
+    fill: #2a0e00;
+    transition: fill 0.3s;
+}
+#cartoon-like-btn.btn-danger .hw-pumpkin,
+.comment-like-btn.btn-danger .hw-pumpkin,
+.comment-like-btn.text-danger .hw-pumpkin {
+    animation: hw-pumpkin-pop 0.45s ease-out;
+}
+#cartoon-like-btn.btn-danger .hw-pumpkin-face,
+.comment-like-btn.btn-danger .hw-pumpkin-face,
+.comment-like-btn.text-danger .hw-pumpkin-face {
+    fill: #ffe45c;
+    animation: hw-pumpkin-ignite 0.6s ease-out,
+               hw-pumpkin-flicker 2.4s ease-in-out 0.6s infinite;
+}
+#cartoon-like-btn.btn-danger .hw-pumpkin,
+.comment-like-btn.btn-danger .hw-pumpkin,
+.comment-like-btn.text-danger .hw-pumpkin {
+    filter: drop-shadow(0 0 3px rgba(255, 200, 0, 0.75));
+}
+@keyframes hw-pumpkin-pop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.35) rotate(-8deg); }
+    100% { transform: scale(1); }
+}
+@keyframes hw-pumpkin-ignite {
+    0%   { fill: #2a0e00; }
+    35%  { fill: #fffbe0; }
+    100% { fill: #ffe45c; }
+}
+@keyframes hw-pumpkin-flicker {
+    0%, 100% { fill: #ffe45c; }
+    30%      { fill: #ffc93c; }
+    55%      { fill: #fff08a; }
+    75%      { fill: #ffd447; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hw-pumpkin,
+    .hw-pumpkin-face {
+        animation: none !important;
+    }
 }
 .badge-slime {
     color: var(--hw-slime-ink) !important;

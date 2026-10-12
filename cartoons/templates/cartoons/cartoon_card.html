@@ -16,7 +16,7 @@
         </div>
         {% endif %}
         <div class="compact-card-stats text-muted">
-            <span title="Лайки">❤ {{ cartoon.likes.count }}</span>
+            <span title="Лайки">{% include 'cartoons/_pumpkin_icon.html' %} {{ cartoon.likes.count }}</span>
             <span class="mx-1">·</span>
             <span title="Уникальных: {{ cartoon.unique_views_count }} / Всего: {{ cartoon.views_count }}"><i class="bi bi-eye-fill"></i> {{ cartoon.unique_views_count }}</span>
             <span class="mx-1">·</span>
@@ -62,7 +62,7 @@
                 {% endif %}
                 <div class="card-stats d-flex gap-1 text-muted flex-wrap" style="font-size:0.78rem">
                     <span title="Кадры"><i class="bi bi-film"></i> {{ cartoon.frames_data|length }}</span>
-                    <span title="Лайки"><i class="bi bi-heart-fill like-icon"></i> {{ cartoon.likes.count }}</span>
+                    <span title="Лайки">{% include 'cartoons/_pumpkin_icon.html' %} {{ cartoon.likes.count }}</span>
                     <span title="Комментарии"><i class="bi bi-chat-fill"></i> {{ cartoon.comments.count }}</span>
                     {% if cartoon.new_comments_count %}<span title="Новые комментарии" class="badge-slime"><i class="bi bi-chat-fill"></i> {{ cartoon.new_comments_count }}</span>{% endif %}
                     <span class="views-tooltip" data-tooltip="Уникальных: {{ cartoon.unique_views_count }} / Всего: {{ cartoon.views_count }}"><i class="bi bi-eye-fill"></i> {{ cartoon.unique_views_count }}</span>
