@@ -358,6 +358,10 @@
         })();
     </script>
     <script src="{% static 'cartoons/js/search_bar.js' %}" data-search-url="{% url 'search' %}" data-set-mode-url="{% url 'set_search_tag_mode' %}" data-authenticated="{{ user.is_authenticated|yesno:'1,0' }}"></script>
+    {% block hw_sparks %}
+    <!-- Искры за курсором; в редакторе блок пустой - там своя кисть -->
+    <script src="{% static 'cartoons/js/halloween_sparks.js' %}"></script>
+    {% endblock %}
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

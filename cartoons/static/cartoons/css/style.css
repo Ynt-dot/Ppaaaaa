@@ -468,6 +468,42 @@ nav.navbar::after {
     }
 }
 
+/* === Искры за курсором (js/halloween_sparks.js) ===
+   Искра - светящаяся точка, которая падает с небольшим сносом вбок
+   (--hw-spark-dx/dy задаёт скрипт) и гаснет. */
+.hw-sparks {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1016;
+}
+.hw-spark {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 -3px;
+    border-radius: 50%;
+    background: var(--hw-spark-color);
+    box-shadow: 0 0 6px 1px var(--hw-spark-color);
+    animation: hw-spark 0.7s ease-out forwards;
+}
+@keyframes hw-spark {
+    from {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: translate(var(--hw-spark-dx), var(--hw-spark-dy)) scale(0.2);
+        opacity: 0;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hw-sparks {
+        display: none;
+    }
+}
+
 /* === Navigation === */
 .nav-link.active {
     color: var(--bs-primary) !important;
