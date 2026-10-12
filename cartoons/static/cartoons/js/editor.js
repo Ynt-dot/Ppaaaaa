@@ -217,6 +217,35 @@ function adjustHistoryAfterDelete(deleteIdx) {
 
 // ========== Работа с фоновыми слоями (луковая шелуха) ==========
 
+// Шелуха подкрашивается в зелёный: штрихи прошлых кадров смешиваются с
+// ONION_TINT (ONION_TINT_STRENGTH - доля зелёного). Так шелуху легко
+// отличить от текущего кадра, и она видна даже там, где чернила совпадают
+// с фоном кадра (чёрное на чёрном, белое на белом).
+const ONION_TINT = '#7fff00';
+const ONION_TINT_STRENGTH = 0.6;
+let onionCanvas = null;
+
+function tintedOnionFrame(img) {
+    if (!onionCanvas) {
+        onionCanvas = document.createElement('canvas');
+        onionCanvas.width = bgCanvas.width;
+        onionCanvas.height = bgCanvas.height;
+    }
+    const ctx = onionCanvas.getContext('2d');
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1.0;
+    ctx.clearRect(0, 0, onionCanvas.width, onionCanvas.height);
+    ctx.drawImage(img, 0, 0, onionCanvas.width, onionCanvas.height);
+    // source-atop: зелёный ложится только на уже нарисованные штрихи
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.globalAlpha = ONION_TINT_STRENGTH;
+    ctx.fillStyle = ONION_TINT;
+    ctx.fillRect(0, 0, onionCanvas.width, onionCanvas.height);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1.0;
+    return onionCanvas;
+}
+
 async function drawOnionSkin() {
     // вызывается после любой смены текущего кадра - заодно показываем его фон
     applyBackground();
@@ -232,7 +261,7 @@ async function drawOnionSkin() {
         if (i === 0) bgCtx.globalAlpha = 0.5;      // слой 0 (50%)
         else if (i === 1) bgCtx.globalAlpha = 0.25; // слой -1 (25%)
         else if (i === 2) bgCtx.globalAlpha = 0.125; // слой -2 (12.5%)
-        bgCtx.drawImage(img, 0, 0, bgCanvas.width, bgCanvas.height);
+        bgCtx.drawImage(tintedOnionFrame(img), 0, 0, bgCanvas.width, bgCanvas.height);
     }
     bgCtx.globalAlpha = 1.0;
 }
