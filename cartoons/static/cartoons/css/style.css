@@ -18,6 +18,7 @@ h1, h2, h3, h4, .btn {
     --hw-slime-ink: #3F8F00;      /* тот же слайм для текста на белом -
                                      чистый #7FFF00 на белом не читается */
     --hw-slime-text: #1a1024;     /* текст поверх слаймового фона */
+    --hw-night: #1a1024;          /* фон страницы */
 
     --bs-primary: var(--hw-poison);
     --bs-primary-hover: var(--hw-poison-hover);
@@ -25,6 +26,64 @@ h1, h2, h3, h4, .btn {
     --bs-link-hover-color: var(--hw-pumpkin-hover);
     --bs-success: var(--hw-pumpkin);
     --bs-success-rgb: 255, 117, 24;
+}
+
+/* Тёмная тема Bootstrap (data-bs-theme="dark" в base.html), подкрашенная
+   в фиолетовый вместо стандартного серо-синего. Ссылки тёмная тема
+   Bootstrap переопределяет на этом же селекторе - поэтому повторяем их. */
+[data-bs-theme=dark] {
+    color-scheme: dark;
+    --bs-body-bg: var(--hw-night);
+    --bs-body-bg-rgb: 26, 16, 36;
+    --bs-body-color: #e8e0f0;
+    --bs-body-color-rgb: 232, 224, 240;
+    --bs-emphasis-color: #fff;
+    --bs-secondary-color: rgba(232, 224, 240, 0.7);
+    --bs-secondary-bg: #2e2040;
+    --bs-secondary-bg-rgb: 46, 32, 64;
+    --bs-tertiary-bg: #241733;
+    --bs-tertiary-bg-rgb: 36, 23, 51;
+    --bs-border-color: #3d2a50;
+    --bs-border-color-translucent: rgba(189, 160, 220, 0.18);
+    --bs-link-color: var(--hw-pumpkin);
+    --bs-link-color-rgb: 255, 117, 24;
+    --bs-link-hover-color: var(--hw-pumpkin-hover);
+    --bs-link-hover-color-rgb: 224, 96, 10;
+}
+[data-bs-theme=dark] .card {
+    --bs-card-bg: var(--bs-tertiary-bg);
+    --bs-card-cap-bg: rgba(255, 255, 255, 0.04);
+}
+
+/* === Паутина в углах ===
+   Фиксированные SVG-подложки за контентом (z-index: -1 - выше фона
+   body, но ниже всего, что в потоке), клики не перехватывают. */
+body::before,
+body::after {
+    content: '';
+    position: fixed;
+    width: 260px;
+    height: 260px;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.18;
+    background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 260 260' fill='none' stroke='%23e8e0f0' stroke-width='1.2' stroke-linecap='round'%3E%3Cpath d='M0 0L260 30M0 0L230 110M0 0L170 170M0 0L110 230M0 0L30 260'/%3E%3Cpath d='M58 7Q46 30 51 51Q30 46 7 58'/%3E%3Cpath d='M58 7Q78 18 52 22'/%3E%3Cpath d='M115 13Q90 60 101 101Q60 90 13 115M115 13Q148 30 101 44M13 115Q30 148 44 101'/%3E%3Cpath d='M173 20Q135 90 150 150Q90 135 20 173M173 20Q210 45 153 66M20 173Q45 210 66 153'/%3E%3Cpath d='M230 27Q180 120 200 200Q120 180 27 230M230 27Q245 55 203 88M27 230Q55 245 88 203'/%3E%3C/svg%3E");
+}
+body::before {
+    top: 0;
+    left: 0;
+}
+body::after {
+    right: 0;
+    bottom: 0;
+    transform: rotate(180deg);
+}
+@media (max-width: 768px) {
+    body::before,
+    body::after {
+        width: 150px;
+        height: 150px;
+    }
 }
 
 .bg-success {
@@ -117,17 +176,17 @@ h1, h2, h3, h4, .btn {
     color: #fff !important;
 }
 .btn-github {
-    background-color: #fff;
-    border: 1px solid #212529;
-    color: #212529 !important;
+    background-color: transparent;
+    border: 1px solid var(--bs-body-color);
+    color: var(--bs-body-color) !important;
 }
 .btn-github:hover {
-    background-color: #212529;
-    border-color: #212529;
-    color: #fff !important;
+    background-color: var(--bs-body-color);
+    border-color: var(--bs-body-color);
+    color: var(--hw-night) !important;
 }
 .btn-youtube {
-    background-color: #fff;
+    background-color: transparent;
     border: 1px solid #FF0000;
     color: #FF0000 !important;
 }
@@ -137,7 +196,7 @@ h1, h2, h3, h4, .btn {
     color: #fff !important;
 }
 .btn-red {
-    background-color: #fff;
+    background-color: transparent;
     border: 1px solid #FF0000;
     color: #FF0000 !important;
 }
@@ -147,17 +206,17 @@ h1, h2, h3, h4, .btn {
     color: #fff !important;
 }
 .btn-black {
-    background-color: #fff;
-    border: 1px solid #212529;
-    color: #212529 !important;
+    background-color: transparent;
+    border: 1px solid var(--bs-body-color);
+    color: var(--bs-body-color) !important;
 }
 .btn-black:hover {
-    background-color: #212529;
-    border-color: #212529;
-    color: #fff !important;
+    background-color: var(--bs-body-color);
+    border-color: var(--bs-body-color);
+    color: var(--hw-night) !important;
 }
 .btn-twitch {
-    background-color: #fff;
+    background-color: transparent;
     border: 1px solid #9146FF;
     color: #9146FF !important;
 }
@@ -179,15 +238,15 @@ h1, h2, h3, h4, .btn {
 
 /* === Links === */
 a:not(.navbar-brand):not(.dropdown-item):not(.btn):not(.text-green) {
-    color: #212529;
+    color: var(--bs-body-color);
     text-decoration: none;
 }
 a:not(.navbar-brand):not(.dropdown-item):not(.btn):not(.text-green):hover {
-    color: #6c757d;
+    color: var(--bs-secondary-color);
     text-decoration: underline;
 }
 a:not(.username-link):not(.navbar-brand) {
-    color: #212529;
+    color: var(--bs-body-color);
 }
 .username-link,
 a.username-link {
@@ -201,6 +260,10 @@ a.username-link {
 /* === Navbar === */
 .navbar-brand img {
     width: auto;
+    /* Logo.png - чёрное на непрозрачном белом: инвертируем и
+       "screen" убирает получившийся чёрный фон */
+    filter: invert(1);
+    mix-blend-mode: screen;
 }
 @media (max-width: 768px) {
     .navbar-brand img {
@@ -213,23 +276,23 @@ a.username-link {
     color: var(--bs-primary) !important;
 }
 .dropdown-item:hover {
-    background-color: #e9ecef;
-    color: #212529;
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
 }
 .dropdown-item.active,
 .dropdown-item:active {
-    background-color: #212529 !important;
+    background-color: var(--hw-poison) !important;
     color: #fff !important;
 }
 
 /* === Pagination === */
 .page-link {
-    color: #212529;
+    color: var(--bs-body-color);
 }
 .page-link:hover {
-    background-color: #e9ecef;
-    color: #212529;
-    border-color: #dee2e6;
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
+    border-color: var(--bs-border-color);
 }
 .page-item.active .page-link {
     background-color: var(--bs-primary);
@@ -289,7 +352,7 @@ input[type="password"]::-ms-clear {
     width: 100%;
     aspect-ratio: 3 / 2;
     object-fit: contain;
-    background-color: #f8f9fa;
+    background-color: var(--bs-secondary-bg);
 }
 .card-preview-placeholder {
     aspect-ratio: 3 / 2;
@@ -302,14 +365,14 @@ input[type="password"]::-ms-clear {
     transition: background-color 0.15s ease;
 }
 .compact-card:hover {
-    background-color: #f1f3f5;
+    background-color: var(--bs-tertiary-bg);
 }
 .compact-card-img {
     width: 120px;
     aspect-ratio: 3 / 2;
     object-fit: cover;
     border-radius: 6px;
-    background-color: #f8f9fa;
+    background-color: var(--bs-secondary-bg);
 }
 .compact-card-placeholder {
     text-align: center;
@@ -356,7 +419,7 @@ input[type="password"]::-ms-clear {
 .tag-pill {
     display: inline-flex;
     align-items: center;
-    background-color: #e9ecef;
+    background-color: var(--bs-secondary-bg);
     border-radius: 999px;
     overflow: hidden;
     margin: 0 2px 2px 0;
@@ -364,7 +427,7 @@ input[type="password"]::-ms-clear {
 }
 .tag-pill-label,
 a.tag-pill-label {
-    color: #495057 !important;
+    color: var(--bs-body-color) !important;
     text-decoration: none !important;
     font-size: 0.78rem;
     padding: 2px 8px;
@@ -372,7 +435,7 @@ a.tag-pill-label {
 }
 .tag-pill-label:hover,
 a.tag-pill-label:hover {
-    background-color: #dee2e6;
+    background-color: var(--bs-border-color);
 }
 .tag-pill-x,
 a.tag-pill-x {
@@ -384,7 +447,7 @@ a.tag-pill-x {
 }
 .tag-pill-x:hover,
 a.tag-pill-x:hover {
-    background-color: #f5c2c7;
+    background-color: rgba(220, 53, 69, 0.25);
 }
 
 /* === Поисковая строка (шапка) === */
@@ -408,7 +471,7 @@ a.tag-pill-x:hover {
 }
 #search-mode-btn {
     border: none;
-    background-color: #212529;
+    background-color: var(--hw-poison);
     color: #fff;
     border-radius: 999px;
     font-size: 0.76rem;
@@ -418,7 +481,7 @@ a.tag-pill-x:hover {
     flex-shrink: 0;
 }
 #search-mode-btn:hover {
-    background-color: #495057;
+    background-color: var(--hw-poison-hover);
 }
 .search-chip-exclude {
     background-color: #dc3545;
@@ -447,13 +510,13 @@ a.tag-pill-x:hover {
     left: 0;
     right: 0;
     height: 1px;
-    background-color: #dee2e6;
+    background-color: var(--bs-border-color);
 }
 .comment-self {
     padding: 4px 6px;
 }
 .comment-self.pinned-comment {
-    outline: 2px solid #212529;
+    outline: 2px solid var(--hw-poison);
     border-radius: 4px;
 }
 
@@ -462,7 +525,7 @@ a.tag-pill-x:hover {
     position: relative;
 }
 .card.cartoon-pinned {
-    outline: 2px solid #212529;
+    outline: 2px solid var(--hw-poison);
 }
 .cartoon-pin-btn {
     position: absolute;
@@ -489,9 +552,9 @@ a.tag-pill-x:hover {
 
 /* === Объявление наверху заглавной (data/announcement.html) === */
 .announcement-banner {
-    background: #fdf1d8;
-    border: 1px solid #e0b96a;
-    color: #6b4a1a;
+    background: rgba(255, 117, 24, 0.1);
+    border: 1px solid var(--hw-pumpkin);
+    color: #ffd8bb;
     border-radius: 6px;
     padding: 12px 16px;
 }
@@ -537,7 +600,37 @@ a.tag-pill-x:hover {
     color: #FF0000;
 }
 
+/* Фокус полей ввода - тыквенный вместо синего бутстраповского */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--hw-pumpkin);
+    box-shadow: 0 0 0 0.25rem rgba(255, 117, 24, 0.25);
+}
+
 /* === Detail / Player === */
+/* Кадры - прозрачные PNG, нарисованные на белом холсте: без подложки
+   чёрные штрихи терялись бы на тёмном фоне. */
+.frame-display-img {
+    background-color: #fff;
+}
+.form-range::-webkit-slider-thumb {
+    background-color: var(--hw-pumpkin);
+}
+.form-range::-webkit-slider-thumb:active {
+    background-color: var(--hw-pumpkin-active);
+}
+.form-range::-moz-range-thumb {
+    background-color: var(--hw-pumpkin);
+}
+.form-range::-moz-range-thumb:active {
+    background-color: var(--hw-pumpkin-active);
+}
+.form-range:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 1px var(--hw-night), 0 0 0 0.25rem rgba(255, 117, 24, 0.25);
+}
+.form-range:focus::-moz-range-thumb {
+    box-shadow: 0 0 0 1px var(--hw-night), 0 0 0 0.25rem rgba(255, 117, 24, 0.25);
+}
 
 /* === Avatars === */
 .user-avatar {
@@ -545,14 +638,14 @@ a.tag-pill-x:hover {
     height: 90px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #dee2e6;
+    border: 2px solid var(--bs-border-color);
 }
 .user-avatar-md {
     width: 60px;
     height: 60px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #dee2e6;
+    border: 2px solid var(--bs-border-color);
     flex-shrink: 0;
 }
 .user-avatar-sm {
@@ -560,7 +653,7 @@ a.tag-pill-x:hover {
     height: 64px;
     border-radius: 50%;
     object-fit: cover;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--bs-border-color);
     flex-shrink: 0;
 }
 .avatar-selector-item {
@@ -583,8 +676,8 @@ a.tag-pill-x:hover {
 }
 .crop-zoom-bar {
     width: 44px;
-    background: #f8f9fa;
-    border-right: 1px solid #dee2e6;
+    background: var(--bs-tertiary-bg);
+    border-right: 1px solid var(--bs-border-color);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -596,7 +689,7 @@ a.tag-pill-x:hover {
 .crop-zoom-label {
     font-size: 1rem;
     font-weight: 600;
-    color: #6c757d;
+    color: var(--bs-secondary-color);
     line-height: 1;
     -webkit-user-select: none;
     user-select: none;
@@ -615,7 +708,7 @@ a.tag-pill-x:hover {
     cursor: pointer;
     margin: 0;
     padding: 0;
-    accent-color: #0d6efd;
+    accent-color: var(--hw-pumpkin);
 }
 .crop-stage {
     position: relative;
@@ -652,6 +745,31 @@ a.tag-pill-x:hover {
     pointer-events: none;
 }
 
+/* === btn-dark / btn-outline-dark на тёмном фоне ===
+   Используются как переключатели вкладок и сортировки: тёмное на тёмном
+   не видно, поэтому активное - фиолетовое, неактивное - светлый контур. */
+.btn-dark {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--hw-poison);
+    --bs-btn-border-color: var(--hw-poison);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--hw-poison-hover);
+    --bs-btn-hover-border-color: var(--hw-poison-hover);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--hw-poison-hover);
+    --bs-btn-active-border-color: var(--hw-poison-hover);
+}
+.btn-outline-dark {
+    --bs-btn-color: var(--bs-body-color);
+    --bs-btn-border-color: #5a4470;
+    --bs-btn-hover-color: var(--bs-body-color);
+    --bs-btn-hover-bg: var(--bs-secondary-bg);
+    --bs-btn-hover-border-color: #5a4470;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--hw-poison);
+    --bs-btn-active-border-color: var(--hw-poison);
+}
+
 /* === Fix: anchor btn-dark/btn-outline-dark text colour === */
 a.btn-dark,
 a.btn-dark:hover,
@@ -661,7 +779,7 @@ a.btn-dark:focus {
 
 a.btn-outline-dark:hover,
 a.btn-outline-dark:focus {
-    background-color: #e9ecef !important;
-    color: #212529 !important;
-    border-color: #343a40 !important;
+    background-color: var(--bs-secondary-bg) !important;
+    color: var(--bs-body-color) !important;
+    border-color: #5a4470 !important;
 }

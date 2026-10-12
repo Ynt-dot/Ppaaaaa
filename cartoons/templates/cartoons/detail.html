@@ -28,7 +28,7 @@
         {% if frames_json %}
         <div class="card shadow mb-3">
             <img id="frame-display" src="" alt="Кадр" class="card-img-top frame-display-img">
-            <div class="card-footer bg-white">
+            <div class="card-footer">
                 <div class="d-flex align-items-center gap-2 mb-2">
                     <span>Кадр</span>
                     <input type="range" id="frame-slider" class="form-range" min="0" max="0" value="0">
@@ -560,7 +560,7 @@
             : '';
         const blockLabelHTML = c.show_block_label
             ? (c.is_blocked_author
-                ? '<span class="comment-block-label text-dark fw-bold flex-shrink-0" style="font-size:0.72rem;">пользователь заблокирован</span>'
+                ? '<span class="comment-block-label text-body fw-bold flex-shrink-0" style="font-size:0.72rem;">пользователь заблокирован</span>'
                 : '<button class="comment-block-label block-user-btn btn btn-link btn-sm p-0 text-secondary flex-shrink-0" data-comment-id="' + c.id + '" data-block-url="' + escapeHtml(c.block_url) + '" style="font-size:0.72rem;">заблокировать</button>')
             : '';
         const replyFormHTML = IS_AUTH
@@ -946,7 +946,7 @@
 
     function replaceWithBlockedLabel(blockBtn) {
         const label = document.createElement('span');
-        label.className = 'comment-block-label text-dark fw-bold flex-shrink-0';
+        label.className = 'comment-block-label text-body fw-bold flex-shrink-0';
         label.style.fontSize = '0.72rem';
         label.textContent = 'пользователь заблокирован';
         blockBtn.replaceWith(label);
