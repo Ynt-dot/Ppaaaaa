@@ -89,6 +89,21 @@ canvas {
 .color-btn.red {
     background: #ff0000;
 }
+/* Хэллоуинская палитра */
+.color-btn.hw-pumpkin-color {
+    background: #ff7518;
+}
+.color-btn.hw-poison-color {
+    background: #6b2d8c;
+    border-color: #6c5a80;  /* тёмный образец иначе теряется на панели */
+}
+.color-btn.hw-acid-color {
+    background: #7fff00;
+}
+.color-btn.hw-blood-color {
+    background: #8a0303;
+    border-color: #6c5a80;
+}
 .color-btn.active {
     border-color: var(--hw-pumpkin);
     box-shadow: 0 0 0 2px rgba(255,117,24,0.5);
