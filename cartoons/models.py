@@ -120,8 +120,13 @@ class CartoonLike(models.Model):
 
 
 class Comment(models.Model):
+    # Комментарий относится либо к мульту (cartoon), либо к отдельной
+    # странице сайта - сейчас это страницы конкурсов (page = имя конкурса,
+    # см. views.contest). Ровно одно из двух заполнено.
     cartoon = models.ForeignKey(Cartoon, on_delete=models.CASCADE,
-                                related_name='comments')
+                                related_name='comments',
+                                null=True, blank=True)
+    page = models.CharField(max_length=50, blank=True, db_index=True)
     parent = models.ForeignKey('self', on_delete=models.CASCADE,
                                null=True, blank=True, related_name='replies')
     level = models.PositiveSmallIntegerField(default=0)
@@ -147,6 +152,8 @@ class Comment(models.Model):
         ]
 
     def __str__(self):
+        if self.cartoon_id is None:
+            return f"Комментарий на странице «{self.page}»"
         return f"Комментарий к «{self.cartoon}»"
 
     def display_author(self):

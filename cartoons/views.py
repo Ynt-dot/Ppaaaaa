@@ -20,7 +20,9 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 import os
 from django.conf import settings
-from django.http import JsonResponse, HttpResponseForbidden, QueryDict
+from django.http import JsonResponse, HttpResponseForbidden, QueryDict, Http404
+from django.template import engines
+from django.utils.html import strip_tags
 from django.views.decorators.http import require_POST, require_GET
 from django.db.models import (
     Count, Q, F, Case, When, Value, IntegerField, OuterRef, Subquery,
@@ -696,8 +698,10 @@ def toggle_cartoon_like(request, pk):
 def _get_seen_cutoff(request, cartoon):
     """Таймстамп "последнего просмотра комментариев" автора мульта,
     но только для самого автора - все остальные получают None, то
-    есть "не считать/не показывать бейдж непрочитанных"."""
-    if (request.user.is_authenticated
+    есть "не считать/не показывать бейдж непрочитанных". У страниц
+    (cartoon=None) хозяина нет - тоже None."""
+    if (cartoon is not None
+            and request.user.is_authenticated
             and cartoon.author_id == request.user.id):
         return cartoon.author_last_seen_comments
     return None
@@ -784,7 +788,11 @@ def _serialize_comment(comment, request, current_level=0,
         request.user.is_authenticated
         and cartoon_author_id is not None
         and request.user.id == cartoon_author_id)
-    can_pin = is_cartoon_author
+    # На страницах (комментарий без мульта) хозяина нет - закрепляют
+    # администраторы.
+    can_pin = is_cartoon_author or (
+        comment.cartoon_id is None and request.user.is_authenticated
+        and request.user.is_staff)
     can_delete = request.user.is_authenticated and request.user.is_staff
     can_delete_own = (
         not comment.is_deleted
@@ -847,11 +855,22 @@ def _serialize_comment(comment, request, current_level=0,
 @require_GET
 def get_comments(request, pk):
     cartoon = get_object_or_404(Cartoon, pk=pk)
+    return _top_level_comments_response(
+        request, Comment.objects.filter(cartoon=cartoon),
+        cartoon_author_id=cartoon.author_id,
+        seen_cutoff=_get_seen_cutoff(request, cartoon))
+
+
+def _top_level_comments_response(request, base_qs, cartoon_author_id,
+                                 seen_cutoff):
+    """Страница верхнеуровневых комментариев из base_qs (комментарии
+    одного мульта или одной страницы) - общий ответ для get_comments
+    и get_page_comments."""
     page = max(1, int(request.GET.get('page', 1)))
     sort = request.GET.get('sort', 'popular')
     per_page = 10
 
-    qs = Comment.objects.filter(cartoon=cartoon, parent=None).select_related(
+    qs = base_qs.filter(parent=None).select_related(
         'author', 'author__preference', 'author__preference__avatar'
     )
     if request.user.is_authenticated:
@@ -882,8 +901,6 @@ def get_comments(request, pk):
     end = start + per_page
     comments = list(qs[start:end])
 
-    cartoon_author_id = cartoon.author_id
-    seen_cutoff = _get_seen_cutoff(request, cartoon)
     data = [
         _serialize_comment(
             c,
@@ -939,7 +956,7 @@ def get_replies(request, comment_pk):
     replies = list(qs[start:end])
 
     child_level = parent.level + 1
-    cartoon_author_id = parent.cartoon.author_id
+    cartoon_author_id = parent.cartoon.author_id if parent.cartoon else None
     seen_cutoff = _get_seen_cutoff(request, parent.cartoon)
     data = [
         _serialize_comment(
@@ -985,7 +1002,7 @@ def get_thread(request, comment_pk):
     end = start + per_page
     replies = list(qs[start:end])
 
-    cartoon_author_id = root.cartoon.author_id
+    cartoon_author_id = root.cartoon.author_id if root.cartoon else None
     seen_cutoff = _get_seen_cutoff(request, root.cartoon)
     max_inline = root.level + 3
     child_level = root.level + 1
@@ -1019,7 +1036,12 @@ def get_thread(request, comment_pk):
 @require_POST
 def add_comment(request, pk):
     cartoon = get_object_or_404(Cartoon, pk=pk)
+    return _create_comment(request, cartoon=cartoon)
 
+
+def _create_comment(request, cartoon=None, page=''):
+    """Создаёт комментарий к мульту (cartoon) или к странице (page) -
+    общее для add_comment и add_page_comment."""
     try:
         body = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
@@ -1039,7 +1061,7 @@ def add_comment(request, pk):
         return JsonResponse(
             {'error': 'Войдите, чтобы оставить комментарий'}, status=403)
 
-    if cartoon.author_id and UserBlock.objects.filter(
+    if cartoon and cartoon.author_id and UserBlock.objects.filter(
             blocker_id=cartoon.author_id, blocked=request.user).exists():
         return JsonResponse(
             {'error': 'Автор заблокировал вас'}, status=403)
@@ -1049,22 +1071,24 @@ def add_comment(request, pk):
     parent_id = body.get('parent_id')
     if parent_id:
         try:
-            parent = Comment.objects.get(pk=int(parent_id), cartoon=cartoon)
+            parent = Comment.objects.get(
+                pk=int(parent_id), cartoon=cartoon, page=page)
             level = parent.level + 1
         except Comment.DoesNotExist:
             return JsonResponse({'error': 'Комментарий не найден'}, status=404)
 
     comment = Comment.objects.create(
         cartoon=cartoon,
+        page=page,
         author=request.user,
         parent=parent,
         level=level,
         text=text,
     )
 
-    if request.user == cartoon.author:
+    if cartoon and request.user == cartoon.author:
         Cartoon.objects.filter(
-            pk=pk).update(
+            pk=cartoon.pk).update(
             author_last_seen_comments=timezone.now())
 
     data = _serialize_comment(
@@ -1072,9 +1096,58 @@ def add_comment(request, pk):
         request,
         current_level=level,
         max_inline_level=level - 1,
-        cartoon_author_id=cartoon.author_id,
+        cartoon_author_id=cartoon.author_id if cartoon else None,
         seen_cutoff=_get_seen_cutoff(request, cartoon))
     return JsonResponse(data, status=201)
+
+
+# ── Страницы конкурсов ─────────────────────────────────────────────────
+# Текст каждого конкурса - data/contests/<имя>.html: как news.html, живёт
+# вне git (в .gitignore, образец - data/contests/halloween.html.example) и
+# правится вручную на сервере. Файл рендерится как шаблон Django, поэтому
+# в нём работает {% cartoons 12 34 %} - сетка карточек выбранных мультов.
+# Ссылок на страницы с сайта нет - их дают в новостях.
+
+def _contest_file_or_404(slug):
+    # slug из <slug:...> в urls.py - только буквы, цифры, "-" и "_",
+    # поэтому выйти за пределы data/contests нельзя
+    path = os.path.join(settings.BASE_DIR, 'data', 'contests', slug + '.html')
+    if not os.path.isfile(path):
+        raise Http404('Нет такого конкурса')
+    return path
+
+
+def contest(request, slug):
+    with open(_contest_file_or_404(slug), 'r', encoding='utf-8') as f:
+        source = f.read()
+    content = engines['django'].from_string(
+        '{% load cartoon_tags %}' + source).render({}, request)
+    # Заголовок вкладки - первый <h1> файла
+    h1 = re.search(r'<h1[^>]*>(.*?)</h1>', source, re.S | re.I)
+    title = strip_tags(h1.group(1)).strip() if h1 else ''
+    return render(request, 'cartoons/contest.html', {
+        'contest_slug': slug,
+        'contest_title': title or 'Конкурс',
+        'contest_content': content,
+        'comment_sort': _get_comment_sort(request),
+        'my_profile_url': (
+            _profile_url(request.user)
+            if request.user.is_authenticated else None),
+    })
+
+
+@require_GET
+def get_page_comments(request, slug):
+    _contest_file_or_404(slug)
+    return _top_level_comments_response(
+        request, Comment.objects.filter(cartoon=None, page=slug),
+        cartoon_author_id=None, seen_cutoff=None)
+
+
+@require_POST
+def add_page_comment(request, slug):
+    _contest_file_or_404(slug)  # комментировать можно только существующий
+    return _create_comment(request, page=slug)
 
 
 @require_POST
@@ -1101,7 +1174,11 @@ def pin_comment(request, comment_pk):
     comment = get_object_or_404(
         Comment.objects.select_related('cartoon'),
         pk=comment_pk)
-    if comment.cartoon.author != request.user:
+    if comment.cartoon is None:
+        allowed = request.user.is_staff  # страница - закрепляют админы
+    else:
+        allowed = comment.cartoon.author == request.user
+    if not allowed:
         return JsonResponse({'error': 'forbidden'}, status=403)
     comment.is_pinned = not comment.is_pinned
     comment.save(update_fields=['is_pinned'])
@@ -1135,7 +1212,8 @@ def delete_own_comment(request, comment_pk):
         return JsonResponse({'error': 'login_required'}, status=401)
     comment = get_object_or_404(
         Comment.objects.select_related('cartoon'), pk=comment_pk)
-    is_cartoon_author = comment.cartoon.author == request.user
+    is_cartoon_author = (
+        comment.cartoon is not None and comment.cartoon.author == request.user)
     if comment.author != request.user and not is_cartoon_author:
         return JsonResponse({'error': 'forbidden'}, status=403)
     if comment.is_deleted:
@@ -1573,6 +1651,20 @@ def toggle_favorite(request, pk):
     return JsonResponse({'favorited': favorited})
 
 
+def _comment_place(comment):
+    """Где оставлен комментарий - для списка в профиле: мульт или
+    страница конкурса (ключи прежние, cartoon_*, их читает JS профиля)."""
+    if comment.cartoon_id is None:
+        return {
+            'cartoon_title': 'Конкурс «%s»' % comment.page,
+            'cartoon_url': reverse('contest', args=[comment.page]),
+        }
+    return {
+        'cartoon_title': comment.cartoon.title,
+        'cartoon_url': reverse('detail', args=[comment.cartoon_id]),
+    }
+
+
 @require_GET
 def get_user_profile_comments(request, username):
     profile_user = get_object_or_404(User, username=username)
@@ -1643,8 +1735,7 @@ def get_user_profile_comments(request, username):
             'created_at': c.created_at.strftime('%d.%m.%Y %H:%M'),
             'likes_count': c.likes_count,
             'user_liked': user_liked,
-            'cartoon_title': c.cartoon.title,
-            'cartoon_url': reverse('detail', args=[c.cartoon_id]),
+            **_comment_place(c),
         })
 
     return JsonResponse({

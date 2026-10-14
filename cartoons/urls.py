@@ -6,6 +6,11 @@ from django.conf.urls import include
 urlpatterns = [
     path('', views.index, name='index'),
     path('search/', views.search, name='search'),
+    path('contest/<slug:slug>/', views.contest, name='contest'),
+    path('contest/<slug:slug>/comments/', views.get_page_comments,
+         name='get_page_comments'),
+    path('contest/<slug:slug>/comments/add/', views.add_page_comment,
+         name='add_page_comment'),
     path('search/set-tag-mode/', views.set_search_tag_mode,
          name='set_search_tag_mode'),
     path('new/', views.editor, name='editor_create'),

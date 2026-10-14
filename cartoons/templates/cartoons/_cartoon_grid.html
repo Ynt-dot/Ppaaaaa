@@ -1,0 +1,8 @@
+{# Сетка карточек, как в поиске (по 4 в ряд) - выводится тегом {% cartoons ... %}; неполные ряды - по центру #}
+{# Ряды раскладывает balanced_row_sizes: после ряда - перенос (только от md, где по 4; m-0/p-0 - без лишнего зазора) #}
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 g-4 my-3 justify-content-center">
+    {% for cartoon, row_break in cartoons %}
+    {% include 'cartoons/cartoon_card.html' with show_author=True %}
+    {% if row_break %}<div class="w-100 d-none d-md-block m-0 p-0"></div>{% endif %}
+    {% endfor %}
+</div>

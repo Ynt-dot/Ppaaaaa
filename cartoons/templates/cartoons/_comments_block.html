@@ -1,0 +1,52 @@
+{# Блок комментариев + модалка ветки. Скрипт - js/comments.js + initComments() #}
+        <!-- Комментарии -->
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0">Шёпот из склепа</h4>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm sort-btn {% if comment_sort == 'popular' %}btn-dark{% else %}btn-outline-dark{% endif %}" data-sort="popular">По популярности</button>
+                        <button type="button" class="btn btn-sm sort-btn {% if comment_sort == 'newest' %}btn-dark{% else %}btn-outline-dark{% endif %}" data-sort="newest">По новизне</button>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    {% if user.is_authenticated %}
+                    <div class="d-flex gap-2">
+                        <textarea id="comment-text" class="form-control" rows="2" placeholder="Написать комментарий..." maxlength="2000"></textarea>
+                        <button id="submit-comment-btn" class="btn btn-github align-self-end">Отправить</button>
+                    </div>
+                    <div id="comment-error" class="text-danger small mt-1" style="display:none;"></div>
+                    {% else %}
+                    <p class="text-muted small mb-0"><a href="{% url 'register' %}" class="username-link">Зарегистрируйтесь</a>, чтобы оставить комментарий.</p>
+                    {% endif %}
+                </div>
+
+                <div id="comments-list"></div>
+
+                <div class="text-center mt-3" id="load-more-container" style="display:none;">
+                    <button id="load-more-btn" class="btn btn-outline-secondary">Загрузить ещё</button>
+                </div>
+                <div id="no-comments-msg" class="hw-empty" style="display:none;">
+                    {% include 'cartoons/_ghost_empty.html' %}
+                    <p class="hw-empty-hint">Комментариев пока нет. Будьте первым!</p>
+                </div>
+                <div id="comments-loading" class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+                </div>
+            </div>
+        </div>
+
+<!-- Модал: ветка комментариев -->
+<div class="modal fade" id="threadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button id="thread-back-btn" class="btn btn-sm btn-outline-secondary d-none me-2">← Назад</button>
+                <h5 class="modal-title">Ветка комментариев</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="thread-modal-body"></div>
+        </div>
+    </div>
+</div>

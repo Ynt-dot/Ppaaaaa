@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static cartoon_tags %}
+
+{% block title %}{{ contest_title }}{% endblock %}
+
+{% block content %}
+{# Текст конкурса - data/contests/<имя>.html (см. views.contest) #}
+<div class="contest-content mb-4">
+    {{ contest_content }}
+</div>
+
+{% include 'cartoons/_comments_block.html' %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static_v 'cartoons/js/comments.js' %}"></script>
+<script>
+    initComments({
+        commentsUrl: "{% url 'get_page_comments' contest_slug %}",
+        addCommentUrl: "{% url 'add_page_comment' contest_slug %}",
+        setSortUrl: "{% url 'set_comment_sort' %}",
+        defaultAvatarUrl: "{% static 'cartoons/images/default_avatar.png' %}",
+        isAuth: {{ user.is_authenticated|yesno:'true,false' }},
+        myProfileUrl: "{{ my_profile_url|default:'' }}",
+        pumpkinIcon: '{% filter escapejs %}{% include 'cartoons/_pumpkin_icon.html' %}{% endfilter %}',
+        initialSort: '{{ comment_sort }}',
+    });
+</script>
+{% endblock %}

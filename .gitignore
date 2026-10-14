@@ -38,3 +38,4 @@ __pycache__/
 
 data/news.html
 data/announcement.html
+data/contests/*.html
