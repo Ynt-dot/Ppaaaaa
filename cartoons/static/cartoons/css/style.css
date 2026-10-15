@@ -8,32 +8,198 @@ h1, h2, h3, h4, .btn {
 
 /* === Colour tokens === */
 :root {
-    --bs-primary: #FF0000;
-    --bs-primary-hover: #6c757d;
-    --bs-link-color: #28a745;
-    --bs-link-hover-color: #218838;
-    --bs-success: #28a745;
-    --bs-success-rgb: 40, 167, 69;
+    /* Хэллоуинская палитра */
+    --hw-pumpkin: #FF7518;        /* кнопки, ссылки */
+    --hw-pumpkin-hover: #E0600A;
+    --hw-pumpkin-active: #C25208;
+    --hw-poison: #6B2D8C;         /* акценты */
+    --hw-poison-hover: #4E1F66;
+    --hw-slime: #7FFF00;          /* лайки, бейджи (фон) */
+    --hw-slime-ink: #3F8F00;      /* тот же слайм для текста на белом -
+                                     чистый #7FFF00 на белом не читается */
+    --hw-night: #1a1024;          /* фон страницы */
+
+    --bs-primary: var(--hw-poison);
+    --bs-primary-hover: var(--hw-poison-hover);
+    --bs-link-color: var(--hw-pumpkin);
+    --bs-link-hover-color: var(--hw-pumpkin-hover);
+    --bs-success: var(--hw-pumpkin);
+    --bs-success-rgb: 255, 117, 24;
+}
+
+/* Тёмная тема Bootstrap (data-bs-theme="dark" в base.html), подкрашенная
+   в фиолетовый вместо стандартного серо-синего. Ссылки тёмная тема
+   Bootstrap переопределяет на этом же селекторе - поэтому повторяем их. */
+[data-bs-theme=dark] {
+    color-scheme: dark;
+    --bs-body-bg: var(--hw-night);
+    --bs-body-bg-rgb: 26, 16, 36;
+    --bs-body-color: #e8e0f0;
+    --bs-body-color-rgb: 232, 224, 240;
+    --bs-emphasis-color: #fff;
+    --bs-secondary-color: rgba(232, 224, 240, 0.7);
+    --bs-secondary-bg: #2e2040;
+    --bs-secondary-bg-rgb: 46, 32, 64;
+    --bs-tertiary-bg: #241733;
+    --bs-tertiary-bg-rgb: 36, 23, 51;
+    --bs-border-color: #3d2a50;
+    --bs-border-color-translucent: rgba(189, 160, 220, 0.18);
+    --bs-link-color: var(--hw-pumpkin);
+    --bs-link-color-rgb: 255, 117, 24;
+    --bs-link-hover-color: var(--hw-pumpkin-hover);
+    --bs-link-hover-color-rgb: 224, 96, 10;
+}
+[data-bs-theme=dark] .card {
+    --bs-card-bg: var(--bs-tertiary-bg);
+    --bs-card-cap-bg: rgba(255, 255, 255, 0.04);
+}
+
+/* === Паутина в углах ===
+   Фиксированные SVG-подложки за контентом (z-index: -1 - выше фона
+   body, но ниже всего, что в потоке), клики не перехватывают. */
+body::before,
+body::after {
+    content: '';
+    position: fixed;
+    width: 260px;
+    height: 260px;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.18;
+    background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 260 260' fill='none' stroke='%23e8e0f0' stroke-width='1.2' stroke-linecap='round'%3E%3Cpath d='M0 0L260 30M0 0L230 110M0 0L170 170M0 0L110 230M0 0L30 260'/%3E%3Cpath d='M58 7Q46 30 51 51Q30 46 7 58'/%3E%3Cpath d='M58 7Q78 18 52 22'/%3E%3Cpath d='M115 13Q90 60 101 101Q60 90 13 115M115 13Q148 30 101 44M13 115Q30 148 44 101'/%3E%3Cpath d='M173 20Q135 90 150 150Q90 135 20 173M173 20Q210 45 153 66M20 173Q45 210 66 153'/%3E%3Cpath d='M230 27Q180 120 200 200Q120 180 27 230M230 27Q245 55 203 88M27 230Q55 245 88 203'/%3E%3C/svg%3E");
+}
+body::before {
+    top: 0;
+    left: 0;
+}
+body::after {
+    right: 0;
+    bottom: 0;
+    transform: rotate(180deg);
+}
+@media (max-width: 768px) {
+    body::before,
+    body::after {
+        width: 150px;
+        height: 150px;
+    }
 }
 
 .bg-success {
-    background-color: #28a745 !important;
+    background-color: var(--hw-pumpkin) !important;
 }
 .btn-success {
-    --bs-btn-bg: #28a745;
-    --bs-btn-border-color: #28a745;
-    --bs-btn-hover-bg: #218838;
-    --bs-btn-hover-border-color: #1e7e34;
-    --bs-btn-active-bg: #1e7e34;
-    --bs-btn-active-border-color: #1c7430;
+    --bs-btn-bg: var(--hw-pumpkin);
+    --bs-btn-border-color: var(--hw-pumpkin);
+    --bs-btn-hover-bg: var(--hw-pumpkin-hover);
+    --bs-btn-hover-border-color: var(--hw-pumpkin-hover);
+    --bs-btn-active-bg: var(--hw-pumpkin-active);
+    --bs-btn-active-border-color: var(--hw-pumpkin-active);
+    --bs-btn-disabled-bg: var(--hw-pumpkin);
+    --bs-btn-disabled-border-color: var(--hw-pumpkin);
 }
 .btn-outline-success {
-    --bs-btn-color: #28a745;
-    --bs-btn-border-color: #28a745;
-    --bs-btn-hover-bg: #28a745;
-    --bs-btn-hover-border-color: #28a745;
-    --bs-btn-active-bg: #28a745;
-    --bs-btn-active-border-color: #28a745;
+    --bs-btn-color: var(--hw-pumpkin);
+    --bs-btn-border-color: var(--hw-pumpkin);
+    --bs-btn-hover-bg: var(--hw-pumpkin);
+    --bs-btn-hover-border-color: var(--hw-pumpkin);
+    --bs-btn-active-bg: var(--hw-pumpkin-active);
+    --bs-btn-active-border-color: var(--hw-pumpkin-active);
+}
+
+/* === Лайки (слайм) ===
+   Лайки размечены как btn-danger / text-danger, но те же классы стоят
+   на настоящих опасных кнопках (удалить, заблокировать) - поэтому
+   перекрашиваем по селекторам лайков, а не сам danger. */
+/* Лайкнуто - не заливка, а тёмная кнопка с яркой слаймовой рамкой:
+   на сплошном слайме не было бы видно, как загорается тыква. */
+#cartoon-like-btn.btn-danger,
+.comment-like-btn.btn-danger {
+    background-color: rgba(127, 255, 0, 0.12) !important;
+    border-color: var(--hw-slime) !important;
+    color: var(--hw-slime) !important;
+}
+#cartoon-like-btn.btn-outline-danger,
+.comment-like-btn.btn-outline-danger {
+    background-color: transparent !important;
+    border-color: var(--hw-slime-ink) !important;
+    color: var(--hw-slime-ink) !important;
+}
+#cartoon-like-btn.btn-outline-danger:hover,
+.comment-like-btn.btn-outline-danger:hover {
+    background-color: rgba(127, 255, 0, 0.06) !important;
+    border-color: var(--hw-slime) !important;
+    color: var(--hw-slime) !important;
+}
+.comment-like-btn.text-danger {
+    color: var(--hw-slime-ink) !important;
+}
+
+/* === Тыква вместо сердечка (_pumpkin_icon.html) ===
+   Не лайкнуто - вырезанное лицо тёмное. Лайкнуто (те же классы, что
+   красят кнопку выше) - глаза и рот загораются: вспышка при клике,
+   дальше ровное свечение с лёгким мерцанием, как от свечи. Анимация
+   стартует сама, когда кнопке ставят класс лайка. */
+.hw-pumpkin {
+    width: 1.2em;
+    height: 1.2em;
+    vertical-align: -0.22em;
+    overflow: visible;
+}
+.hw-pumpkin-stem {
+    fill: #6b8e23;
+}
+.hw-pumpkin-body {
+    fill: var(--hw-pumpkin);
+    stroke: #7a2e00;
+    stroke-width: 0.7;
+}
+.hw-pumpkin-face {
+    fill: #2a0e00;
+    transition: fill 0.3s;
+}
+#cartoon-like-btn.btn-danger .hw-pumpkin,
+.comment-like-btn.btn-danger .hw-pumpkin,
+.comment-like-btn.text-danger .hw-pumpkin {
+    animation: hw-pumpkin-pop 0.45s ease-out;
+}
+#cartoon-like-btn.btn-danger .hw-pumpkin-face,
+.comment-like-btn.btn-danger .hw-pumpkin-face,
+.comment-like-btn.text-danger .hw-pumpkin-face {
+    fill: #ffe45c;
+    animation: hw-pumpkin-ignite 0.6s ease-out,
+               hw-pumpkin-flicker 2.4s ease-in-out 0.6s infinite;
+}
+#cartoon-like-btn.btn-danger .hw-pumpkin,
+.comment-like-btn.btn-danger .hw-pumpkin,
+.comment-like-btn.text-danger .hw-pumpkin {
+    filter: drop-shadow(0 0 3px rgba(255, 200, 0, 0.75));
+}
+@keyframes hw-pumpkin-pop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.35) rotate(-8deg); }
+    100% { transform: scale(1); }
+}
+@keyframes hw-pumpkin-ignite {
+    0%   { fill: #2a0e00; }
+    35%  { fill: #fffbe0; }
+    100% { fill: #ffe45c; }
+}
+@keyframes hw-pumpkin-flicker {
+    0%, 100% { fill: #ffe45c; }
+    30%      { fill: #ffc93c; }
+    55%      { fill: #fff08a; }
+    75%      { fill: #ffd447; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hw-pumpkin,
+    .hw-pumpkin-face {
+        animation: none !important;
+    }
+}
+.badge-slime {
+    color: var(--hw-slime-ink) !important;
+    font-weight: bold;
 }
 
 /* === Buttons === */
@@ -73,17 +239,17 @@ h1, h2, h3, h4, .btn {
     color: #fff !important;
 }
 .btn-github {
-    background-color: #fff;
-    border: 1px solid #212529;
-    color: #212529 !important;
+    background-color: transparent;
+    border: 1px solid var(--bs-body-color);
+    color: var(--bs-body-color) !important;
 }
 .btn-github:hover {
-    background-color: #212529;
-    border-color: #212529;
-    color: #fff !important;
+    background-color: var(--bs-body-color);
+    border-color: var(--bs-body-color);
+    color: var(--hw-night) !important;
 }
 .btn-youtube {
-    background-color: #fff;
+    background-color: transparent;
     border: 1px solid #FF0000;
     color: #FF0000 !important;
 }
@@ -93,7 +259,7 @@ h1, h2, h3, h4, .btn {
     color: #fff !important;
 }
 .btn-red {
-    background-color: #fff;
+    background-color: transparent;
     border: 1px solid #FF0000;
     color: #FF0000 !important;
 }
@@ -103,17 +269,17 @@ h1, h2, h3, h4, .btn {
     color: #fff !important;
 }
 .btn-black {
-    background-color: #fff;
-    border: 1px solid #212529;
-    color: #212529 !important;
+    background-color: transparent;
+    border: 1px solid var(--bs-body-color);
+    color: var(--bs-body-color) !important;
 }
 .btn-black:hover {
-    background-color: #212529;
-    border-color: #212529;
-    color: #fff !important;
+    background-color: var(--bs-body-color);
+    border-color: var(--bs-body-color);
+    color: var(--hw-night) !important;
 }
 .btn-twitch {
-    background-color: #fff;
+    background-color: transparent;
     border: 1px solid #9146FF;
     color: #9146FF !important;
 }
@@ -135,28 +301,47 @@ h1, h2, h3, h4, .btn {
 
 /* === Links === */
 a:not(.navbar-brand):not(.dropdown-item):not(.btn):not(.text-green) {
-    color: #212529;
+    color: var(--bs-body-color);
     text-decoration: none;
 }
 a:not(.navbar-brand):not(.dropdown-item):not(.btn):not(.text-green):hover {
-    color: #6c757d;
+    color: var(--bs-secondary-color);
     text-decoration: underline;
 }
 a:not(.username-link):not(.navbar-brand) {
-    color: #212529;
+    color: var(--bs-body-color);
 }
 .username-link,
 a.username-link {
-    color: #28a745 !important;
+    color: var(--hw-pumpkin) !important;
     font-weight: bold;
 }
 .username-link:hover {
-    color: #218838 !important;
+    color: var(--hw-pumpkin-hover) !important;
 }
 
 /* === Navbar === */
 .navbar-brand img {
     width: auto;
+}
+
+/* === Капающая слизь под шапкой ===
+   Полоса во всю ширину с подтёками разной длины; тайл 160px повторяется
+   по горизонтали. Свисает на верхний отступ main, клики не перехватывает. */
+nav.navbar {
+    position: relative;
+}
+nav.navbar::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 28px;
+    z-index: 1;
+    pointer-events: none;
+    background: repeat-x top left / 160px 28px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 28'%3E%3Cpath fill='%237FFF00' d='M0 0H160V7C150 7 148 9 147 14C146 20 140 20 139 14C138 9 134 7 128 7H102C97 7 95 10 95 17C95 26 86 26 86 17C86 10 83 7 78 7H52C48 7 47 9 46 11C45 14 41 14 40 11C39 9 37 7 33 7H16C12 7 11 9 11 12C11 22 4 22 4 12C4 9 3 7 0 7Z'/%3E%3Ccircle fill='%237FFF00' cx='143' cy='24' r='2.5'/%3E%3Cpath fill='%23fff' fill-opacity='.35' d='M90 12C90 9 91 8 92 8V16C91 16 90 15 90 12Z'/%3E%3C/svg%3E");
+    filter: drop-shadow(0 0 6px rgba(127, 255, 0, 0.35));
 }
 @media (max-width: 768px) {
     .navbar-brand img {
@@ -164,32 +349,385 @@ a.username-link {
     }
 }
 
+/* === Паук на нитке ===
+   Висит из правого верхнего угла шапки, в поле за пределами .container,
+   ниже строки ссылок и выше полосы слизи.
+   При загрузке спускается (hw-spider-drop), дальше нитка слегка
+   "дышит" (hw-spider-bob), весь паук качается маятником вокруг точки
+   крепления (hw-spider-swing), лапки шевелятся. */
+.hw-spider {
+    position: absolute;
+    top: 0;
+    right: 20px;
+    z-index: 2;
+    width: 34px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    transform-origin: top center;
+    animation: hw-spider-swing 3.6s ease-in-out infinite alternate;
+}
+.hw-spider-thread {
+    width: 1px;
+    height: 52px;
+    background: linear-gradient(rgba(232, 224, 240, 0.15), rgba(232, 224, 240, 0.7));
+    animation: hw-spider-drop 2.4s cubic-bezier(.3, 1.4, .6, 1) both,
+               hw-spider-bob 7s ease-in-out 2.4s infinite;
+}
+.hw-spider-body {
+    display: block;
+    margin-top: -3px;
+    filter: drop-shadow(0 0 3px rgba(255, 117, 24, 0.35));
+}
+.hw-spider-torso {
+    fill: #0b0610;
+    stroke: rgba(232, 224, 240, 0.55);
+    stroke-width: 0.8;
+}
+.hw-spider-legs {
+    stroke: #c9bcd8;
+    transform-box: view-box;
+    animation: hw-spider-legs 0.5s ease-in-out infinite alternate;
+}
+.hw-spider-legs-l {
+    transform-origin: 16px 18px;
+}
+.hw-spider-legs-r {
+    transform-origin: 24px 18px;
+    animation-delay: -0.25s;
+}
+.hw-spider-eye {
+    fill: var(--hw-pumpkin);
+}
+@keyframes hw-spider-drop {
+    from { height: 0; }
+    to   { height: 52px; }
+}
+@keyframes hw-spider-bob {
+    0%, 100% { height: 52px; }
+    50%      { height: 40px; }
+}
+@keyframes hw-spider-swing {
+    from { transform: rotate(-7deg); }
+    to   { transform: rotate(7deg); }
+}
+@keyframes hw-spider-legs {
+    from { transform: rotate(-6deg); }
+    to   { transform: rotate(6deg); }
+}
+/* Уже ~1200px поле у контейнера слишком узкое - паук лёг бы на кнопки */
+@media (max-width: 1199.98px) {
+    .hw-spider {
+        display: none;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hw-spider,
+    .hw-spider-thread,
+    .hw-spider-legs {
+        animation: none;
+    }
+}
+
+/* === Летучие мыши ===
+   Слой во весь экран (fixed + overflow: hidden, поэтому мышь за краем не
+   даёт прокрутки). Каждая мышь пролетает за 10-18% своего цикла, остальное
+   время ждёт за краем экрана; циклы разной длины, так что пролёты не
+   синхронны и выглядят случайными. */
+.hw-bats {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1015;
+}
+.hw-bat {
+    position: absolute;
+    top: 0;
+    left: 0;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-fill-mode: both;
+}
+.hw-bat svg {
+    display: block;
+    fill: #0b0610;
+    filter: drop-shadow(0 0 3px rgba(200, 160, 255, 0.55));
+}
+.hw-bat-wing {
+    transform-box: view-box;
+    animation: hw-bat-flap-l 0.16s ease-in-out infinite alternate;
+}
+.hw-bat-wing-l {
+    transform-origin: 28px 12px;
+}
+.hw-bat-wing-r {
+    transform-origin: 32px 12px;
+    animation-name: hw-bat-flap-r;
+}
+.hw-bat-eye {
+    fill: var(--hw-pumpkin);
+}
+.hw-bat-1 {
+    animation-name: hw-bat-path-1;
+    animation-duration: 23s;
+    animation-delay: 3s;
+}
+.hw-bat-2 {
+    animation-name: hw-bat-path-2;
+    animation-duration: 31s;
+    animation-delay: 11s;
+}
+.hw-bat-2 svg {
+    transform: scale(0.7);
+}
+.hw-bat-2 .hw-bat-wing {
+    animation-duration: 0.13s;
+}
+.hw-bat-3 {
+    animation-name: hw-bat-path-3;
+    animation-duration: 41s;
+    animation-delay: 20s;
+}
+.hw-bat-3 svg {
+    transform: scale(1.25);
+}
+.hw-bat-3 .hw-bat-wing {
+    animation-duration: 0.2s;
+}
+/* слева направо, волной в верхней части экрана */
+@keyframes hw-bat-path-1 {
+    0%   { transform: translate(-80px, 22vh); }
+    4%   { transform: translate(35vw, 12vh); }
+    8%   { transform: translate(70vw, 24vh); }
+    12%, 100% { transform: translate(calc(100vw + 80px), 10vh); }
+}
+/* справа налево, повыше */
+@keyframes hw-bat-path-2 {
+    0%   { transform: translate(calc(100vw + 80px), 8vh); }
+    5%   { transform: translate(60vw, 17vh); }
+    10%  { transform: translate(25vw, 5vh); }
+    15%, 100% { transform: translate(-80px, 14vh); }
+}
+/* по диагонали снизу вверх */
+@keyframes hw-bat-path-3 {
+    0%   { transform: translate(-80px, 60vh); }
+    6%   { transform: translate(30vw, 42vh); }
+    12%  { transform: translate(65vw, 34vh); }
+    18%, 100% { transform: translate(calc(100vw + 80px), 16vh); }
+}
+@keyframes hw-bat-flap-l {
+    from { transform: rotate(-22deg); }
+    to   { transform: rotate(28deg); }
+}
+@keyframes hw-bat-flap-r {
+    from { transform: rotate(22deg); }
+    to   { transform: rotate(-28deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hw-bats {
+        display: none;
+    }
+}
+
+/* === Искры за курсором (js/halloween_sparks.js) ===
+   Искра - светящаяся точка, которая падает с небольшим сносом вбок
+   (--hw-spark-dx/dy задаёт скрипт) и гаснет. */
+.hw-sparks {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1016;
+}
+.hw-spark {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 -3px;
+    border-radius: 50%;
+    background: var(--hw-spark-color);
+    box-shadow: 0 0 6px 1px var(--hw-spark-color);
+    animation: hw-spark 0.7s ease-out forwards;
+}
+@keyframes hw-spark {
+    from {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: translate(var(--hw-spark-dx), var(--hw-spark-dy)) scale(0.2);
+        opacity: 0;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hw-sparks {
+        display: none;
+    }
+}
+
+/* === Пустые состояния: призрак (_ghost_empty.html) === */
+.hw-empty {
+    text-align: center;
+    padding: 24px 0;
+}
+/* в сетке карточек (.row-cols-md-3) col-12 проигрывает ширине колонки -
+   пустое состояние должно занимать весь ряд */
+.row > .hw-empty {
+    flex: 0 0 100%;
+    width: 100%;
+    max-width: 100%;
+}
+.hw-ghost {
+    width: 64px;
+    height: 77px;
+    overflow: visible;
+    filter: drop-shadow(0 0 10px rgba(200, 160, 255, 0.45));
+    animation: hw-ghost-float 3s ease-in-out infinite;
+}
+.hw-ghost-body {
+    fill: #e8e0f0;
+    opacity: 0.9;
+}
+.hw-ghost-face {
+    fill: var(--hw-night);
+}
+.hw-empty-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.15rem;
+    margin: 14px 0 4px;
+}
+.hw-empty-hint {
+    color: var(--bs-secondary-color);
+    margin: 0;
+}
+/* Страница 404 (templates/404.html) - тот же призрак, крупнее */
+.hw-404 {
+    padding: 48px 0;
+}
+.hw-404 .hw-ghost {
+    width: 110px;
+    height: 132px;
+}
+.hw-404-title {
+    font-size: 1.8rem;
+    margin: 22px 0 8px;
+}
+@keyframes hw-ghost-float {
+    0%, 100% { transform: translateY(0) rotate(-3deg); }
+    50%      { transform: translateY(-10px) rotate(3deg); }
+}
+
+/* === Пасхалка "boo" (js/halloween_boo.js) ===
+   Призрак пролетает через экран волной, проявляясь и растворяясь;
+   внутри он ещё и покачивается (анимация .hw-ghost). */
+.hw-boo {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1017;
+}
+.hw-boo-ghost {
+    position: absolute;
+    top: 0;
+    left: 0;
+    animation: hw-boo-fly 3.6s ease-in-out forwards;
+}
+.hw-boo-ghost .hw-ghost {
+    width: 110px;
+    height: 132px;
+}
+.hw-boo-text {
+    position: absolute;
+    top: -6px;
+    right: -38px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.6rem;
+    color: #e8e0f0;
+    text-shadow: 0 0 8px rgba(200, 160, 255, 0.8);
+    transform: rotate(12deg);
+}
+@keyframes hw-boo-fly {
+    0%   { transform: translate(-160px, 55vh); opacity: 0; }
+    10%  { opacity: 0.95; }
+    35%  { transform: translate(30vw, 28vh); }
+    65%  { transform: translate(62vw, 48vh); }
+    90%  { opacity: 0.95; }
+    100% { transform: translate(calc(100vw + 60px), 22vh); opacity: 0; }
+}
+@keyframes hw-boo-appear {
+    0%, 100% { opacity: 0; }
+    25%, 75% { opacity: 0.95; }
+}
+@media (prefers-reduced-motion: reduce) {
+    /* без полёта: проявляется и растворяется посреди экрана */
+    .hw-boo-ghost {
+        top: 35vh;
+        left: calc(50vw - 55px);
+        animation: hw-boo-appear 2.4s ease-in-out forwards;
+    }
+}
+
+/* === Загрузка: призрак вместо крутящегося кольца ===
+   Переопределяем .spinner-border глобально - так подхватываются и
+   спиннеры, которые создаёт JS. Призрак не крутится, а парит. */
+.spinner-border {
+    border: 0;
+    border-radius: 0;
+    background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Cpath fill='%23e8e0f0' d='M4 22A16 16 0 0 1 36 22V44L31 40L26 44L20 40L14 44L9 40L4 44Z'/%3E%3Cg fill='%231a1024'%3E%3Cellipse cx='14.5' cy='21' rx='2.3' ry='3.2'/%3E%3Cellipse cx='25.5' cy='21' rx='2.3' ry='3.2'/%3E%3Cellipse cx='20' cy='30' rx='2.6' ry='3.4'/%3E%3C/g%3E%3C/svg%3E");
+    filter: drop-shadow(0 0 4px rgba(200, 160, 255, 0.5));
+    animation: hw-ghost-loading 1.2s ease-in-out infinite;
+}
+.spinner-border-sm {
+    width: 1.5rem;
+    height: 1.8rem;
+}
+@keyframes hw-ghost-loading {
+    0%, 100% { transform: translateY(0);    opacity: 1; }
+    50%      { transform: translateY(-5px); opacity: 0.55; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hw-ghost {
+        animation: none;
+    }
+    /* загрузке нужен хоть какой-то признак жизни - только мерцание */
+    .spinner-border {
+        animation: hw-ghost-pulse 1.6s ease-in-out infinite;
+    }
+}
+@keyframes hw-ghost-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+}
+
 /* === Navigation === */
 .nav-link.active {
     color: var(--bs-primary) !important;
 }
 .dropdown-item:hover {
-    background-color: #e9ecef;
-    color: #212529;
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
 }
 .dropdown-item.active,
 .dropdown-item:active {
-    background-color: #212529 !important;
+    background-color: var(--hw-poison) !important;
     color: #fff !important;
 }
 
 /* === Pagination === */
 .page-link {
-    color: #212529;
+    color: var(--bs-body-color);
 }
 .page-link:hover {
-    background-color: #e9ecef;
-    color: #212529;
-    border-color: #dee2e6;
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
+    border-color: var(--bs-border-color);
 }
 .page-item.active .page-link {
-    background-color: #FF0000;
-    border-color: #FF0000;
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
     color: #fff;
 }
 
@@ -245,7 +783,7 @@ input[type="password"]::-ms-clear {
     width: 100%;
     aspect-ratio: 3 / 2;
     object-fit: contain;
-    background-color: #f8f9fa;
+    background-color: var(--bs-secondary-bg);
 }
 .card-preview-placeholder {
     aspect-ratio: 3 / 2;
@@ -258,14 +796,14 @@ input[type="password"]::-ms-clear {
     transition: background-color 0.15s ease;
 }
 .compact-card:hover {
-    background-color: #f1f3f5;
+    background-color: var(--bs-tertiary-bg);
 }
 .compact-card-img {
     width: 120px;
     aspect-ratio: 3 / 2;
     object-fit: cover;
     border-radius: 6px;
-    background-color: #f8f9fa;
+    background-color: var(--bs-secondary-bg);
 }
 .compact-card-placeholder {
     text-align: center;
@@ -312,7 +850,7 @@ input[type="password"]::-ms-clear {
 .tag-pill {
     display: inline-flex;
     align-items: center;
-    background-color: #e9ecef;
+    background-color: var(--bs-secondary-bg);
     border-radius: 999px;
     overflow: hidden;
     margin: 0 2px 2px 0;
@@ -320,7 +858,7 @@ input[type="password"]::-ms-clear {
 }
 .tag-pill-label,
 a.tag-pill-label {
-    color: #495057 !important;
+    color: var(--bs-body-color) !important;
     text-decoration: none !important;
     font-size: 0.78rem;
     padding: 2px 8px;
@@ -328,7 +866,7 @@ a.tag-pill-label {
 }
 .tag-pill-label:hover,
 a.tag-pill-label:hover {
-    background-color: #dee2e6;
+    background-color: var(--bs-border-color);
 }
 .tag-pill-x,
 a.tag-pill-x {
@@ -340,7 +878,7 @@ a.tag-pill-x {
 }
 .tag-pill-x:hover,
 a.tag-pill-x:hover {
-    background-color: #f5c2c7;
+    background-color: rgba(220, 53, 69, 0.25);
 }
 
 /* === Поисковая строка (шапка) === */
@@ -364,7 +902,7 @@ a.tag-pill-x:hover {
 }
 #search-mode-btn {
     border: none;
-    background-color: #212529;
+    background-color: var(--hw-poison);
     color: #fff;
     border-radius: 999px;
     font-size: 0.76rem;
@@ -374,7 +912,7 @@ a.tag-pill-x:hover {
     flex-shrink: 0;
 }
 #search-mode-btn:hover {
-    background-color: #495057;
+    background-color: var(--hw-poison-hover);
 }
 .search-chip-exclude {
     background-color: #dc3545;
@@ -403,13 +941,13 @@ a.tag-pill-x:hover {
     left: 0;
     right: 0;
     height: 1px;
-    background-color: #dee2e6;
+    background-color: var(--bs-border-color);
 }
 .comment-self {
     padding: 4px 6px;
 }
 .comment-self.pinned-comment {
-    outline: 2px solid #212529;
+    outline: 2px solid var(--hw-poison);
     border-radius: 4px;
 }
 
@@ -418,12 +956,93 @@ a.tag-pill-x:hover {
     position: relative;
 }
 .card.cartoon-pinned {
-    outline: 2px solid #212529;
+    outline: 2px solid var(--hw-poison);
+}
+
+/* === Карточка мульта-надгробие ===
+   Верх - эллиптическая арка высотой 60px, низ - обычные скругления.
+   overflow: hidden обрезает превью по арке; box-shadow и outline
+   (закреп) повторяют форму. */
+.cartoon-card {
+    border-radius: 50% 50% 10px 10px / 60px 60px 10px 10px;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.cartoon-card .card-img-top {
+    border-radius: 0;
+}
+.cartoon-card:hover,
+.cartoon-card:focus-within {
+    box-shadow: 0 0 0 1px var(--hw-pumpkin),
+                0 0 18px rgba(255, 117, 24, 0.55),
+                0 0 42px rgba(255, 117, 24, 0.25) !important;
+    transform: translateY(-3px);
+}
+@media (prefers-reduced-motion: reduce) {
+    .cartoon-card,
+    .cartoon-card:hover,
+    .cartoon-card:focus-within {
+        transition: none;
+        transform: none;
+    }
+}
+
+/* === Ивент #хэллоуин (фильтр is_halloween_event) ===
+   Оранжевая рамка по форме надгробия, постоянное мягкое свечение и
+   значок-тыква с горящим лицом на стыке превью и подписи. */
+.hw-event-card {
+    --bs-card-border-color: var(--hw-pumpkin);
+    --bs-card-border-width: 2px;
+    box-shadow: 0 0 14px rgba(255, 117, 24, 0.3) !important;
+}
+.cartoon-card .card-body {
+    position: relative;
+}
+.hw-event-card .card-title {
+    padding-right: 34px;  /* не залезать под значок */
+}
+.hw-event-badge {
+    position: absolute;
+    top: 0;
+    right: 12px;
+    transform: translateY(-50%);
+    z-index: 1;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--hw-night);
+    border: 2px solid var(--hw-pumpkin);
+    box-shadow: 0 0 10px rgba(255, 117, 24, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+.hw-event-badge .hw-pumpkin,
+.hw-event-mark .hw-pumpkin {
+    filter: drop-shadow(0 0 3px rgba(255, 200, 0, 0.75));
+}
+.hw-event-badge .hw-pumpkin {
+    vertical-align: 0;
+}
+/* лицо тыквы горит и мерцает, как у лайкнутой */
+.hw-event-badge .hw-pumpkin-face,
+.hw-event-mark .hw-pumpkin-face {
+    fill: #ffe45c;
+    animation: hw-pumpkin-flicker 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    .hw-event-badge .hw-pumpkin-face,
+    .hw-event-mark .hw-pumpkin-face {
+        animation: none;
+    }
 }
 .cartoon-pin-btn {
     position: absolute;
+    /* по центру вершины арки - левый верхний угол карточки срезан */
     top: 8px;
-    left: 8px;
+    left: 50%;
+    transform: translateX(-50%);
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -445,9 +1064,9 @@ a.tag-pill-x:hover {
 
 /* === Объявление наверху заглавной (data/announcement.html) === */
 .announcement-banner {
-    background: #fdf1d8;
-    border: 1px solid #e0b96a;
-    color: #6b4a1a;
+    background: rgba(255, 117, 24, 0.1);
+    border: 1px solid var(--hw-pumpkin);
+    color: #ffd8bb;
     border-radius: 6px;
     padding: 12px 16px;
 }
@@ -488,12 +1107,52 @@ a.tag-pill-x:hover {
 }
 
 /* === Discord widget === */
+/* Страница в color-scheme: dark, а документ виджета - нет; при таком
+   несовпадении браузер подкладывает под iframe непрозрачный белый фон,
+   и он торчит в скруглённых углах виджета. Совпадающая схема на самом
+   iframe делает подложку прозрачной, радиус - страховка. */
+#discord-iframe {
+    color-scheme: light;
+    border-radius: 6px;
+    display: block;
+}
 .discord-icon {
     font-size: 3rem;
     color: #FF0000;
 }
 
+/* Фокус полей ввода - тыквенный вместо синего бутстраповского */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--hw-pumpkin);
+    box-shadow: 0 0 0 0.25rem rgba(255, 117, 24, 0.25);
+}
+
 /* === Detail / Player === */
+/* Кадры - прозрачные PNG, без подложки штрихи терялись бы на тёмной
+   странице. Белый - запасной вариант; фон каждого кадра
+   (Cartoon.frame_backgrounds) player.js ставит inline-стилем. */
+.frame-display-img {
+    background-color: #fff;
+}
+.form-range::-webkit-slider-thumb {
+    background-color: var(--hw-pumpkin);
+}
+.form-range::-webkit-slider-thumb:active {
+    background-color: var(--hw-pumpkin-active);
+}
+.form-range::-moz-range-thumb {
+    background-color: var(--hw-pumpkin);
+}
+.form-range::-moz-range-thumb:active {
+    background-color: var(--hw-pumpkin-active);
+}
+.form-range:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 1px var(--hw-night), 0 0 0 0.25rem rgba(255, 117, 24, 0.25);
+}
+.form-range:focus::-moz-range-thumb {
+    box-shadow: 0 0 0 1px var(--hw-night), 0 0 0 0.25rem rgba(255, 117, 24, 0.25);
+}
 
 /* === Avatars === */
 .user-avatar {
@@ -501,14 +1160,14 @@ a.tag-pill-x:hover {
     height: 90px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #dee2e6;
+    border: 2px solid var(--bs-border-color);
 }
 .user-avatar-md {
     width: 60px;
     height: 60px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #dee2e6;
+    border: 2px solid var(--bs-border-color);
     flex-shrink: 0;
 }
 .user-avatar-sm {
@@ -516,7 +1175,7 @@ a.tag-pill-x:hover {
     height: 64px;
     border-radius: 50%;
     object-fit: cover;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--bs-border-color);
     flex-shrink: 0;
 }
 .avatar-selector-item {
@@ -524,10 +1183,10 @@ a.tag-pill-x:hover {
     transition: border-color 0.15s;
 }
 .avatar-selector-item:hover {
-    border-color: #28a745 !important;
+    border-color: var(--hw-pumpkin) !important;
 }
 .avatar-selector-item.selected {
-    border-color: #28a745 !important;
+    border-color: var(--hw-pumpkin) !important;
     border-width: 2px !important;
 }
 
@@ -539,8 +1198,8 @@ a.tag-pill-x:hover {
 }
 .crop-zoom-bar {
     width: 44px;
-    background: #f8f9fa;
-    border-right: 1px solid #dee2e6;
+    background: var(--bs-tertiary-bg);
+    border-right: 1px solid var(--bs-border-color);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -552,7 +1211,7 @@ a.tag-pill-x:hover {
 .crop-zoom-label {
     font-size: 1rem;
     font-weight: 600;
-    color: #6c757d;
+    color: var(--bs-secondary-color);
     line-height: 1;
     -webkit-user-select: none;
     user-select: none;
@@ -571,7 +1230,7 @@ a.tag-pill-x:hover {
     cursor: pointer;
     margin: 0;
     padding: 0;
-    accent-color: #0d6efd;
+    accent-color: var(--hw-pumpkin);
 }
 .crop-stage {
     position: relative;
@@ -608,6 +1267,31 @@ a.tag-pill-x:hover {
     pointer-events: none;
 }
 
+/* === btn-dark / btn-outline-dark на тёмном фоне ===
+   Используются как переключатели вкладок и сортировки: тёмное на тёмном
+   не видно, поэтому активное - фиолетовое, неактивное - светлый контур. */
+.btn-dark {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--hw-poison);
+    --bs-btn-border-color: var(--hw-poison);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--hw-poison-hover);
+    --bs-btn-hover-border-color: var(--hw-poison-hover);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--hw-poison-hover);
+    --bs-btn-active-border-color: var(--hw-poison-hover);
+}
+.btn-outline-dark {
+    --bs-btn-color: var(--bs-body-color);
+    --bs-btn-border-color: #5a4470;
+    --bs-btn-hover-color: var(--bs-body-color);
+    --bs-btn-hover-bg: var(--bs-secondary-bg);
+    --bs-btn-hover-border-color: #5a4470;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--hw-poison);
+    --bs-btn-active-border-color: var(--hw-poison);
+}
+
 /* === Fix: anchor btn-dark/btn-outline-dark text colour === */
 a.btn-dark,
 a.btn-dark:hover,
@@ -617,7 +1301,7 @@ a.btn-dark:focus {
 
 a.btn-outline-dark:hover,
 a.btn-outline-dark:focus {
-    background-color: #e9ecef !important;
-    color: #212529 !important;
-    border-color: #343a40 !important;
+    background-color: var(--bs-secondary-bg) !important;
+    color: var(--bs-body-color) !important;
+    border-color: #5a4470 !important;
 }

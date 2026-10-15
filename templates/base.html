@@ -1,6 +1,6 @@
 {% load static cartoon_tags %}
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,15 +9,31 @@
     <link href="{% static 'cartoons/css/bootstrap.min.css' %}" rel="stylesheet">
     <link href="{% static 'cartoons/css/bootstrap-icons.min.css' %}" rel="stylesheet">
     <link href="{% static 'cartoons/css/fonts.css' %}" rel="stylesheet">
-    <link href="{% static 'cartoons/css/style.css' %}" rel="stylesheet">
+    <link href="{% static_v 'cartoons/css/style.css' %}" rel="stylesheet">
     {% block extra_head %}{% endblock %}
     <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white pb-0">
-        <div class="container border-bottom pb-2">
+    <nav class="navbar navbar-expand-lg pb-0">
+        <!-- Хэллоуинский паук на нитке (анимация в style.css) -->
+        <div class="hw-spider" aria-hidden="true">
+            <div class="hw-spider-thread"></div>
+            <svg class="hw-spider-body" viewBox="0 0 40 36" width="34" height="31">
+                <g class="hw-spider-legs hw-spider-legs-l" fill="none" stroke-width="1.6" stroke-linecap="round">
+                    <path d="M16 14Q8 6 3 10M15 17Q6 13 1 18M15 20Q6 21 2 27M16 23Q9 27 6 34"/>
+                </g>
+                <g class="hw-spider-legs hw-spider-legs-r" fill="none" stroke-width="1.6" stroke-linecap="round">
+                    <path d="M24 14Q32 6 37 10M25 17Q34 13 39 18M25 20Q34 21 38 27M24 23Q31 27 34 34"/>
+                </g>
+                <ellipse class="hw-spider-torso" cx="20" cy="22" rx="6.5" ry="7.5"/>
+                <circle class="hw-spider-torso" cx="20" cy="12" r="4.5"/>
+                <circle class="hw-spider-eye" cx="18.3" cy="12" r="1.1"/>
+                <circle class="hw-spider-eye" cx="21.7" cy="12" r="1.1"/>
+            </svg>
+        </div>
+        <div class="container pb-2">
             <a class="navbar-brand" href="{% url 'index' %}">
-                <img src="{% static 'cartoons/images/Logo.png' %}" alt="Logo" height="70">
+                <img src="{% static 'cartoons/images/Logo-halloween.png' %}" alt="Logo" height="70">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -59,16 +75,35 @@
                     {% else %}
                         <!-- Ссылки для неавторизованных -->
                         <li class="nav-item">
-                            <a class="nav-link text-dark" href="{% url 'login' %}">Войти</a>
+                            <a class="nav-link text-body" href="{% url 'login' %}">Войти</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" href="{% url 'register' %}">Регистрация</a>
+                            <a class="nav-link text-body" href="{% url 'register' %}">Регистрация</a>
                         </li>
                     {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
+
+    {% block hw_bats %}
+    <!-- Хэллоуинские летучие мыши (анимация в style.css); в редакторе
+         блок переопределён пустым, чтобы не мешали рисовать -->
+    <div class="hw-bats" aria-hidden="true">
+        {% for i in "123" %}
+        <div class="hw-bat hw-bat-{{ i }}">
+            <svg viewBox="0 0 60 30" width="60" height="30">
+                <path class="hw-bat-wing hw-bat-wing-l" d="M30 12C24 4 14 2 2 6C7 9 8 13 6 17C10 15 14 16 16 20C19 16 24 16 27 18Z"/>
+                <path class="hw-bat-wing hw-bat-wing-r" d="M30 12C36 4 46 2 58 6C53 9 52 13 54 17C50 15 46 16 44 20C41 16 36 16 33 18Z"/>
+                <path d="M26.5 11L27 5.5L29 9.5ZM33.5 11L33 5.5L31 9.5Z"/>
+                <ellipse cx="30" cy="15" rx="4" ry="6"/>
+                <circle class="hw-bat-eye" cx="28.6" cy="12.5" r="0.8"/>
+                <circle class="hw-bat-eye" cx="31.4" cy="12.5" r="0.8"/>
+            </svg>
+        </div>
+        {% endfor %}
+    </div>
+    {% endblock %}
 
     <main class="container my-4">
         {% block content %}
@@ -119,7 +154,8 @@
             right: 0;
             bottom: 0;
             z-index: 1080;
-            background: #212529;
+            background: #2a1c38;
+            border-top: 1px solid var(--hw-poison);
             color: #fff;
             padding: 12px 16px;
         }
@@ -321,7 +357,13 @@
             });
         })();
     </script>
-    <script src="{% static 'cartoons/js/search_bar.js' %}" data-search-url="{% url 'search' %}" data-set-mode-url="{% url 'set_search_tag_mode' %}" data-authenticated="{{ user.is_authenticated|yesno:'1,0' }}"></script>
+    <script src="{% static_v 'cartoons/js/search_bar.js' %}" data-search-url="{% url 'search' %}" data-set-mode-url="{% url 'set_search_tag_mode' %}" data-authenticated="{{ user.is_authenticated|yesno:'1,0' }}"></script>
+    <!-- Пасхалка: "boo" на клавиатуре - пролетает призрак -->
+    <script src="{% static_v 'cartoons/js/halloween_boo.js' %}"></script>
+    {% block hw_sparks %}
+    <!-- Искры за курсором; в редакторе блок пустой - там своя кисть -->
+    <script src="{% static_v 'cartoons/js/halloween_sparks.js' %}"></script>
+    {% endblock %}
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

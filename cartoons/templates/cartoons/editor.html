@@ -1,11 +1,14 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static cartoon_tags %}
 
 {% block title %}{% if cartoon %}Редактировать "{{ cartoon.title }}"{% else %}Создать новый мульт{% endif %}{% endblock %}
 
 {% block extra_head %}
-<link href="{% static 'cartoons/css/editor.css' %}" rel="stylesheet">
+<link href="{% static_v 'cartoons/css/editor.css' %}" rel="stylesheet">
 {% endblock %}
+
+{% block hw_bats %}{% endblock %}
+{% block hw_sparks %}{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -18,6 +21,7 @@
             <input type="hidden" name="tags" id="tags-input">
             <input type="hidden" name="description" id="description-input">
             <input type="hidden" name="frames" id="frames-input">
+            <input type="hidden" name="frame_backgrounds" id="frame-backgrounds-input">
             {% if continuation_of %}
             <input type="hidden" name="continuation_of" value="{{ continuation_of }}">
             {% endif %}
@@ -65,6 +69,9 @@
                         <button type="button" class="tool-btn" id="eraser-tool" title="Ластик">
                             <i class="bi bi-eraser"></i>
                         </button>
+                        <button type="button" class="tool-btn" id="bg-toggle" title="Фон холста: чёрный / белый">
+                            <i class="bi bi-circle-half"></i>
+                        </button>
                     </div>
 
                     <!-- Размер кисти -->
@@ -88,8 +95,18 @@
 
                     <!-- Цвет -->
                     <div class="tool-group">
-                        <button type="button" class="color-btn black active" data-color="#000000" title="Чёрный"></button>
+                        <!-- "Чернила": контрастный к фону кадра цвет - белый на
+                             чёрном, чёрный на белом; editor.js меняет его вместе с фоном -->
+                        <button type="button" class="color-btn ink-color active" data-color="{{ initial_ink|default:'#ffffff' }}" style="background: {{ initial_ink|default:'#ffffff' }};" title="{% if initial_ink == '#000000' %}Чёрный{% else %}Белый{% endif %}"></button>
                         <button type="button" class="color-btn red" data-color="#ff0000" title="Красный"></button>
+                    </div>
+
+                    <!-- Хэллоуинские цвета (чёрный - в обычной группе выше) -->
+                    <div class="tool-group">
+                        <button type="button" class="color-btn hw-pumpkin-color" data-color="#ff7518" title="Тыквенный"></button>
+                        <button type="button" class="color-btn hw-poison-color" data-color="#6b2d8c" title="Фиолетовый"></button>
+                        <button type="button" class="color-btn hw-acid-color" data-color="#7fff00" title="Кислотно-зелёный"></button>
+                        <button type="button" class="color-btn hw-blood-color" data-color="#8a0303" title="Кроваво-красный"></button>
                     </div>
                 </div>
 
@@ -148,7 +165,7 @@
             </div>
             <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" id="confirm-save">Сохранить</button>
+                <button type="button" class="btn btn-primary" id="confirm-save">Выпустить в ночь</button>
             </div>
         </div>
     </div>
@@ -156,6 +173,8 @@
 {% endblock %}
 
 {% block extra_scripts %}
+{# фоны кадров (#000000 / #ffffff) параллельно framesData; у нового мульта - один чёрный #}
+{{ frame_backgrounds|json_script:"frame-backgrounds-data" }}
 {% if frames_json %}
 <script>
     var framesData = {{ frames_json|safe }};
@@ -175,5 +194,5 @@
 {% if error %}
 <div class="alert alert-danger">{{ error }}</div>
 {% endif %}
-<script src="{% static 'cartoons/js/editor.js' %}"></script>
+<script src="{% static_v 'cartoons/js/editor.js' %}"></script>
 {% endblock %}

@@ -1,22 +1,22 @@
 {% load static cartoon_tags %}
 {% if compact %}
-<a href="{% url 'detail' cartoon.pk %}" class="text-decoration-none text-dark compact-card d-flex gap-2">
+<a href="{% url 'detail' cartoon.pk %}" class="text-decoration-none text-body compact-card d-flex gap-2">
     {% if cartoon.preview %}
     <img src="{{ cartoon.preview.url }}" class="compact-card-img flex-shrink-0" alt="{{ cartoon.title }}">
     {% else %}
-    <div class="compact-card-img compact-card-placeholder flex-shrink-0 bg-light d-flex align-items-center justify-content-center">
+    <div class="compact-card-img compact-card-placeholder flex-shrink-0 bg-body-tertiary d-flex align-items-center justify-content-center">
         <span class="text-muted" style="font-size:0.68rem;">Нет превью</span>
     </div>
     {% endif %}
     <div class="min-w-0">
-        <div class="compact-card-title" title="{{ cartoon.title }}">{{ cartoon.title }}</div>
+        <div class="compact-card-title" title="{{ cartoon.title }}">{% if cartoon|is_halloween_event %}<span class="hw-event-mark" title="Ивент #хэллоуин">{% include 'cartoons/_pumpkin_icon.html' %}</span> {% endif %}{{ cartoon.title }}</div>
         {% if show_author %}
         <div class="compact-card-author text-muted">
             {% if cartoon.author %}{{ cartoon.author|display_name }}{% else %}Аноним{% endif %}
         </div>
         {% endif %}
         <div class="compact-card-stats text-muted">
-            <span title="Лайки">❤ {{ cartoon.likes.count }}</span>
+            <span title="Лайки">{% include 'cartoons/_pumpkin_icon.html' %} {{ cartoon.likes.count }}</span>
             <span class="mx-1">·</span>
             <span title="Уникальных: {{ cartoon.unique_views_count }} / Всего: {{ cartoon.views_count }}"><i class="bi bi-eye-fill"></i> {{ cartoon.unique_views_count }}</span>
             <span class="mx-1">·</span>
@@ -26,7 +26,7 @@
 </a>
 {% else %}
 <div class="col">
-    <div class="card h-100 shadow-sm{% if pinned_style and cartoon.is_pinned %} cartoon-pinned{% endif %}">
+    <div class="card cartoon-card h-100 shadow-sm{% if pinned_style and cartoon.is_pinned %} cartoon-pinned{% endif %}{% if cartoon|is_halloween_event %} hw-event-card{% endif %}">
         {% if show_pin %}
         <div class="cartoon-preview-wrap">
             <button type="button"
@@ -36,11 +36,11 @@
                 <i class="bi bi-pin-angle-fill"></i>
             </button>
         {% endif %}
-        <a href="{% url 'detail' cartoon.pk %}" class="text-decoration-none text-dark">
+        <a href="{% url 'detail' cartoon.pk %}" class="text-decoration-none text-body">
             {% if cartoon.preview %}
             <img src="{{ cartoon.preview.url }}" class="card-img-top card-preview-img" alt="{{ cartoon.title }}">
             {% else %}
-            <div class="card-img-top card-preview-placeholder bg-light d-flex align-items-center justify-content-center">
+            <div class="card-img-top card-preview-placeholder bg-body-tertiary d-flex align-items-center justify-content-center">
                 <span class="text-muted">Нет превью</span>
             </div>
             {% endif %}
@@ -48,8 +48,11 @@
         {% if show_pin %}
         </div>
         {% endif %}
-        <a href="{% url 'detail' cartoon.pk %}" class="text-decoration-none text-dark">
+        <a href="{% url 'detail' cartoon.pk %}" class="text-decoration-none text-body">
             <div class="card-body">
+                {% if cartoon|is_halloween_event %}
+                <span class="hw-event-badge" title="Ивент #хэллоуин">{% include 'cartoons/_pumpkin_icon.html' %}</span>
+                {% endif %}
                 <h5 class="card-title title-clamp" title="{{ cartoon.title }}">{{ cartoon.title }}</h5>
                 {% if show_author %}
                 <p class="card-text small mb-1">
@@ -62,9 +65,9 @@
                 {% endif %}
                 <div class="card-stats d-flex gap-1 text-muted flex-wrap" style="font-size:0.78rem">
                     <span title="Кадры"><i class="bi bi-film"></i> {{ cartoon.frames_data|length }}</span>
-                    <span title="Лайки"><i class="bi bi-heart-fill text-danger"></i> {{ cartoon.likes.count }}</span>
+                    <span title="Лайки">{% include 'cartoons/_pumpkin_icon.html' %} {{ cartoon.likes.count }}</span>
                     <span title="Комментарии"><i class="bi bi-chat-fill"></i> {{ cartoon.comments.count }}</span>
-                    {% if cartoon.new_comments_count %}<span title="Новые комментарии" style="color:#28a745"><i class="bi bi-chat-fill"></i> {{ cartoon.new_comments_count }}</span>{% endif %}
+                    {% if cartoon.new_comments_count %}<span title="Новые комментарии" class="badge-slime"><i class="bi bi-chat-fill"></i> {{ cartoon.new_comments_count }}</span>{% endif %}
                     <span class="views-tooltip" data-tooltip="Уникальных: {{ cartoon.unique_views_count }} / Всего: {{ cartoon.views_count }}"><i class="bi bi-eye-fill"></i> {{ cartoon.unique_views_count }}</span>
                     <span class="ms-auto" title="{{ cartoon.created_at|date:'d.m.Y H:i' }}">{{ cartoon.created_at|time_ago }}</span>
                 </div>

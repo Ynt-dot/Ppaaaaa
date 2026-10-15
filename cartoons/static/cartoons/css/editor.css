@@ -2,10 +2,11 @@
     max-width: 1000px;
     margin: 0 auto;
 }
+/* --canvas-bg ставит editor.js (фон текущего кадра: чёрный или белый) */
 canvas {
     display: block;
-    background: white;
-    border: 2px solid #dee2e6;
+    background: var(--canvas-bg, #fff);
+    border: 2px solid var(--bs-border-color);
     border-radius: 8px;
     touch-action: none;
     max-width: 100%;
@@ -23,7 +24,7 @@ canvas {
     width: fit-content;
 }
 .toolbar {
-    background: #f8f9fa;
+    background: var(--bs-tertiary-bg);
     border-radius: 8px;
     padding: 5px;
     margin-top: 10px;
@@ -31,9 +32,9 @@ canvas {
     flex-wrap: wrap;
     gap: 5px;
     align-items: center;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--bs-border-color);
     width: 100%;
-    max-width: 600px;
+    max-width: 700px;
     margin-left: 0;
     margin-right: 0;
 }
@@ -42,7 +43,7 @@ canvas {
     gap: 5px;
     align-items: center;
     padding: 0 5px;
-    border-right: 1px solid #dee2e6;
+    border-right: 1px solid var(--bs-border-color);
 }
 .tool-group:last-child {
     border-right: none;
@@ -54,16 +55,16 @@ canvas {
     padding: 4px 5px;
     border-radius: 6px;
     transition: all 0.2s;
-    color: #212529;
+    color: var(--bs-body-color);
     position: relative;
 }
 .tool-btn:hover {
-    background: #e9ecef;
-    color: #212529;
+    background: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
 }
 .tool-btn.active {
-    background: #e2e6ea !important;
-    color: #212529 !important;
+    background: var(--hw-poison) !important;
+    color: #fff !important;
 }
 .tool-btn.size-btn {
     font-size: 1.2rem;
@@ -71,25 +72,39 @@ canvas {
     line-height: 1;
 }
 .tool-btn.size-btn.active {
-    background: #e2e6ea;
-    color: #212529;
+    background: var(--hw-poison);
+    color: #fff;
 }
 .color-btn {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    border: 2px solid transparent;
+    /* одинаковая тонкая обводка у всех образцов - тёмные иначе теряются
+       на тёмной панели */
+    border: 2px solid #6c5a80;
     padding: 0;
 }
-.color-btn.black {
-    background: #212529;
-}
+/* "Чернила" (белый на чёрном фоне, чёрный на белом): цвет образца
+   ставят шаблон и editor.js inline-стилем */
 .color-btn.red {
     background: #ff0000;
 }
+/* Хэллоуинская палитра */
+.color-btn.hw-pumpkin-color {
+    background: #ff7518;
+}
+.color-btn.hw-poison-color {
+    background: #6b2d8c;
+}
+.color-btn.hw-acid-color {
+    background: #7fff00;
+}
+.color-btn.hw-blood-color {
+    background: #8a0303;
+}
 .color-btn.active {
-    border-color: #6c757d;
-    box-shadow: 0 0 0 2px rgba(108,117,125,0.5);
+    border-color: var(--hw-pumpkin);
+    box-shadow: 0 0 0 2px rgba(255,117,24,0.5);
 }
 .frames-strip {
     display: flex;
@@ -97,9 +112,9 @@ canvas {
     overflow-x: auto;
     padding: 5px 0;
     margin-top: 10px;
-    border-top: 1px solid #dee2e6;
+    border-top: 1px solid var(--bs-border-color);
     width: 100%;
-    max-width: 600px;
+    max-width: 700px;
     margin-left: 0;
     margin-right: 0;
 }
@@ -107,17 +122,19 @@ canvas {
     width: 50px;
     height: 37px;
     object-fit: cover;
-    border: 2px solid #dee2e6;
+    border: 2px solid var(--bs-border-color);
     border-radius: 4px;
     cursor: pointer;
     transition: 0.2s;
+    /* миниатюры прозрачные - фон своего кадра ставит editor.js */
+    background: #fff;
 }
 .frame-thumb:hover {
     border-color: #ff0000;
 }
 .frame-thumb.current {
-    border-color: #6c757d;
-    box-shadow: 0 0 0 2px rgba(108,117,125,0.5);
+    border-color: var(--hw-pumpkin);
+    box-shadow: 0 0 0 2px rgba(255,117,24,0.5);
 }
 .frame-slider-container {
     flex: 1;
@@ -150,21 +167,22 @@ canvas {
 .tool-btn.pencil-black,
 .tool-btn.eraser-black,
 .tool-btn.eraser-blue {
-    color: #212529 !important;
+    color: var(--bs-body-color) !important;
 }
 .tool-btn.pencil-blue.active,
 .tool-btn.pencil-black.active,
 .tool-btn.eraser-black.active,
 .tool-btn.eraser-blue.active {
-    background: #e2e6ea !important;
+    background: var(--hw-poison) !important;
+    color: #fff !important;
 }
 .editor-left {
     margin-right: 20px;
     width: fit-content;
 }
 .info-panel {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
     border-radius: 8px;
     padding: 15px;
     margin-top: 20px;
@@ -172,16 +190,16 @@ canvas {
 #draw-canvas {
     position: relative;
     background: transparent;
-    border: 2px solid #dee2e6;
+    border: 2px solid var(--bs-border-color);
     border-radius: 8px;
 }
 #background-canvas {
     position: absolute;
     top: 0;
     left: 0;
-    border: 2px solid #dee2e6;
+    border: 2px solid var(--bs-border-color);
     border-radius: 8px;
-    background: white;
+    background: var(--canvas-bg, #fff);
 }
 #cursor-canvas {
     position: absolute;
@@ -217,7 +235,7 @@ body.editor-fullscreen .col-auto {
     position: fixed;
     inset: 0;
     z-index: 1040;
-    background: #fff;
+    background: var(--bs-body-bg);
     width: 100% !important;
     max-width: 100% !important;
     padding: 10px;

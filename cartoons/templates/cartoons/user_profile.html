@@ -162,8 +162,9 @@
             {% for cartoon in cartoons %}
             {% include 'cartoons/cartoon_card.html' with show_author=False show_pin=is_own_profile pinned_style=True %}
             {% empty %}
-            <div class="col-12">
-                <p class="text-center py-4">У этого пользователя пока нет мультов.</p>
+            <div class="col-12 hw-empty">
+                {% include 'cartoons/_ghost_empty.html' %}
+                <p class="hw-empty-hint">У этого пользователя пока нет мультов.</p>
             </div>
             {% endfor %}
         </div>
@@ -267,8 +268,9 @@
             {% for cartoon in cartoons %}
             {% include 'cartoons/cartoon_card.html' with show_author=True %}
             {% empty %}
-            <div class="col-12">
-                <p class="text-center py-4">Нет понравившихся мультов.</p>
+            <div class="col-12 hw-empty">
+                {% include 'cartoons/_ghost_empty.html' %}
+                <p class="hw-empty-hint">Нет понравившихся мультов.</p>
             </div>
             {% endfor %}
         </div>
@@ -339,8 +341,9 @@
             {% for cartoon in cartoons %}
             {% include 'cartoons/cartoon_card.html' with show_author=True %}
             {% empty %}
-            <div class="col-12">
-                <p class="text-center py-4">Нет мультов в избранном.</p>
+            <div class="col-12 hw-empty">
+                {% include 'cartoons/_ghost_empty.html' %}
+                <p class="hw-empty-hint">Нет мультов в избранном.</p>
             </div>
             {% endfor %}
         </div>
@@ -460,6 +463,8 @@
     {% if active_tab == 'comments' %}
     const COMMENTS_API = "{% url 'user_profile_comments' profile_user.username %}";
     const IS_AUTHENTICATED = {{ user.is_authenticated|yesno:'true,false' }};
+    // SVG-тыква вместо сердечка лайка (общий шаблон _pumpkin_icon.html)
+    const PUMPKIN_ICON = '{% filter escapejs %}{% include 'cartoons/_pumpkin_icon.html' %}{% endfilter %}';
 
     const commentsList = document.getElementById('profile-comments-list');
     const loadMoreContainer = document.getElementById('profile-load-more-container');
@@ -488,8 +493,8 @@
             ? '<a href="' + escapeHtml(c.avatar_link_url) + '">' + avatarImg + '</a>'
             : avatarImg;
         const likeHTML = IS_AUTHENTICATED
-            ? '<button class="btn btn-sm ' + likedClass + ' comment-like-btn" data-comment-id="' + c.id + '">❤ <span class="comment-likes-count">' + c.likes_count + '</span></button>'
-            : '<span class="text-muted small">❤ ' + c.likes_count + '</span>';
+            ? '<button class="btn btn-sm ' + likedClass + ' comment-like-btn" data-comment-id="' + c.id + '">' + PUMPKIN_ICON + ' <span class="comment-likes-count">' + c.likes_count + '</span></button>'
+            : '<span class="text-muted small">' + PUMPKIN_ICON + ' ' + c.likes_count + '</span>';
         return '<div class="comment-item border-bottom py-2" data-comment-id="' + c.id + '">' +
             '<div class="d-flex gap-2 align-items-start">' +
             '<div class="flex-shrink-0">' + avatarLink + '</div>' +
@@ -633,7 +638,7 @@
             const title = escapeHtml(c.title);
             return '<div class="col">' +
                 '<div class="card avatar-selector-item border" data-cartoon-id="' + c.id + '" data-preview-url="' + previewSrc + '">' +
-                (previewSrc ? '<img src="' + previewSrc + '" class="card-img-top" style="aspect-ratio:3/2;object-fit:contain;background:#f8f9fa">' : '') +
+                (previewSrc ? '<img src="' + previewSrc + '" class="card-img-top" style="aspect-ratio:3/2;object-fit:contain;background:var(--bs-tertiary-bg)">' : '') +
                 '<div class="card-body p-1 text-center"><small class="title-clamp d-block" title="' + title + '">' + title + '</small></div>' +
                 '</div></div>';
         }

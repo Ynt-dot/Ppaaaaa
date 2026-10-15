@@ -40,10 +40,9 @@
     {% for cartoon in cartoons %}
     {% include 'cartoons/cartoon_card.html' with show_author=True %}
     {% empty %}
-    <div class="col-12">
-        <div class="alert alert-info">
-            Ничего не найдено{% if query %} по запросу «{{ query }}»{% endif %}.
-        </div>
+    <div class="col-12 hw-empty">
+        {% include 'cartoons/_ghost_empty.html' %}
+        <p class="hw-empty-hint">Ничего не найдено{% if query %} по запросу «{{ query }}»{% endif %}.</p>
     </div>
     {% endfor %}
 </div>

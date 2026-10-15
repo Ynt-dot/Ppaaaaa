@@ -17,6 +17,22 @@ class UnicodeJSONEncoder(DjangoJSONEncoder):
         super().__init__(*args, **kwargs)
 
 
+BACKGROUND_WHITE = '#ffffff'
+BACKGROUND_BLACK = '#000000'
+BACKGROUND_COLORS = (BACKGROUND_WHITE, BACKGROUND_BLACK)
+
+
+def normalize_frame_backgrounds(raw, frames_count):
+    """Список фонов ровно на frames_count кадров: неизвестные значения
+    и недостающие хвостовые кадры - белые (так рисовались все мульты до
+    появления фонов), лишние значения отбрасываются."""
+    raw = raw if isinstance(raw, list) else []
+    result = [c if c in BACKGROUND_COLORS else BACKGROUND_WHITE
+              for c in raw[:frames_count]]
+    result += [BACKGROUND_WHITE] * (frames_count - len(result))
+    return result
+
+
 class Cartoon(models.Model):
     title = models.CharField(max_length=100, verbose_name="Название")
     author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
@@ -44,12 +60,23 @@ class Cartoon(models.Model):
     continuation_of = models.ForeignKey(
         'self', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='continuations', verbose_name="Оригинал")
+    # Фон каждого кадра (#ffffff / #000000), параллельно frames_data.
+    # Кадры прозрачные - фон подкладывается под них при сборке GIF, в
+    # плеере и в редакторе. Пустой список у старых мультов = все белые;
+    # читать через frame_backgrounds_full().
+    frame_backgrounds = models.JSONField(
+        default=list, blank=True, verbose_name="Фоны кадров")
 
     class Meta:
         ordering = ['-created_at']  # сортировка по новизне
 
     def __str__(self):
         return self.title
+
+    def frame_backgrounds_full(self):
+        """Фоны всех кадров, по одному на каждый кадр frames_data."""
+        frames = self.frames_data if isinstance(self.frames_data, list) else []
+        return normalize_frame_backgrounds(self.frame_backgrounds, len(frames))
 
 
 class EmailVerificationToken(models.Model):
@@ -93,8 +120,13 @@ class CartoonLike(models.Model):
 
 
 class Comment(models.Model):
+    # Комментарий относится либо к мульту (cartoon), либо к отдельной
+    # странице сайта - сейчас это страницы конкурсов (page = имя конкурса,
+    # см. views.contest). Ровно одно из двух заполнено.
     cartoon = models.ForeignKey(Cartoon, on_delete=models.CASCADE,
-                                related_name='comments')
+                                related_name='comments',
+                                null=True, blank=True)
+    page = models.CharField(max_length=50, blank=True, db_index=True)
     parent = models.ForeignKey('self', on_delete=models.CASCADE,
                                null=True, blank=True, related_name='replies')
     level = models.PositiveSmallIntegerField(default=0)
@@ -120,6 +152,8 @@ class Comment(models.Model):
         ]
 
     def __str__(self):
+        if self.cartoon_id is None:
+            return f"Комментарий на странице «{self.page}»"
         return f"Комментарий к «{self.cartoon}»"
 
     def display_author(self):

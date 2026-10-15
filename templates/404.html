@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Страница не найдена{% endblock %}
+
+{% block content %}
+<div class="hw-empty hw-404">
+    <svg class="hw-ghost" viewBox="0 0 40 48" aria-hidden="true"><path class="hw-ghost-body" d="M4 22A16 16 0 0 1 36 22V44L31 40L26 44L20 40L14 44L9 40L4 44Z"/><ellipse class="hw-ghost-face" cx="14.5" cy="21" rx="2.3" ry="3.2"/><ellipse class="hw-ghost-face" cx="25.5" cy="21" rx="2.3" ry="3.2"/><ellipse class="hw-ghost-face" cx="20" cy="30" rx="2.6" ry="3.4"/></svg>
+    <h1 class="hw-404-title">Эта страница ушла на кладбище</h1>
+    <p class="hw-empty-hint">Ошибка 404: такой страницы нет - или её удалили.</p>
+    <a class="btn btn-success mt-3" href="{% url 'index' %}">Вернуться к живым</a>
+</div>
+{% endblock %}
