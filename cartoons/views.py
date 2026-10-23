@@ -5,7 +5,9 @@ from .models import (
     BACKGROUND_BLACK, BACKGROUND_WHITE, normalize_frame_backgrounds,
 )
 import json
+import logging
 import re
+import time
 from collections import Counter
 from .utils import create_gif_from_frames, create_avatar_gif
 from django.contrib.auth import login, update_session_auth_hash
@@ -23,6 +25,12 @@ from django.conf import settings
 from django.http import JsonResponse, HttpResponseForbidden, QueryDict, Http404
 from django.template import engines
 from django.utils.html import strip_tags
+
+logger = logging.getLogger(__name__)
+
+# Сохранение мульта дольше этого - предупреждение в лог: на хостинге
+# прокси обрывает долгие запросы (504), а по логу видно реальное время.
+SLOW_SAVE_SECONDS = 10
 from django.views.decorators.http import require_POST, require_GET
 from django.db.models import (
     Count, Q, F, Case, When, Value, IntegerField, OuterRef, Subquery,
@@ -1324,6 +1332,7 @@ def editor(request, pk=None):
             continuation_source = None
 
     if request.method == 'POST':
+        save_started = time.monotonic()
         title = request.POST.get('title', '')[:100]
         fps_str = request.POST.get('fps', '10')
         frames_json = request.POST.get('frames')
@@ -1421,6 +1430,13 @@ def editor(request, pk=None):
         cartoon.preview.save(f'cartoon_{cartoon.pk or "new"}.gif', gif_content,
                              save=False)
         cartoon.save()
+
+        elapsed = time.monotonic() - save_started
+        if elapsed > SLOW_SAVE_SECONDS:
+            logger.warning(
+                'Медленное сохранение мульта %s: %.1f с, кадров %d, '
+                'тело запроса %.1f МБ', cartoon.pk, elapsed, len(frames_data),
+                len(frames_json) / 1024 / 1024)
 
         return redirect('detail', pk=cartoon.pk)
 

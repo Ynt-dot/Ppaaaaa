@@ -159,3 +159,23 @@ class PlayerBackgroundTests(TestCase):
             resp,
             '<script id="frame-backgrounds-data" type="application/json">'
             '["#000000", "#ffffff"]</script>')
+
+
+class ShrinkFrameTests(TestCase):
+    def test_fast_path_keeps_light_edges(self):
+        # белая полоса до x=2502: блок 2500-2504 при уменьшении в 5 раз
+        # закрыт на 2/5 - край должен остаться белым, полупрозрачным, а
+        # не серым (если усреднять цвет без учёта альфы - тёмный ободок)
+        from cartoons.utils import _shrink_frame
+        img = Image.new('RGBA', (3000, 2000), (0, 0, 0, 0))
+        img.paste((255, 255, 255, 255), (0, 0, 2502, 2000))
+        small = _shrink_frame(img, (600, 400))
+        self.assertEqual(small.size, (600, 400))
+        r, g, b, a = small.getpixel((500, 10))
+        self.assertGreater(min(r, g, b), 245)
+        self.assertTrue(90 <= a <= 115, a)
+
+    def test_other_sizes_still_resized(self):
+        from cartoons.utils import _shrink_frame
+        img = Image.new('RGBA', (1234, 567), (255, 0, 0, 255))
+        self.assertEqual(_shrink_frame(img, (600, 400)).size, (600, 400))

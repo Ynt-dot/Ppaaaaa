@@ -18,6 +18,20 @@ except UnicodeEncodeError:
     DNS_NAME._fqdn = 'localhost'
 
 
+def _shrink_frame(img, size):
+    """Уменьшает прозрачный RGBA-кадр до size. Кадры редактора - 3000x2000,
+    ровно в 5 раз больше GIF: для кратного размера - быстрый reduce()
+    (в ~2.5 раза быстрее LANCZOS, на сохранении длинного мульта это
+    секунды; результат совпадает с точностью до единиц яркости).
+    Прозрачность Pillow учитывает сам - тёмной каймы вокруг светлых
+    штрихов не будет (см. ShrinkFrameTests). Остальные размеры - как
+    раньше, через LANCZOS."""
+    factor = img.width // size[0]
+    if factor > 1 and img.size == (size[0] * factor, size[1] * factor):
+        return img.reduce(factor)
+    return img.resize(size, Image.LANCZOS)
+
+
 def create_gif_from_frames(frames_data, fps=12, max_frames=None,
                            backgrounds=None):
     """
@@ -41,10 +55,10 @@ def create_gif_from_frames(frames_data, fps=12, max_frames=None,
         format, imgstr = data_url.split(';base64,')
         image_data = base64.b64decode(imgstr)
         img = Image.open(BytesIO(image_data)).convert('RGBA')
-        canvas = Image.new('RGB', img.size, bg_rgb)
+        if img.size != GIF_SIZE:
+            img = _shrink_frame(img, GIF_SIZE)
+        canvas = Image.new('RGB', GIF_SIZE, bg_rgb)
         canvas.paste(img, (0, 0), img)
-        if canvas.size != GIF_SIZE:
-            canvas = canvas.resize(GIF_SIZE, Image.LANCZOS)
         images.append(canvas)
 
     if not images:
